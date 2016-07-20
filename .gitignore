@@ -1,0 +1,15 @@
+.DS_Store
+.dropbox
+*.out
+Icon
+*.pyc
+*.bak
+*.lcl
+*.conf
+*.config
+*.json
+*.pickle
+*.c
+*.cpp
+*.o
+*.h
