@@ -20,7 +20,7 @@ This document assumes the reader is familiar with the Python programming languag
 
 Attribution is requested to be given with the following information:
 
-    Title: "DMRlink"
+    Title: "HBlink"
     Source: "http://github.com/n0mjs710/HBlink"
 
     Author: "K0USY Group"
