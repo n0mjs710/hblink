@@ -6,6 +6,7 @@ Icon
 *.bak
 *.lcl
 *.conf
+hblink.cfg
 *.config
 *.json
 *.pickle
