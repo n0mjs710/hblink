@@ -8,18 +8,26 @@
 
 from __future__ import print_function
 
-import ConfigParser
+# Python modules we need
 import argparse
 import sys
 import os
-import log
 
+# Specifig functions from modules we need
 from binascii import b2a_hex as h
-from socket import gethostbyname 
+from socket import gethostbyname
+from pprint import pprint
 
+# Twisted is pretty important, so I keep it separate
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 
+# Other files we pull from -- this is mostly for readability and segmentation
+import hb_log
+import hb_config
+import hb_message_types
+
+# Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
 __copyright__  = 'Copyright (c) 2013 - 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
 __credits__    = 'Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
@@ -28,89 +36,34 @@ __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 __status__     = 'pre-alpha'
 
+
 # Change the current directory to the location of the application
 os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--config', action='store', dest='CFG_FILE', help='/full/path/to/config.file (usually hblink.cfg)')
 
+# CLI argument parser - handles picking up the config file from the command line, and sending a "help" message
+parser = argparse.ArgumentParser()
+parser.add_argument('-c', '--config', action='store', dest='CONFIG_FILE', help='/full/path/to/config.file (usually hblink.cfg)')
+parser.add_argument('-l', '--logging', action='store', dest='LOG_LEVEL', help='Override config file logging level.')
 cli_args = parser.parse_args()
 
-#************************************************
-#     PARSE THE CONFIG FILE AND BUILD STRUCTURE
-#************************************************
 
-CLIENTS = {}
-MASTERS = {}
-config = ConfigParser.ConfigParser()
-
-if not cli_args.CFG_FILE:
-    cli_args.CFG_FILE = os.path.dirname(os.path.abspath(__file__))+'/hblink.cfg'
-try:
-    if not config.read(cli_args.CFG_FILE):
-        sys.exit('Configuration file \''+cli_args.CFG_FILE+'\' is not a valid configuration file! Exiting...')        
-except:    
-    sys.exit('Configuration file \''+cli_args.CFG_FILE+'\' is not a valid configuration file! Exiting...')
-
-try:
-    for section in config.sections():
-        if section == 'GLOBAL':
-            # Process GLOBAL items in the configuration
-            PATH = config.get(section, 'PATH')
-        
-        elif section == 'LOGGER':
-            # Process LOGGER items in the configuration
-            LOGGER = {
-                'LOG_FILE': config.get(section, 'LOG_FILE'),
-                'LOG_HANDLERS': config.get(section, 'LOG_HANDLERS'),
-                'LOG_LEVEL': config.get(section, 'LOG_LEVEL'),
-                'LOG_NAME': config.get(section, 'LOG_NAME')
-            }
-        
-        elif config.getboolean(section, 'ENABLED'):
-            # HomeBrew Client (Repeater) Configuration(s)
-            if config.get(section, 'MODE') == 'CLIENT':
-                CLIENTS.update({section: {
-                    'ENABLED': config.getboolean(section, 'ENABLED'),
-                    'IP': gethostbyname(config.get(section, 'IP')),
-                    'PORT': config.getint(section, 'PORT'),
-                    'MASTER_IP': gethostbyname(config.get(section, 'MASTER_IP')),
-                    'MASTER_PORT': config.getint(section, 'MASTER_PORT'),
-                    'PASSPHRASE': config.get(section, 'PASSPHRASE'),
-                    'CALLSIGN': config.get(section, 'CALLSIGN'),
-                    'RADIO_ID': hex(int(config.get(section, 'RADIO_ID')))[2:].rjust(8,'0').decode('hex'),
-                    'RX_FREQ': config.get(section, 'RX_FREQ'),
-                    'TX_FREQ': config.get(section, 'TX_FREQ'),
-                    'TX_POWER': config.get(section, 'TX_POWER'),
-                    'COLORCODE': config.get(section, 'COLORCODE'),
-                    'LATITUDE': config.get(section, 'LATITUDE'),
-                    'LONGITUDE': config.get(section, 'LONGITUDE'),
-                    'HEIGHT': config.get(section, 'HEIGHT'),
-                    'LOCATION': config.get(section, 'LOCATION'),
-                    'DESCRIPTION': config.get(section, 'DESCRIPTION'),
-                    'URL': config.get(section, 'URL'),
-                    'SOFTWARE_ID': config.get(section, 'SOFTWARE_ID'),
-                    'PACKAGE_ID': config.get(section, 'PACKAGE_ID')
-                }})
-                
-            elif config.get(section, 'MODE') == 'MASTER':
-                # HomeBrew Master Configuration
-                MASTERS.update({section: {
-                    'ENABLED': config.getboolean(section, 'ENABLED'),
-                    'IP': gethostbyname(config.get(section, 'IP')),
-                    'PORT': config.getint(section, 'PORT'),
-                    'PASSPHRASE': config.get(section, 'PASSPHRASE')
-                }})
-            
-except:
-    sys.exit('Could not parse configuration file, exiting...')
+# Ensure we have a path for the config file, if one wasn't specified, then use the execution directory
+if not cli_args.CONFIG_FILE:
+    cli_args.CONFIG_FILE = os.path.dirname(os.path.abspath(__file__))+'/hblink.cfg'
 
 
-#************************************************
-#     CONFIGURE THE SYSTEM LOGGER
-#************************************************
+# Call the external routine to build the configuration dictionary
+CONFIG = hb_config.build_config(cli_args.CONFIG_FILE)
 
-logger = log.config_logging(LOGGER)
+
+# Call the external routing to start the system logger
+if cli_args.LOG_LEVEL:
+    CONFIG['LOGGER']['LOG_LEVEL'] = cli_args.LOG_LEVEL
+logger = hb_log.config_logging(CONFIG['LOGGER'])
+logger.debug('Logging system started, anything from here on gets logged')
+
+
 
 #************************************************
 #     HERE ARE THE IMPORTANT PARTS
@@ -125,6 +78,7 @@ class HBCLIENT(DatagramProtocol):
         pass
 
 
+
 #************************************************
 #      MAIN PROGRAM LOOP STARTS HERE
 #************************************************
@@ -134,15 +88,17 @@ if __name__ == '__main__':
     
     # HBlink Master
     masters = {}
-    for master in MASTERS:
-        if MASTERS[master]['ENABLED']:
+    for master in CONFIG['MASTERS']:
+        if CONFIG['MASTERS'][master]['ENABLED']:
             masters[master] = HBMASTER(master)
-            reactor.listenUDP(MASTERS[master]['PORT'], masters[master], interface=MASTERS[master]['IP'])
+            reactor.listenUDP(CONFIG['MASTERS'][master]['PORT'], masters[master], interface=CONFIG['MASTERS'][master]['IP'])
+            logger.debug('MASTER instance created: %s, %s', master, masters[master])
         
     clients = {}
-    for client in CLIENTS:
-        if CLIENTS[client]['ENABLED']:
+    for client in CONFIG['CLIENTS']:
+        if CONFIG['CLIENTS'][client]['ENABLED']:
             clients[client] = HBCLIENT(client)
-            reactor.listenUDP(CLIENTS[client]['PORT'], clients[client], interface=CLIENTS[client]['IP'])
+            reactor.listenUDP(CONFIG['CLIENTS'][client]['PORT'], clients[client], interface=CONFIG['CLIENTS'][client]['IP'])
+            logger.debug('CLIENT instance created: %s, %s', client, clients[client])
 
     reactor.run()
