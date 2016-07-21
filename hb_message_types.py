@@ -14,7 +14,7 @@ MSTACK  = 'MSTACK'  # Master acknowledgement, MSTACK+ID
                     #   if in response to a login, MSTACK+ID+(random 32-bit integer (as a string))
 RPTK    = 'RPTK'    # See explantation elsewhere about passphrase, ID and SHA-256 hash!
 MSTPING = 'MSTPING' # From the repeater, MSTPING+ID
-RPTPONG = 'MSTPONG' # From the master, MSTPONG+ID
+RPTPONG = 'RPTPONG' # From the master, MSTPONG+ID
 MSTCL   = 'MSTCL'   # From the master, MSTCL+ID indicates close-down of the master
 RPTCL   = 'RPTCL'   # From the repeater, RPTCL+ID indicates close-down of the repeater
 RPTC    = 'RPTC'    # From the repeater, information packet about the repeater

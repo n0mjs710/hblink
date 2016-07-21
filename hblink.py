@@ -17,6 +17,7 @@ import os
 from binascii import b2a_hex as h
 from socket import gethostbyname
 from random import randint
+from hashlib import sha256
 
 # Debugging functions
 from pprint import pprint
@@ -29,7 +30,7 @@ from twisted.internet import task
 # Other files we pull from -- this is mostly for readability and segmentation
 import hb_log
 import hb_config
-import hb_message_types
+from hb_message_types import *
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -87,23 +88,55 @@ class HBCLIENT(DatagramProtocol):
         if len(args) == 1:
             self._client = args[0]
             self._config = CONFIG['CLIENTS'][self._client]
+            self._stats = self._config['STATS']
         else:
             # If we didn't get called correctly, log it!
             logger.error('(%s) HBCLIENT was not called with an argument. Terminating', self._client)
             sys.exit()
             
+    def send_packet(self, _packet):
+        print('did this')
+        self.transport.write(_packet, (self._config['MASTER_IP'], self._config['MASTER_PORT']))
+        # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
+        logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))        
+            
     def startProtocol(self):
-        
         # Set up periodic loop for sending pings to the master. Run every minute
         self._peer_maintenance = task.LoopingCall(self.peer_maintenance_loop)
-        self._peer_maintenance_loop = self._peer_maintenance.start(60)
+        self._peer_maintenance_loop = self._peer_maintenance.start(10)
         
     def peer_maintenance_loop(self):
-        ###### Need to add check to see if the peer is connected, and only do this if it is.
+        if self._stats['CONNECTED'] == False:
+            self.send_packet(RPTL+self._config['RADIO_ID'])
+            
         logger.debug('(%s) Sending ping to Master', self._client)
+        ###### change timing after connected: self._peer_maintenance_loop = self._peer_maintenance._reschedule(60)
         
-    def datagramReceived(self, data, (host, port)):
-        print(data)
+    def send_packet(self, _packet):
+        self.transport.write(_packet, (self._config['MASTER_IP'], self._config['MASTER_PORT']))
+        # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
+        logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
+    
+    def datagramReceived(self, _data, (_host, _port)):
+        
+        _command = _data[:4]
+        if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
+            print('DMRD Received')
+        elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
+            print('MSTNAC Received')
+        elif _command == 'RPTA':    # Actually MSTACK -- an ACK from the master
+            _login_int32 = _data[6:11]
+            logger.info('(%s) Repeater Login ACK Received with 32bit ID: %s', self._client, h(_login_int32))
+            self.send_packet('RPTK'+self._config['RADIO_ID']+sha256(h(_login_int32).upper()+self._config['PASSPHRASE']).hexdigest())
+        elif _command == 'RPTP':    # Actually RPTPONG -- a reply to MSTPING (send by client)
+            print('RPTPONG Received')
+        elif _command == 'MSTC':    # Actually MSTCL -- notify the master this client is closing
+            print('MSTCL Recieved')
+        else:
+            logger.error('(%s) Received an invalid command in packet: %s', self._client, h(_data))
+ 
+    
+        print('Received Packet:', h(_data))
 
 
 #************************************************
