@@ -12,9 +12,8 @@ import ConfigParser
 import argparse
 import sys
 import os
-import logging
+import log
 
-from logging.config import dictConfig
 from binascii import b2a_hex as h
 from socket import gethostbyname 
 
@@ -42,6 +41,7 @@ cli_args = parser.parse_args()
 #************************************************
 
 CLIENTS = {}
+MASTERS = {}
 config = ConfigParser.ConfigParser()
 
 if not cli_args.CFG_FILE:
@@ -66,40 +66,41 @@ try:
                 'LOG_LEVEL': config.get(section, 'LOG_LEVEL'),
                 'LOG_NAME': config.get(section, 'LOG_NAME')
             }
-            
-        elif section == 'MASTER':
-            # HomeBrew Master Configuration
-            MASTER = {
-                'ENABLED': config.getboolean(section, 'ENABLED'),
-                'IP': gethostbyname(config.get(section, 'IP')),
-                'PORT': config.getint(section, 'PORT'),
-                'PASSPHRASE': config.get(section, 'PASSPHRASE')
-            }
         
         elif config.getboolean(section, 'ENABLED'):
             # HomeBrew Client (Repeater) Configuration(s)
-            CLIENTS.update({section: {
-                'ENABLED': config.getboolean(section, 'ENABLED'),
-                'IP': gethostbyname(config.get(section, 'IP')),
-                'PORT': config.getint(section, 'PORT'),
-                'MASTER_IP': gethostbyname(config.get(section, 'MASTER_IP')),
-                'MASTER_PORT': config.getint(section, 'MASTER_PORT'),
-                'PASSPHRASE': config.get(section, 'PASSPHRASE'),
-                'CALLSIGN': config.get(section, 'CALLSIGN'),
-                'RADIO_ID': hex(int(config.get(section, 'RADIO_ID')))[2:].rjust(8,'0').decode('hex'),
-                'RX_FREQ': config.get(section, 'RX_FREQ'),
-                'TX_FREQ': config.get(section, 'TX_FREQ'),
-                'TX_POWER': config.get(section, 'TX_POWER'),
-                'COLORCODE': config.get(section, 'COLORCODE'),
-                'LATITUDE': config.get(section, 'LATITUDE'),
-                'LONGITUDE': config.get(section, 'LONGITUDE'),
-                'HEIGHT': config.get(section, 'HEIGHT'),
-                'LOCATION': config.get(section, 'LOCATION'),
-                'DESCRIPTION': config.get(section, 'DESCRIPTION'),
-                'URL': config.get(section, 'URL'),
-                'SOFTWARE_ID': config.get(section, 'SOFTWARE_ID'),
-                'PACKAGE_ID': config.get(section, 'PACKAGE_ID')
-            }})
+            if config.get(section, 'MODE') == 'CLIENT':
+                CLIENTS.update({section: {
+                    'ENABLED': config.getboolean(section, 'ENABLED'),
+                    'IP': gethostbyname(config.get(section, 'IP')),
+                    'PORT': config.getint(section, 'PORT'),
+                    'MASTER_IP': gethostbyname(config.get(section, 'MASTER_IP')),
+                    'MASTER_PORT': config.getint(section, 'MASTER_PORT'),
+                    'PASSPHRASE': config.get(section, 'PASSPHRASE'),
+                    'CALLSIGN': config.get(section, 'CALLSIGN'),
+                    'RADIO_ID': hex(int(config.get(section, 'RADIO_ID')))[2:].rjust(8,'0').decode('hex'),
+                    'RX_FREQ': config.get(section, 'RX_FREQ'),
+                    'TX_FREQ': config.get(section, 'TX_FREQ'),
+                    'TX_POWER': config.get(section, 'TX_POWER'),
+                    'COLORCODE': config.get(section, 'COLORCODE'),
+                    'LATITUDE': config.get(section, 'LATITUDE'),
+                    'LONGITUDE': config.get(section, 'LONGITUDE'),
+                    'HEIGHT': config.get(section, 'HEIGHT'),
+                    'LOCATION': config.get(section, 'LOCATION'),
+                    'DESCRIPTION': config.get(section, 'DESCRIPTION'),
+                    'URL': config.get(section, 'URL'),
+                    'SOFTWARE_ID': config.get(section, 'SOFTWARE_ID'),
+                    'PACKAGE_ID': config.get(section, 'PACKAGE_ID')
+                }})
+                
+            elif config.get(section, 'MODE') == 'MASTER':
+                # HomeBrew Master Configuration
+                MASTERS.update({section: {
+                    'ENABLED': config.getboolean(section, 'ENABLED'),
+                    'IP': gethostbyname(config.get(section, 'IP')),
+                    'PORT': config.getint(section, 'PORT'),
+                    'PASSPHRASE': config.get(section, 'PASSPHRASE')
+                }})
             
 except:
     sys.exit('Could not parse configuration file, exiting...')
@@ -109,61 +110,7 @@ except:
 #     CONFIGURE THE SYSTEM LOGGER
 #************************************************
 
-dictConfig({
-    'version': 1,
-    'disable_existing_loggers': False,
-    'filters': {
-    },
-    'formatters': {
-        'verbose': {
-            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
-        },
-        'timed': {
-            'format': '%(levelname)s %(asctime)s %(message)s'
-        },
-        'simple': {
-            'format': '%(levelname)s %(message)s'
-        },
-        'syslog': {
-            'format': '%(name)s (%(process)d): %(levelname)s %(message)s'
-        }
-    },
-    'handlers': {
-        'null': {
-            'class': 'logging.NullHandler'
-        },
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple'
-        },
-        'console-timed': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'timed'
-        },
-        'file': {
-            'class': 'logging.FileHandler',
-            'formatter': 'simple',
-            'filename': LOGGER['LOG_FILE'],
-        },
-        'file-timed': {
-            'class': 'logging.FileHandler',
-            'formatter': 'timed',
-            'filename': LOGGER['LOG_FILE'],
-        },
-        'syslog': {
-            'class': 'logging.handlers.SysLogHandler',
-            'formatter': 'syslog',
-        }
-    },
-    'loggers': {
-        LOGGER['LOG_NAME']: {
-            'handlers': LOGGER['LOG_HANDLERS'].split(','),
-            'level': LOGGER['LOG_LEVEL'],
-            'propagate': True,
-        }
-    }
-})
-logger = logging.getLogger(LOGGER['LOG_NAME'])
+logger = log.config_logging(LOGGER)
 
 #************************************************
 #     HERE ARE THE IMPORTANT PARTS
@@ -186,9 +133,11 @@ if __name__ == '__main__':
     logger.info('HBlink \'HBlink.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     
     # HBlink Master
-    if MASTER:
-        hbmaster = HBMASTER()
-        reactor.listenUDP(MASTER['PORT'], hbmaster, interface=MASTER['IP'])
+    masters = {}
+    for master in MASTERS:
+        if MASTERS[master]['ENABLED']:
+            masters[master] = HBMASTER(master)
+            reactor.listenUDP(MASTERS[master]['PORT'], masters[master], interface=MASTERS[master]['IP'])
         
     clients = {}
     for client in CLIENTS:
