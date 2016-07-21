@@ -16,11 +16,15 @@ import os
 # Specifig functions from modules we need
 from binascii import b2a_hex as h
 from socket import gethostbyname
+from random import randint
+
+# Debugging functions
 from pprint import pprint
 
 # Twisted is pretty important, so I keep it separate
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
+from twisted.internet import task
 
 # Other files we pull from -- this is mostly for readability and segmentation
 import hb_log
@@ -72,11 +76,34 @@ logger.debug('Logging system started, anything from here on gets logged')
 class HBMASTER(DatagramProtocol):
     def __init__(self, *args, **kwargs):
         pass
+        
+    def startProtocol(self):
+        pass
+    
+    
     
 class HBCLIENT(DatagramProtocol):
     def __init__(self, *args, **kwargs):
-        pass
-
+        if len(args) == 1:
+            self._client = args[0]
+            self._config = CONFIG['CLIENTS'][self._client]
+        else:
+            # If we didn't get called correctly, log it!
+            logger.error('(%s) HBCLIENT was not called with an argument. Terminating', self._client)
+            sys.exit()
+            
+    def startProtocol(self):
+        
+        # Set up periodic loop for sending pings to the master. Run every minute
+        self._peer_maintenance = task.LoopingCall(self.peer_maintenance_loop)
+        self._peer_maintenance_loop = self._peer_maintenance.start(60)
+        
+    def peer_maintenance_loop(self):
+        ###### Need to add check to see if the peer is connected, and only do this if it is.
+        logger.debug('(%s) Sending ping to Master', self._client)
+        
+    def datagramReceived(self, data, (host, port)):
+        print(data)
 
 
 #************************************************
