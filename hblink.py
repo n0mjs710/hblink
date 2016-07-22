@@ -15,6 +15,7 @@ import os
 
 # Specifig functions from modules we need
 from binascii import b2a_hex as h
+from binascii import a2b_hex as a
 from socket import gethostbyname
 from random import randint
 from hashlib import sha256
@@ -124,10 +125,11 @@ class HBCLIENT(DatagramProtocol):
             print('DMRD Received')
         elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
             print('MSTNAC Received')
-        elif _command == 'RPTA':    # Actually MSTACK -- an ACK from the master
-            _login_int32 = _data[6:11]
+        elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
+            _login_int32 = _data[6:10]
             logger.info('(%s) Repeater Login ACK Received with 32bit ID: %s', self._client, h(_login_int32))
-            self.send_packet('RPTK'+self._config['RADIO_ID']+sha256(h(_login_int32).upper()+self._config['PASSPHRASE']).hexdigest())
+            _pass_hash = a(sha256(h(_login_int32).upper()+self._config['PASSPHRASE']).hexdigest())
+            self.send_packet('RPTK'+self._config['RADIO_ID']+_pass_hash)
         elif _command == 'RPTP':    # Actually RPTPONG -- a reply to MSTPING (send by client)
             print('RPTPONG Received')
         elif _command == 'MSTC':    # Actually MSTCL -- notify the master this client is closing
