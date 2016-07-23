@@ -23,7 +23,8 @@ def build_config(_config_file):
                 
                 # Process GLOBAL items in the configuration
                 CONFIG['GLOBAL'].update({
-                    'PATH': config.get(section, 'PATH')
+                    'PATH': config.get(section, 'PATH'),
+                    'PING_TIME': config.getint(section, 'PING_TIME')
                 })
 
             elif section == 'LOGGER':
@@ -49,13 +50,14 @@ def build_config(_config_file):
                         'RADIO_ID': hex(int(config.get(section, 'RADIO_ID')))[2:].rjust(8,'0').decode('hex'),
                         'RX_FREQ': config.get(section, 'RX_FREQ').rjust(9),
                         'TX_FREQ': config.get(section, 'TX_FREQ').rjust(9),
-                        'TX_POWER': config.get(section, 'TX_POWER').rjust(2),
-                        'COLORCODE': config.get(section, 'COLORCODE').rjust(2),
+                        'TX_POWER': config.get(section, 'TX_POWER').rjust(2,'0'),
+                        'COLORCODE': config.get(section, 'COLORCODE').rjust(2,'0'),
                         'LATITUDE': config.get(section, 'LATITUDE').rjust(8),
                         'LONGITUDE': config.get(section, 'LONGITUDE').rjust(9),
-                        'HEIGHT': config.get(section, 'HEIGHT').rjust(3),
+                        'HEIGHT': config.get(section, 'HEIGHT').rjust(3,'0'),
                         'LOCATION': config.get(section, 'LOCATION').rjust(20),
-                        'DESCRIPTION': config.get(section, 'DESCRIPTION').rjust(20),
+                        'DESCRIPTION': config.get(section, 'DESCRIPTION').rjust(19),
+                        'SLOTS': config.get(section, 'SLOTS'),
                         'URL': config.get(section, 'URL').rjust(124),
                         'SOFTWARE_ID': config.get(section, 'SOFTWARE_ID').rjust(40),
                         'PACKAGE_ID': config.get(section, 'PACKAGE_ID').rjust(40)

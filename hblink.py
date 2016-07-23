@@ -12,6 +12,7 @@ from __future__ import print_function
 import argparse
 import sys
 import os
+import signal
 
 # Specifig functions from modules we need
 from binascii import b2a_hex as h
@@ -31,12 +32,11 @@ from twisted.internet import task
 # Other files we pull from -- this is mostly for readability and segmentation
 import hb_log
 import hb_config
-from hb_message_types import *
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
 __copyright__  = 'Copyright (c) 2013 - 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
-__credits__    = 'Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
+__credits__    = 'Colin Durbridge, G4EML, Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
 __license__    = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
@@ -69,7 +69,20 @@ if cli_args.LOG_LEVEL:
 logger = hb_log.config_logging(CONFIG['LOGGER'])
 logger.debug('Logging system started, anything from here on gets logged')
 
+# Shut ourselves down gracefully by disconnecting from the masters and clients.
+def handler(_signal, _frame):
+    logger.info('*** HBLINK IS TERMINATING WITH SIGNAL %s ***', str(_signal))
+    
+    for client in clients:
+        this_client = clients[client]
+        this_client.send_packet('RPTCL'+CONFIG['CLIENTS'][client]['RADIO_ID'])
+        logger.info('(%s) De-Registering From the Master', client)
+    
+    reactor.stop()
 
+# Set signal handers so that we can gracefully exit if need be
+for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGQUIT]:
+    signal.signal(sig, handler)
 
 #************************************************
 #     HERE ARE THE IMPORTANT PARTS
@@ -93,41 +106,39 @@ class HBCLIENT(DatagramProtocol):
         else:
             # If we didn't get called correctly, log it!
             logger.error('(%s) HBCLIENT was not called with an argument. Terminating', self._client)
-            sys.exit()
-            
-    def send_packet(self, _packet):
-        print('did this')
-        self.transport.write(_packet, (self._config['MASTER_IP'], self._config['MASTER_PORT']))
-        # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
-        logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))        
+            sys.exit()    
             
     def startProtocol(self):
         # Set up periodic loop for sending pings to the master. Run every minute
         self._peer_maintenance = task.LoopingCall(self.peer_maintenance_loop)
-        self._peer_maintenance_loop = self._peer_maintenance.start(10)
+        self._peer_maintenance_loop = self._peer_maintenance.start(CONFIG['GLOBAL']['PING_TIME'])
         
     def peer_maintenance_loop(self):
         if self._stats['CONNECTION'] == 'NO':
-            self.send_packet(RPTL+self._config['RADIO_ID'])
+            self._stats['PINGS_SENT'] = 0
+            self._stats['PINGS_ACKD'] = 0
             self._stats['CONNECTION'] = 'RTPL_SENT'
+            self.send_packet('RPTL'+self._config['RADIO_ID'])
             logger.debug('(%s) Sending login request to master', self._client)
         if self._stats['CONNECTION'] == 'YES':
             self.send_packet('RPTPING'+self._config['RADIO_ID'])
-            logger.debug('(%s) Ping Sent to Master', self._client)
+            self._stats['PINGS_SENT'] += 1
+            logger.info('(%s) RPTPING Sent to Master. Total Pings Since Connected: %s', self._client, self._stats['PINGS_SENT'])
         
     def send_packet(self, _packet):
         self.transport.write(_packet, (self._config['MASTER_IP'], self._config['MASTER_PORT']))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
-        logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
+        #logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
     
     def datagramReceived(self, _data, (_host, _port)):
         
         _command = _data[:4]
         if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
-            print('DMRD Received')
+            logger.debug('(%s) DMRD Received', self._client)
         
         elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
-            print('MSTNAC Received')
+            print('(%s) MSTNAC Received', self._client)
+            self._stats['CONNECTION'] = 'NO'
         
         elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
             if self._stats['CONNECTION'] == 'RTPL_SENT':
@@ -141,7 +152,7 @@ class HBCLIENT(DatagramProtocol):
             elif self._stats['CONNECTION'] == 'AUTHENTICATED':
                 if _data[6:10] == self._config['RADIO_ID']:
                     logger.info('(%s) Repeater Authentication Accepted', self._client)
-                    _config_packet =  str(int(h(self._config['RADIO_ID']), 16)).rjust(8)+\
+                    _config_packet =  self._config['RADIO_ID']+\
                                       self._config['CALLSIGN']+\
                                       self._config['RX_FREQ']+\
                                       self._config['TX_FREQ']+\
@@ -152,30 +163,34 @@ class HBCLIENT(DatagramProtocol):
                                       self._config['HEIGHT']+\
                                       self._config['LOCATION']+\
                                       self._config['DESCRIPTION']+\
+                                      self._config['SLOTS']+\
                                       self._config['URL']+\
                                       self._config['SOFTWARE_ID']+\
                                       self._config['PACKAGE_ID']
                                       
                     self.send_packet('RPTC'+_config_packet)
-                    print(len('RPTC'+_config_packet))
                     self._stats['CONNECTION'] = 'CONFIG-SENT'
+                    logger.info('(%s) Repeater Configuration Sent', self._client)
                     
             elif self._stats['CONNECTION'] == 'CONFIG-SENT':
                 if _data[6:10] == self._config['RADIO_ID']:
                     logger.info('(%s) Repeater Configuration Accepted', self._client)
                     self._stats['CONNECTION'] = 'YES'
+                    logger.info('(%s) Connection to Master Completed', self._client)
                 
         elif _command == 'MSTP':    # Actually MSTPONG -- a reply to RPTPING (send by client)
-            print('MSTPONG Received')
+            self._stats['PINGS_ACKD'] += 1
+            logger.info('(%s) MSTPONG Received. Total Pongs Since Connected: %s', self._client, self._stats['PINGS_ACKD'])
         
-        elif _command == 'MSTC':    # Actually MSTCL -- notify the master this client is closing
-            print('MSTCL Recieved')
+        elif _command == 'MSTC':    # Actually MSTCL -- notify us the master is closing down
+            self._stats['CONNECTION'] = 'NO'
+            logger.info('(%s) MSTCL Recieved', self._client)
         
         else:
             logger.error('(%s) Received an invalid command in packet: %s', self._client, h(_data))
  
     
-        print('Received Packet:', h(_data))
+        #print('Received Packet:', h(_data))
 
 
 #************************************************
