@@ -141,8 +141,8 @@ class HBCLIENT(DatagramProtocol):
             elif self._stats['CONNECTION'] == 'AUTHENTICATED':
                 if _data[6:10] == self._config['RADIO_ID']:
                     logger.info('(%s) Repeater Authentication Accepted', self._client)
-                    _config_packet =  self._config['CALLSIGN']+\
-                                      str(int(h(self._config['RADIO_ID']), 16)).rjust(8)+\
+                    _config_packet =  str(int(h(self._config['RADIO_ID']), 16)).rjust(8)+\
+                                      self._config['CALLSIGN']+\
                                       self._config['RX_FREQ']+\
                                       self._config['TX_FREQ']+\
                                       self._config['TX_POWER']+\
