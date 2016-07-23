@@ -61,7 +61,7 @@ def build_config(_config_file):
                         'PACKAGE_ID': config.get(section, 'PACKAGE_ID').rjust(40)
                     }})
                     CONFIG['CLIENTS'][section].update({'STATS': {
-                        'CONNECTION': 'NO',             # NO, RTPL_SENT, AUTHENTICATED, CONFIG, YES 
+                        'CONNECTION': 'NO',             # NO, RTPL_SENT, AUTHENTICATED, CONFIG-SENT, YES 
                         'PINGS_SENT': 0,
                         'PINGS_ACKD': 0,
                         'PING_OUTSTANDING': False,

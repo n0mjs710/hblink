@@ -112,8 +112,8 @@ class HBCLIENT(DatagramProtocol):
             self._stats['CONNECTION'] = 'RTPL_SENT'
             logger.debug('(%s) Sending login request to master', self._client)
         if self._stats['CONNECTION'] == 'YES':
-              logger.debug('(%s) Sending ping to Master', self._client)
-        ###### change timing after connected: self._peer_maintenance_loop = self._peer_maintenance._reschedule(60)
+            self.send_packet('RPTPING'+self._config['RADIO_ID'])
+            logger.debug('(%s) Ping Sent to Master', self._client)
         
     def send_packet(self, _packet):
         self.transport.write(_packet, (self._config['MASTER_IP'], self._config['MASTER_PORT']))
@@ -125,17 +125,19 @@ class HBCLIENT(DatagramProtocol):
         _command = _data[:4]
         if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
             print('DMRD Received')
+        
         elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
             print('MSTNAC Received')
+        
         elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
             if self._stats['CONNECTION'] == 'RTPL_SENT':
                 _login_int32 = _data[6:10]
                 logger.info('(%s) Repeater Login ACK Received with 32bit ID: %s', self._client, h(_login_int32))
-                
                 _pass_hash = sha256(_login_int32+self._config['PASSPHRASE']).hexdigest()
                 _pass_hash = a(_pass_hash)
                 self.send_packet('RPTK'+self._config['RADIO_ID']+_pass_hash)
                 self._stats['CONNECTION'] = 'AUTHENTICATED'
+            
             elif self._stats['CONNECTION'] == 'AUTHENTICATED':
                 if _data[6:10] == self._config['RADIO_ID']:
                     logger.info('(%s) Repeater Authentication Accepted', self._client)
@@ -156,11 +158,19 @@ class HBCLIENT(DatagramProtocol):
                                       
                     self.send_packet('RPTC'+_config_packet)
                     print(len('RPTC'+_config_packet))
+                    self._stats['CONNECTION'] = 'CONFIG-SENT'
+                    
+            elif self._stats['CONNECTION'] == 'CONFIG-SENT':
+                if _data[6:10] == self._config['RADIO_ID']:
+                    logger.info('(%s) Repeater Configuration Accepted', self._client)
+                    self._stats['CONNECTION'] = 'YES'
                 
-        elif _command == 'RPTP':    # Actually RPTPONG -- a reply to MSTPING (send by client)
-            print('RPTPONG Received')
+        elif _command == 'MSTP':    # Actually MSTPONG -- a reply to RPTPING (send by client)
+            print('MSTPONG Received')
+        
         elif _command == 'MSTC':    # Actually MSTCL -- notify the master this client is closing
             print('MSTCL Recieved')
+        
         else:
             logger.error('(%s) Received an invalid command in packet: %s', self._client, h(_data))
  
