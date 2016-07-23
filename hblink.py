@@ -140,7 +140,7 @@ class HBCLIENT(DatagramProtocol):
                 if _data[6:10] == self._config['RADIO_ID']:
                     logger.info('(%s) Repeater Authentication Accepted', self._client)
                     _config_packet =  self._config['CALLSIGN']+\
-                                      self._config['RADIO_ID']+\
+                                      str(int(h(self._config['RADIO_ID']), 16)).rjust(8)+\
                                       self._config['RX_FREQ']+\
                                       self._config['TX_FREQ']+\
                                       self._config['TX_POWER']+\
@@ -156,7 +156,6 @@ class HBCLIENT(DatagramProtocol):
                                       
                     self.send_packet('RPTC'+_config_packet)
                     print(len('RPTC'+_config_packet))
-                   
                 
         elif _command == 'RPTP':    # Actually RPTPONG -- a reply to MSTPING (send by client)
             print('RPTPONG Received')
