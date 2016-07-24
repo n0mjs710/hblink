@@ -20,6 +20,7 @@ from binascii import a2b_hex as a
 from socket import gethostbyname
 from random import randint
 from hashlib import sha256
+from time import time
 
 # Debugging functions
 from pprint import pprint
@@ -77,6 +78,11 @@ def handler(_signal, _frame):
         this_client = clients[client]
         this_client.send_packet('RPTCL'+CONFIG['CLIENTS'][client]['RADIO_ID'])
         logger.info('(%s) De-Registering From the Master', client)
+        
+    for master in masters:
+        this_master = masters[master]
+        for client in CONFIG['MASTERS'][master]['CLIENTS']:
+            this_master.send_packet(CONFIG['MASTERS'][master][client]['IP'], 'MSTCL'+CONFIG['MASTERS'][master][client]['RADIO_ID'])
     
     reactor.stop()
 
@@ -84,18 +90,78 @@ def handler(_signal, _frame):
 for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGQUIT]:
     signal.signal(sig, handler)
 
+
 #************************************************
-#     HERE ARE THE IMPORTANT PARTS
+#     UTILITY FUNCTIONS
+#************************************************
+
+
+#************************************************
+#     HB MASTER CLASS
 #************************************************
 
 class HBMASTER(DatagramProtocol):
     def __init__(self, *args, **kwargs):
-        pass
+        if len(args) == 1:
+            self._master = args[0]
+            self._config = CONFIG['MASTERS'][self._master]
+            self._clients = CONFIG['MASTERS'][self._master]['CLIENTS']
+        else:
+            # If we didn't get called correctly, log it!
+            logger.error('(%s) HBMASTER was not called with an argument. Terminating', self._master)
+            sys.exit()
         
     def startProtocol(self):
-        pass
+        # Set up periodic loop for tracking pings from clients. Run every 'PING_TIME' seconds
+        self._master_maintenance = task.LoopingCall(self.master_maintenance_loop)
+        self._master_maintenance_loop = self._master_maintenance.start(CONFIG['GLOBAL']['PING_TIME'])
     
-    
+    def master_maintenance_loop(self):
+        for client in self._clients:
+            logger.info('(%s) SOME MESSAGE ABOUT DE_REG', self._master)
+            
+    def send_packet(self, _client, _packet):
+        self.transport.write(_packet, (self._clients[client]['IP'], self._clients[client]['PORT']))
+        # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
+        #logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
+        
+    def datagramReceived(self, _data, (_host, _port)):
+        
+        _command = _data[:4]
+        if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
+            logger.debug('(%s) DMRD Received', self._master)
+            
+        elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
+            _radio_id = _data[4:8]
+            self._clients.update({_radio_id: {
+                'CONNECTION': 'RPTL-RECEIVED',
+                'PINGS_RECEIVED': 0,
+                'LAST_PING': 0,
+                'IP': _host,
+                'PORT': _port,
+                'SALT': randint(0,0xFFFFFFFF),
+                'RADIO_ID': str(int(h(_radio_id), 16)),
+                'CALLSIGN': '',
+                'RX_FREQ': '',
+                'TX_FREQ': '',
+                'TX_POWER': '',
+                'COLOR_CODE': '',
+                'LATITUDE': '',
+                'LONGITUDE': '',
+                'HEIGHT': '',
+                'LOCATION': '',
+                'DESCRIPTION': '',
+                'SLOTS': '',
+                'URL': '',
+                'SOFTWARE_ID': '',
+                'PACKAGE_ID': '',
+            }})
+            logger.info('(%s) Repeater Logging in with Radio ID: %s', self._master, h(_radio_id))
+            pprint(self._clients)
+            
+#************************************************
+#     HB CLIENT CLASS
+#************************************************            
     
 class HBCLIENT(DatagramProtocol):
     def __init__(self, *args, **kwargs):
@@ -109,17 +175,17 @@ class HBCLIENT(DatagramProtocol):
             sys.exit()    
             
     def startProtocol(self):
-        # Set up periodic loop for sending pings to the master. Run every minute
-        self._peer_maintenance = task.LoopingCall(self.peer_maintenance_loop)
-        self._peer_maintenance_loop = self._peer_maintenance.start(CONFIG['GLOBAL']['PING_TIME'])
+        # Set up periodic loop for sending pings to the master. Run every 'PING_TIME' seconds
+        self._client_maintenance = task.LoopingCall(self.client_maintenance_loop)
+        self._client_maintenance_loop = self._client_maintenance.start(CONFIG['GLOBAL']['PING_TIME'])
         
-    def peer_maintenance_loop(self):
+    def client_maintenance_loop(self):
         if self._stats['CONNECTION'] == 'NO':
             self._stats['PINGS_SENT'] = 0
             self._stats['PINGS_ACKD'] = 0
             self._stats['CONNECTION'] = 'RTPL_SENT'
             self.send_packet('RPTL'+self._config['RADIO_ID'])
-            logger.debug('(%s) Sending login request to master', self._client)
+            logger.info('(%s) Sending login request to master', self._client)
         if self._stats['CONNECTION'] == 'YES':
             self.send_packet('RPTPING'+self._config['RADIO_ID'])
             self._stats['PINGS_SENT'] += 1
@@ -171,12 +237,18 @@ class HBCLIENT(DatagramProtocol):
                     self.send_packet('RPTC'+_config_packet)
                     self._stats['CONNECTION'] = 'CONFIG-SENT'
                     logger.info('(%s) Repeater Configuration Sent', self._client)
+                else:
+                    self._stats['CONNECTION'] = 'NO'
+                    logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self._client)
                     
             elif self._stats['CONNECTION'] == 'CONFIG-SENT':
                 if _data[6:10] == self._config['RADIO_ID']:
                     logger.info('(%s) Repeater Configuration Accepted', self._client)
                     self._stats['CONNECTION'] = 'YES'
                     logger.info('(%s) Connection to Master Completed', self._client)
+                else:
+                    self._stats['CONNECTION'] = 'NO'
+                    logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self._client)
                 
         elif _command == 'MSTP':    # Actually MSTPONG -- a reply to RPTPING (send by client)
             self._stats['PINGS_ACKD'] += 1
@@ -189,8 +261,8 @@ class HBCLIENT(DatagramProtocol):
         else:
             logger.error('(%s) Received an invalid command in packet: %s', self._client, h(_data))
  
-    
-        #print('Received Packet:', h(_data))
+        # Keep This Line Commented Unless HEAVILY Debugging!
+        #logger.debug('(%s) Received Packet: %s', self._client, h(_data))
 
 
 #************************************************

@@ -79,6 +79,7 @@ def build_config(_config_file):
                         'PORT': config.getint(section, 'PORT'),
                         'PASSPHRASE': config.get(section, 'PASSPHRASE')
                     }})
+                    CONFIG['MASTERS'][section].update({'CLIENTS': {}})
     
     except:
         sys.exit('Could not parse configuration file, exiting...')
