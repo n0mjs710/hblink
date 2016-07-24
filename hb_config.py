@@ -24,7 +24,8 @@ def build_config(_config_file):
                 # Process GLOBAL items in the configuration
                 CONFIG['GLOBAL'].update({
                     'PATH': config.get(section, 'PATH'),
-                    'PING_TIME': config.getint(section, 'PING_TIME')
+                    'PING_TIME': config.getint(section, 'PING_TIME'),
+                    'MAX_MISSED': config.getint(section, 'MAX_MISSED')
                 })
 
             elif section == 'LOGGER':
@@ -46,21 +47,21 @@ def build_config(_config_file):
                         'MASTER_IP': gethostbyname(config.get(section, 'MASTER_IP')),
                         'MASTER_PORT': config.getint(section, 'MASTER_PORT'),
                         'PASSPHRASE': config.get(section, 'PASSPHRASE'),
-                        'CALLSIGN': config.get(section, 'CALLSIGN').rjust(8),
+                        'CALLSIGN': config.get(section, 'CALLSIGN').ljust(8),
                         'RADIO_ID': hex(int(config.get(section, 'RADIO_ID')))[2:].rjust(8,'0').decode('hex'),
-                        'RX_FREQ': config.get(section, 'RX_FREQ').rjust(9),
-                        'TX_FREQ': config.get(section, 'TX_FREQ').rjust(9),
+                        'RX_FREQ': config.get(section, 'RX_FREQ').ljust(9),
+                        'TX_FREQ': config.get(section, 'TX_FREQ').ljust(9),
                         'TX_POWER': config.get(section, 'TX_POWER').rjust(2,'0'),
                         'COLORCODE': config.get(section, 'COLORCODE').rjust(2,'0'),
-                        'LATITUDE': config.get(section, 'LATITUDE').rjust(8),
-                        'LONGITUDE': config.get(section, 'LONGITUDE').rjust(9),
+                        'LATITUDE': config.get(section, 'LATITUDE').ljust(9),
+                        'LONGITUDE': config.get(section, 'LONGITUDE').ljust(10),
                         'HEIGHT': config.get(section, 'HEIGHT').rjust(3,'0'),
-                        'LOCATION': config.get(section, 'LOCATION').rjust(20),
-                        'DESCRIPTION': config.get(section, 'DESCRIPTION').rjust(19),
+                        'LOCATION': config.get(section, 'LOCATION').ljust(20),
+                        'DESCRIPTION': config.get(section, 'DESCRIPTION').ljust(19),
                         'SLOTS': config.get(section, 'SLOTS'),
-                        'URL': config.get(section, 'URL').rjust(124),
-                        'SOFTWARE_ID': config.get(section, 'SOFTWARE_ID').rjust(40),
-                        'PACKAGE_ID': config.get(section, 'PACKAGE_ID').rjust(40)
+                        'URL': config.get(section, 'URL').ljust(124),
+                        'SOFTWARE_ID': config.get(section, 'SOFTWARE_ID').ljust(40),
+                        'PACKAGE_ID': config.get(section, 'PACKAGE_ID').ljust(40)
                     }})
                     CONFIG['CLIENTS'][section].update({'STATS': {
                         'CONNECTION': 'NO',             # NO, RTPL_SENT, AUTHENTICATED, CONFIG-SENT, YES 

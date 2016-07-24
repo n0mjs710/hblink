@@ -82,7 +82,9 @@ def handler(_signal, _frame):
     for master in masters:
         this_master = masters[master]
         for client in CONFIG['MASTERS'][master]['CLIENTS']:
-            this_master.send_packet(CONFIG['MASTERS'][master][client]['IP'], 'MSTCL'+CONFIG['MASTERS'][master][client]['RADIO_ID'])
+            this_master.send_packet(client, 'MSTCL'+client)
+            print(CONFIG['MASTERS'][master]['CLIENTS'][client]['RADIO_ID'])
+            logger.info('(%s) Sending De-Registration to Client: %s', master, CONFIG['MASTERS'][master]['CLIENTS'][client]['RADIO_ID'])
     
     reactor.stop()
 
@@ -95,7 +97,13 @@ for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGQUIT]:
 #     UTILITY FUNCTIONS
 #************************************************
 
-
+# Create a 4 byte hex string from an integer
+def hex_str_4(_int_id):
+    try:
+        return hex(_int_id)[2:].rjust(8,'0').decode('hex')
+    except TypeError:
+        logger.error('hex_str_4: invalid integer length')
+        
 #************************************************
 #     HB MASTER CLASS
 #************************************************
@@ -117,11 +125,21 @@ class HBMASTER(DatagramProtocol):
         self._master_maintenance_loop = self._master_maintenance.start(CONFIG['GLOBAL']['PING_TIME'])
     
     def master_maintenance_loop(self):
+        logger.debug('Master maintenance loop started')
         for client in self._clients:
-            logger.info('(%s) SOME MESSAGE ABOUT DE_REG', self._master)
+            _this_client = self._clients[client]
+            print(_this_client['LAST_PING'])
+            print(time())
+            print(CONFIG['GLOBAL']['PING_TIME'])
+            print(CONFIG['GLOBAL']['MAX_MISSED'])
             
+            if _this_client['LAST_PING']+CONFIG['GLOBAL']['PING_TIME']*CONFIG['GLOBAL']['MAX_MISSED'] < time():
+                logger.info('(%s) Client %s has timed out', self._master, _this_client['RADIO_ID'])
+                del _this_client
+                pprint(_this_client)
+        
     def send_packet(self, _client, _packet):
-        self.transport.write(_packet, (self._clients[client]['IP'], self._clients[client]['PORT']))
+        self.transport.write(_packet, (self._clients[_client]['IP'], self._clients[_client]['PORT']))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
         
@@ -133,31 +151,91 @@ class HBMASTER(DatagramProtocol):
             
         elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
             _radio_id = _data[4:8]
-            self._clients.update({_radio_id: {
-                'CONNECTION': 'RPTL-RECEIVED',
-                'PINGS_RECEIVED': 0,
-                'LAST_PING': 0,
-                'IP': _host,
-                'PORT': _port,
-                'SALT': randint(0,0xFFFFFFFF),
-                'RADIO_ID': str(int(h(_radio_id), 16)),
-                'CALLSIGN': '',
-                'RX_FREQ': '',
-                'TX_FREQ': '',
-                'TX_POWER': '',
-                'COLOR_CODE': '',
-                'LATITUDE': '',
-                'LONGITUDE': '',
-                'HEIGHT': '',
-                'LOCATION': '',
-                'DESCRIPTION': '',
-                'SLOTS': '',
-                'URL': '',
-                'SOFTWARE_ID': '',
-                'PACKAGE_ID': '',
-            }})
-            logger.info('(%s) Repeater Logging in with Radio ID: %s', self._master, h(_radio_id))
-            pprint(self._clients)
+            if _radio_id:           # Future check here for valid Radio ID
+                self._clients.update({_radio_id: {
+                    'CONNECTION': 'RPTL-RECEIVED',
+                    'PINGS_RECEIVED': 0,
+                    'LAST_PING': time(),
+                    'IP': _host,
+                    'PORT': _port,
+                    'SALT': randint(0,0xFFFFFFFF),
+                    'RADIO_ID': str(int(h(_radio_id), 16)),
+                    'CALLSIGN': '',
+                    'RX_FREQ': '',
+                    'TX_FREQ': '',
+                    'TX_POWER': '',
+                    'COLORCODE': '',
+                    'LATITUDE': '',
+                    'LONGITUDE': '',
+                    'HEIGHT': '',
+                    'LOCATION': '',
+                    'DESCRIPTION': '',
+                    'SLOTS': '',
+                    'URL': '',
+                    'SOFTWARE_ID': '',
+                    'PACKAGE_ID': '',
+                }})
+                logger.info('(%s) Repeater Logging in with Radio ID: %s', self._master, h(_radio_id))
+                _salt_str = hex_str_4(self._clients[_radio_id]['SALT'])
+                self.send_packet(_radio_id, 'RPTACK'+_salt_str)
+                self._clients[_radio_id]['CONNECTION'] = 'CHALLENGE_SENT'
+                logger.info('(%s) Sent Challenge Response to %s for login: %s', self._master, h(_radio_id), self._clients[_radio_id]['SALT'])
+            else:
+                self.transport.write('MSTNAK'+_radio_id, (_host, _port))
+                logger.info('(%s) Invalid Login from Radio ID: %s', self._master, h(_radio_id))
+        
+        elif _command == 'RPTK':    # Repeater has answered our login challenge
+            _radio_id = _data[4:8]
+            if _radio_id in self._clients and self._clients[_radio_id]['CONNECTION'] == 'CHALLENGE_SENT':
+                _this_client = self._clients[_radio_id]
+                _this_client['LAST_PING'] = time()
+                _sent_hash = _data[8:]
+                _salt_str = hex_str_4(_this_client['SALT'])
+                _calc_hash = a(sha256(_salt_str+self._config['PASSPHRASE']).hexdigest())
+                if _sent_hash == _calc_hash:
+                    _this_client['CONNECTION'] = 'WAITING_CONFIG'
+                    self.send_packet(_radio_id, 'RPTACK'+_radio_id)
+                    logger.info('(%s) Client %s has completed the login exchange successfully', self._master, _this_client['RADIO_ID'])
+                else:
+                    logger.info('(%s) Client %s has FAILED the login exchange successfully', self._master, _this_client['RADIO_ID'])
+                    del _this_client
+                    
+                
+            else:
+                self.transport.write('MSTNAK'+_radio_id, (_host, _port))
+                logger.info('(%s) Login challenge from Radio ID that has not logged in: %s', self._master, h(_radio_id))
+                
+        elif _command == 'RPTC':    # Repeater is sending it's configuraiton information
+            _radio_id = _data[4:8]
+            if _radio_id in self._clients and self._clients[_radio_id]['CONNECTION'] == 'WAITING_CONFIG':
+                _this_client = self._clients[_radio_id]
+                _this_client['CONNECTION'] = 'YES'
+                _this_client['LAST_PING'] = time()
+                _this_client['CALLSIGN'] = _data[8:16]
+                _this_client['RX_FREQ'] = _data[16:25]
+                _this_client['TX_FREQ'] =  _data[25:34]
+                _this_client['TX_POWER'] = _data[34:36]
+                _this_client['COLORCODE'] = _data[36:38]
+                _this_client['LATITUDE'] = _data[38:47]
+                _this_client['LONGITUDE'] = _data[47:57]
+                _this_client['HEIGHT'] = _data[57:60]
+                _this_client['LOCATION'] = _data[60:80]
+                _this_client['DESCRIPTION'] = _data[80:99]
+                _this_client['SLOTS'] = _data[99:100]
+                _this_client['URL'] = _data[100:224]
+                _this_client['SOFTWARE_ID'] = _data[224:264]
+                _this_client['PACKAGE_ID'] = _data[264:304]
+    
+                self.send_packet(_radio_id, 'RPTACK'+_radio_id)
+                logger.info('(%s) Client %s has sent repeater configuration', self._master, _this_client['RADIO_ID'])
+            else:
+                self.transport.write('MSTNAK'+_radio_id, (_host, _port))
+                logger.info('(%s) Client info from Radio ID that has not logged in: %s', self._master, h(_radio_id))
+
+        elif _command == 'RPTP':    # RPTPing -- client is pinging us
+                _radio_id = _data[7:11]
+                print(h(_radio_id))
+        #print(h(_data))
             
 #************************************************
 #     HB CLIENT CLASS
@@ -180,6 +258,7 @@ class HBCLIENT(DatagramProtocol):
         self._client_maintenance_loop = self._client_maintenance.start(CONFIG['GLOBAL']['PING_TIME'])
         
     def client_maintenance_loop(self):
+        logger.debug('Client maintenance loop started')
         if self._stats['CONNECTION'] == 'NO':
             self._stats['PINGS_SENT'] = 0
             self._stats['PINGS_ACKD'] = 0
