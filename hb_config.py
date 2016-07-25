@@ -56,12 +56,12 @@ def build_config(_config_file):
                         'LATITUDE': config.get(section, 'LATITUDE').ljust(9),
                         'LONGITUDE': config.get(section, 'LONGITUDE').ljust(10),
                         'HEIGHT': config.get(section, 'HEIGHT').rjust(3,'0'),
-                        'LOCATION': config.get(section, 'LOCATION').ljust(20),
-                        'DESCRIPTION': config.get(section, 'DESCRIPTION').ljust(19),
+                        'LOCATION': config.get(section, 'LOCATION').ljust(20)[:20],
+                        'DESCRIPTION': config.get(section, 'DESCRIPTION').ljust(19)[:19],
                         'SLOTS': config.get(section, 'SLOTS'),
-                        'URL': config.get(section, 'URL').ljust(124),
-                        'SOFTWARE_ID': config.get(section, 'SOFTWARE_ID').ljust(40),
-                        'PACKAGE_ID': config.get(section, 'PACKAGE_ID').ljust(40)
+                        'URL': config.get(section, 'URL').ljust(124)[:124],
+                        'SOFTWARE_ID': config.get(section, 'SOFTWARE_ID').ljust(40)[:40],
+                        'PACKAGE_ID': config.get(section, 'PACKAGE_ID').ljust(40)[:40]
                     }})
                     CONFIG['CLIENTS'][section].update({'STATS': {
                         'CONNECTION': 'NO',             # NO, RTPL_SENT, AUTHENTICATED, CONFIG-SENT, YES 
