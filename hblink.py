@@ -193,7 +193,8 @@ class HBMASTER(DatagramProtocol):
                     logger.info('(%s) Client %s has completed the login exchange successfully', self._master, _this_client['RADIO_ID'])
                 else:
                     logger.info('(%s) Client %s has FAILED the login exchange successfully', self._master, _this_client['RADIO_ID'])
-                    # Add removal of client here...
+                    self.transport.write('MSTNAK'+_radio_id, (_host, _port))
+                    del self._clients[_radio_id]
                     
                 
             else:
