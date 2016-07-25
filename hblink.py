@@ -125,19 +125,14 @@ class HBMASTER(DatagramProtocol):
         self._master_maintenance_loop = self._master_maintenance.start(CONFIG['GLOBAL']['PING_TIME'])
     
     def master_maintenance_loop(self):
-        logger.debug('Master maintenance loop started')
-        for client in self._clients:
+        logger.debug('(%s) Master maintenance loop started', self._master)
+        for client in self._clients.keys():
             _this_client = self._clients[client]
-            print(_this_client['LAST_PING'])
-            print(time())
-            print(CONFIG['GLOBAL']['PING_TIME'])
-            print(CONFIG['GLOBAL']['MAX_MISSED'])
             
             if _this_client['LAST_PING']+CONFIG['GLOBAL']['PING_TIME']*CONFIG['GLOBAL']['MAX_MISSED'] < time():
                 logger.info('(%s) Client %s has timed out', self._master, _this_client['RADIO_ID'])
-                del _this_client
-                pprint(_this_client)
-        
+                del CONFIG['MASTERS'][self._master]['CLIENTS'][client]
+                
     def send_packet(self, _client, _packet):
         self.transport.write(_packet, (self._clients[_client]['IP'], self._clients[_client]['PORT']))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
@@ -198,7 +193,7 @@ class HBMASTER(DatagramProtocol):
                     logger.info('(%s) Client %s has completed the login exchange successfully', self._master, _this_client['RADIO_ID'])
                 else:
                     logger.info('(%s) Client %s has FAILED the login exchange successfully', self._master, _this_client['RADIO_ID'])
-                    del _this_client
+                    # Add removal of client here...
                     
                 
             else:
@@ -234,8 +229,9 @@ class HBMASTER(DatagramProtocol):
 
         elif _command == 'RPTP':    # RPTPing -- client is pinging us
                 _radio_id = _data[7:11]
-                print(h(_radio_id))
-        #print(h(_data))
+                if _radio_id in self._clients and self._clients[_radio_id]['CONNECTION'] == "YES":
+                    self.send_packet(_radio_id, 'MSTPONG'+_radio_id)
+                    logger.info('(%s) Received and answered RPTPING from client %s', self._master, h(_radio_id))
             
 #************************************************
 #     HB CLIENT CLASS
@@ -258,7 +254,7 @@ class HBCLIENT(DatagramProtocol):
         self._client_maintenance_loop = self._client_maintenance.start(CONFIG['GLOBAL']['PING_TIME'])
         
     def client_maintenance_loop(self):
-        logger.debug('Client maintenance loop started')
+        logger.debug('(%s) Client maintenance loop started', self._client)
         if self._stats['CONNECTION'] == 'NO':
             self._stats['PINGS_SENT'] = 0
             self._stats['PINGS_ACKD'] = 0
