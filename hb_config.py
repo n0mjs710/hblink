@@ -82,7 +82,11 @@ def build_config(_config_file):
                     }})
                     CONFIG['MASTERS'][section].update({'CLIENTS': {}})
     
-    except:
+    except ConfigParser.Error, err:
+	# Very simple error reporting
+	print "Cannot parse configuration file. %s" %err
         sys.exit('Could not parse configuration file, exiting...')
         
     return CONFIG
+
+
