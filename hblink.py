@@ -279,7 +279,7 @@ class HBCLIENT(DatagramProtocol):
             logger.debug('(%s) DMRD Received', self._client)
         
         elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
-            print('(%s) MSTNAC Received', self._client)
+            print('(%s) MSTNAK Received', self._client)
             self._stats['CONNECTION'] = 'NO'
         
         elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
