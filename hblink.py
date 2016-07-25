@@ -230,6 +230,7 @@ class HBMASTER(DatagramProtocol):
         elif _command == 'RPTP':    # RPTPing -- client is pinging us
                 _radio_id = _data[7:11]
                 if _radio_id in self._clients and self._clients[_radio_id]['CONNECTION'] == "YES":
+                    self._clients['LAST_PING'] = time()
                     self.send_packet(_radio_id, 'MSTPONG'+_radio_id)
                     logger.info('(%s) Received and answered RPTPING from client %s', self._master, h(_radio_id))
             
