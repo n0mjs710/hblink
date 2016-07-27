@@ -1,4 +1,8 @@
 ##PROJECT: Open Source HomeBrew Repeater Proctol Client/Master.
+
+**UPDATES:**
+HBlink now works properly as a client or a master, but no action is taken on DMRD packets. That's coming next!
+
 **PURPOSE:** Thanks to the work of Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT we have an open protocol for internetworking DMR repeaters. Unfortunately, there's no generic client and/or master stacks. This project is to build an open-source, python-based implementation. This is a non-commercial license. Atribution is *required* if you use it.
 
 For those who will ask: This is a piece of software that implements an open-source, amateur radio networking protocol. It is not a network. It is not indended to be a network. It is not intended to replace or circumvent a network. People do those things, code doesn't.
