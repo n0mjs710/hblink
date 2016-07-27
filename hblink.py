@@ -111,11 +111,12 @@ def hex_str_4(_int_id):
 class HBMASTER(DatagramProtocol):
     def __init__(self, *args, **kwargs):
         if len(args) == 1:
+            # Define a few shortcuts to make the rest of the class more readable
             self._master = args[0]
             self._config = CONFIG['MASTERS'][self._master]
             self._clients = CONFIG['MASTERS'][self._master]['CLIENTS']
         else:
-            # If we didn't get called correctly, log it!
+            # If we didn't get called correctly, log it and quit.
             logger.error('(%s) HBMASTER was not called with an argument. Terminating', self._master)
             sys.exit()
         
@@ -128,9 +129,10 @@ class HBMASTER(DatagramProtocol):
         logger.debug('(%s) Master maintenance loop started', self._master)
         for client in self._clients.keys():
             _this_client = self._clients[client]
-            
+            # Check to see if any of the clients have been quiet (no ping) longer than allowed
             if _this_client['LAST_PING']+CONFIG['GLOBAL']['PING_TIME']*CONFIG['GLOBAL']['MAX_MISSED'] < time():
                 logger.info('(%s) Client %s has timed out', self._master, _this_client['RADIO_ID'])
+                # Remove any timed out clients from the configuration 
                 del CONFIG['MASTERS'][self._master]['CLIENTS'][client]
                 
     def send_packet(self, _client, _packet):
@@ -138,102 +140,126 @@ class HBMASTER(DatagramProtocol):
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
         
-    def datagramReceived(self, _data, (_host, _port)):
-        
-        _command = _data[:4]
-        if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
-            logger.debug('(%s) DMRD Received', self._master)
-            
-        elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
-            _radio_id = _data[4:8]
-            if _radio_id:           # Future check here for valid Radio ID
-                self._clients.update({_radio_id: {
-                    'CONNECTION': 'RPTL-RECEIVED',
-                    'PINGS_RECEIVED': 0,
-                    'LAST_PING': time(),
-                    'IP': _host,
-                    'PORT': _port,
-                    'SALT': randint(0,0xFFFFFFFF),
-                    'RADIO_ID': str(int(h(_radio_id), 16)),
-                    'CALLSIGN': '',
-                    'RX_FREQ': '',
-                    'TX_FREQ': '',
-                    'TX_POWER': '',
-                    'COLORCODE': '',
-                    'LATITUDE': '',
-                    'LONGITUDE': '',
-                    'HEIGHT': '',
-                    'LOCATION': '',
-                    'DESCRIPTION': '',
-                    'SLOTS': '',
-                    'URL': '',
-                    'SOFTWARE_ID': '',
-                    'PACKAGE_ID': '',
-                }})
-                logger.info('(%s) Repeater Logging in with Radio ID: %s', self._master, h(_radio_id))
-                _salt_str = hex_str_4(self._clients[_radio_id]['SALT'])
-                self.send_packet(_radio_id, 'RPTACK'+_salt_str)
-                self._clients[_radio_id]['CONNECTION'] = 'CHALLENGE_SENT'
-                logger.info('(%s) Sent Challenge Response to %s for login: %s', self._master, h(_radio_id), self._clients[_radio_id]['SALT'])
-            else:
-                self.transport.write('MSTNAK'+_radio_id, (_host, _port))
-                logger.info('(%s) Invalid Login from Radio ID: %s', self._master, h(_radio_id))
-        
-        elif _command == 'RPTK':    # Repeater has answered our login challenge
-            _radio_id = _data[4:8]
-            if _radio_id in self._clients and self._clients[_radio_id]['CONNECTION'] == 'CHALLENGE_SENT':
-                _this_client = self._clients[_radio_id]
-                _this_client['LAST_PING'] = time()
-                _sent_hash = _data[8:]
-                _salt_str = hex_str_4(_this_client['SALT'])
-                _calc_hash = a(sha256(_salt_str+self._config['PASSPHRASE']).hexdigest())
-                if _sent_hash == _calc_hash:
-                    _this_client['CONNECTION'] = 'WAITING_CONFIG'
-                    self.send_packet(_radio_id, 'RPTACK'+_radio_id)
-                    logger.info('(%s) Client %s has completed the login exchange successfully', self._master, _this_client['RADIO_ID'])
-                else:
-                    logger.info('(%s) Client %s has FAILED the login exchange successfully', self._master, _this_client['RADIO_ID'])
-                    self.transport.write('MSTNAK'+_radio_id, (_host, _port))
-                    del self._clients[_radio_id]
-                    
-                
-            else:
-                self.transport.write('MSTNAK'+_radio_id, (_host, _port))
-                logger.info('(%s) Login challenge from Radio ID that has not logged in: %s', self._master, h(_radio_id))
-                
-        elif _command == 'RPTC':    # Repeater is sending it's configuraiton information
-            _radio_id = _data[4:8]
-            if _radio_id in self._clients and self._clients[_radio_id]['CONNECTION'] == 'WAITING_CONFIG':
-                _this_client = self._clients[_radio_id]
-                _this_client['CONNECTION'] = 'YES'
-                _this_client['LAST_PING'] = time()
-                _this_client['CALLSIGN'] = _data[8:16]
-                _this_client['RX_FREQ'] = _data[16:25]
-                _this_client['TX_FREQ'] =  _data[25:34]
-                _this_client['TX_POWER'] = _data[34:36]
-                _this_client['COLORCODE'] = _data[36:38]
-                _this_client['LATITUDE'] = _data[38:47]
-                _this_client['LONGITUDE'] = _data[47:57]
-                _this_client['HEIGHT'] = _data[57:60]
-                _this_client['LOCATION'] = _data[60:80]
-                _this_client['DESCRIPTION'] = _data[80:99]
-                _this_client['SLOTS'] = _data[99:100]
-                _this_client['URL'] = _data[100:224]
-                _this_client['SOFTWARE_ID'] = _data[224:264]
-                _this_client['PACKAGE_ID'] = _data[264:304]
+    def dmrd_received(self, _radio_id, _data):
+        pass    
     
-                self.send_packet(_radio_id, 'RPTACK'+_radio_id)
-                logger.info('(%s) Client %s has sent repeater configuration', self._master, _this_client['RADIO_ID'])
-            else:
-                self.transport.write('MSTNAK'+_radio_id, (_host, _port))
-                logger.info('(%s) Client info from Radio ID that has not logged in: %s', self._master, h(_radio_id))
+    def datagramReceived(self, _data, (_host, _port)):
+            # Extract the command, which is various length, but only 4 significant characters
+            _command = _data[:4]
+            
+            if _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
+                _radio_id = _data[4:8]
+                if _radio_id in self._clients \
+                            and self._clients[_radio_id]['IP'] == _host \
+                            and self._clients[_radio_id]['PORT'] == _port:
+                    logger.debug('(%s) DMRD Received', self._master)
+                    self.dmrd_received(_radio_id, _data)
+                else:
+                    logger.warning('(%s) DMRD packet recieved from an invalid client')
+            
+            elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
+                _radio_id = _data[4:8]
+                if _radio_id:           # Future check here for valid Radio ID
+                    self._clients.update({_radio_id: {      # Build the configuration data strcuture for the client
+                        'CONNECTION': 'RPTL-RECEIVED',
+                        'PINGS_RECEIVED': 0,
+                        'LAST_PING': time(),
+                        'IP': _host,
+                        'PORT': _port,
+                        'SALT': randint(0,0xFFFFFFFF),
+                        'RADIO_ID': str(int(h(_radio_id), 16)),
+                        'CALLSIGN': '',
+                        'RX_FREQ': '',
+                        'TX_FREQ': '',
+                        'TX_POWER': '',
+                        'COLORCODE': '',
+                        'LATITUDE': '',
+                        'LONGITUDE': '',
+                        'HEIGHT': '',
+                        'LOCATION': '',
+                        'DESCRIPTION': '',
+                        'SLOTS': '',
+                        'URL': '',
+                        'SOFTWARE_ID': '',
+                        'PACKAGE_ID': '',
+                    }})
+                    logger.info('(%s) Repeater Logging in with Radio ID: %s', self._master, h(_radio_id))
+                    _salt_str = hex_str_4(self._clients[_radio_id]['SALT'])
+                    self.send_packet(_radio_id, 'RPTACK'+_salt_str)
+                    self._clients[_radio_id]['CONNECTION'] = 'CHALLENGE_SENT'
+                    logger.info('(%s) Sent Challenge Response to %s for login: %s', self._master, h(_radio_id), self._clients[_radio_id]['SALT'])
+                else:
+                    self.transport.write('MSTNAK'+_radio_id, (_host, _port))
+                    logger.warning('(%s) Invalid Login from Radio ID: %s', self._master, h(_radio_id))
+        
+            elif _command == 'RPTK':    # Repeater has answered our login challenge
+                _radio_id = _data[4:8]
+                if _radio_id in self._clients \
+                            and self._clients[_radio_id]['CONNECTION'] == 'CHALLENGE_SENT' \
+                            and self._clients[_radio_id]['IP'] == _host \
+                            and self._clients[_radio_id]['PORT'] == _port:
+                    _this_client = self._clients[_radio_id]
+                    _this_client['LAST_PING'] = time()
+                    _sent_hash = _data[8:]
+                    _salt_str = hex_str_4(_this_client['SALT'])
+                    _calc_hash = a(sha256(_salt_str+self._config['PASSPHRASE']).hexdigest())
+                    if _sent_hash == _calc_hash:
+                        _this_client['CONNECTION'] = 'WAITING_CONFIG'
+                        self.send_packet(_radio_id, 'RPTACK'+_radio_id)
+                        logger.info('(%s) Client %s has completed the login exchange successfully', self._master, _this_client['RADIO_ID'])
+                    else:
+                        logger.info('(%s) Client %s has FAILED the login exchange successfully', self._master, _this_client['RADIO_ID'])
+                        self.transport.write('MSTNAK'+_radio_id, (_host, _port))
+                        del self._clients[_radio_id]
+                else:
+                    self.transport.write('MSTNAK'+_radio_id, (_host, _port))
+                    logger.warning('(%s) Login challenge from Radio ID that has not logged in: %s', self._master, h(_radio_id))
+                
+            elif _command == 'RPTC':    # Repeater is sending it's configuraiton information
+                _radio_id = _data[4:8]
+                if _radio_id in self._clients \
+                            and self._clients[_radio_id]['CONNECTION'] == 'WAITING_CONFIG' \
+                            and self._clients[_radio_id]['IP'] == _host \
+                            and self._clients[_radio_id]['PORT'] == _port:
+                    _this_client = self._clients[_radio_id]
+                    _this_client['CONNECTION'] = 'YES'
+                    _this_client['LAST_PING'] = time()
+                    _this_client['CALLSIGN'] = _data[8:16]
+                    _this_client['RX_FREQ'] = _data[16:25]
+                    _this_client['TX_FREQ'] =  _data[25:34]
+                    _this_client['TX_POWER'] = _data[34:36]
+                    _this_client['COLORCODE'] = _data[36:38]
+                    _this_client['LATITUDE'] = _data[38:47]
+                    _this_client['LONGITUDE'] = _data[47:57]
+                    _this_client['HEIGHT'] = _data[57:60]
+                    _this_client['LOCATION'] = _data[60:80]
+                    _this_client['DESCRIPTION'] = _data[80:99]
+                    _this_client['SLOTS'] = _data[99:100]
+                    _this_client['URL'] = _data[100:224]
+                    _this_client['SOFTWARE_ID'] = _data[224:264]
+                    _this_client['PACKAGE_ID'] = _data[264:304]
+    
+                    self.send_packet(_radio_id, 'RPTACK'+_radio_id)
+                    logger.info('(%s) Client %s has sent repeater configuration', self._master, _this_client['RADIO_ID'])
+                else:
+                    self.transport.write('MSTNAK'+_radio_id, (_host, _port))
+                    logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self._master, h(_radio_id))
 
-        elif _command == 'RPTP':    # RPTPing -- client is pinging us
-                _radio_id = _data[7:11]
-                if _radio_id in self._clients and self._clients[_radio_id]['CONNECTION'] == "YES":
-                    self._clients['LAST_PING'] = time()
-                    self.send_packet(_radio_id, 'MSTPONG'+_radio_id)
-                    logger.info('(%s) Received and answered RPTPING from client %s', self._master, h(_radio_id))
+            elif _command == 'RPTP':    # RPTPing -- client is pinging us
+                    _radio_id = _data[7:11]
+                    if _radio_id in self._clients \
+                                and self._clients[_radio_id]['CONNECTION'] == "YES" \
+                                and self._clients[_radio_id]['IP'] == _host \
+                                and self._clients[_radio_id]['PORT'] == _port:
+                        self._clients['LAST_PING'] = time()
+                        self.send_packet(_radio_id, 'MSTPONG'+_radio_id)
+                        logger.info('(%s) Received and answered RPTPING from client %s', self._master, h(_radio_id))
+                    else:
+                        self.transport.write('MSTNAK'+_radio_id, (_host, _port))
+                        logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self._master, h(_radio_id))
+                        
+            else:
+                logger.error('(%s) Unrecognized command from: %s. Packet: %s', self._master, h(_radio_id), h(_data))
             
 #************************************************
 #     HB CLIENT CLASS
@@ -257,89 +283,103 @@ class HBCLIENT(DatagramProtocol):
         
     def client_maintenance_loop(self):
         logger.debug('(%s) Client maintenance loop started', self._client)
+        # If we're not connected, zero out the stats and send a login request RPTL
         if self._stats['CONNECTION'] == 'NO':
             self._stats['PINGS_SENT'] = 0
             self._stats['PINGS_ACKD'] = 0
             self._stats['CONNECTION'] = 'RTPL_SENT'
             self.send_packet('RPTL'+self._config['RADIO_ID'])
             logger.info('(%s) Sending login request to master', self._client)
+        # If we are connected, sent a ping to the master and increment the counter
         if self._stats['CONNECTION'] == 'YES':
             self.send_packet('RPTPING'+self._config['RADIO_ID'])
             self._stats['PINGS_SENT'] += 1
-            logger.info('(%s) RPTPING Sent to Master. Total Pings Since Connected: %s', self._client, self._stats['PINGS_SENT'])
+            logger.info('(%s) RPTPING Sent to Master. Pings Since Connected: %s', self._client, self._stats['PINGS_SENT'])
         
     def send_packet(self, _packet):
         self.transport.write(_packet, (self._config['MASTER_IP'], self._config['MASTER_PORT']))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
     
+    def dmrd_received(self, _radio_id, _data):
+        pass
+    
     def datagramReceived(self, _data, (_host, _port)):
+        # Validate that we receveived this packet from the master - security check!
+        if self._config['MASTER_IP'] == _host and self._config['MASTER_PORT'] == _port:
+            # Extract the command, which is various length, but only 4 significant characters
+            _command = _data[:4] 
+            if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
+                _radio_id = _data[4:8]
+                if self._config['RADIO_ID'] == _radio_id: # Check to ensure this packet is meant for us
+                    logger.debug('(%s) DMRD Received', self._client)
+                    self.dmrd_received(_radio_id, _data)
         
-        _command = _data[:4]
-        if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
-            logger.debug('(%s) DMRD Received', self._client)
+            elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
+                if self._config['RADIO_ID'] == _radio_id: # Check to ensure this packet is meant for us
+                    print('(%s) MSTNAK Received', self._client)
+                    self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
         
-        elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
-            print('(%s) MSTNAK Received', self._client)
-            self._stats['CONNECTION'] = 'NO'
+            elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
+                # Depending on the state, an RPTACK means different things, in each clause, we check and/or set the state
+                if self._stats['CONNECTION'] == 'RTPL_SENT': # If we've sent a login request...
+                    _login_int32 = _data[6:10]
+                    logger.info('(%s) Repeater Login ACK Received with 32bit ID: %s', self._client, h(_login_int32))
+                    _pass_hash = sha256(_login_int32+self._config['PASSPHRASE']).hexdigest()
+                    _pass_hash = a(_pass_hash)
+                    self.send_packet('RPTK'+self._config['RADIO_ID']+_pass_hash)
+                    self._stats['CONNECTION'] = 'AUTHENTICATED'
         
-        elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
-            if self._stats['CONNECTION'] == 'RTPL_SENT':
-                _login_int32 = _data[6:10]
-                logger.info('(%s) Repeater Login ACK Received with 32bit ID: %s', self._client, h(_login_int32))
-                _pass_hash = sha256(_login_int32+self._config['PASSPHRASE']).hexdigest()
-                _pass_hash = a(_pass_hash)
-                self.send_packet('RPTK'+self._config['RADIO_ID']+_pass_hash)
-                self._stats['CONNECTION'] = 'AUTHENTICATED'
-            
-            elif self._stats['CONNECTION'] == 'AUTHENTICATED':
-                if _data[6:10] == self._config['RADIO_ID']:
-                    logger.info('(%s) Repeater Authentication Accepted', self._client)
-                    _config_packet =  self._config['RADIO_ID']+\
-                                      self._config['CALLSIGN']+\
-                                      self._config['RX_FREQ']+\
-                                      self._config['TX_FREQ']+\
-                                      self._config['TX_POWER']+\
-                                      self._config['COLORCODE']+\
-                                      self._config['LATITUDE']+\
-                                      self._config['LONGITUDE']+\
-                                      self._config['HEIGHT']+\
-                                      self._config['LOCATION']+\
-                                      self._config['DESCRIPTION']+\
-                                      self._config['SLOTS']+\
-                                      self._config['URL']+\
-                                      self._config['SOFTWARE_ID']+\
-                                      self._config['PACKAGE_ID']
-                                      
-                    self.send_packet('RPTC'+_config_packet)
-                    self._stats['CONNECTION'] = 'CONFIG-SENT'
-                    logger.info('(%s) Repeater Configuration Sent', self._client)
-                else:
-                    self._stats['CONNECTION'] = 'NO'
-                    logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self._client)
-                    
-            elif self._stats['CONNECTION'] == 'CONFIG-SENT':
-                if _data[6:10] == self._config['RADIO_ID']:
-                    logger.info('(%s) Repeater Configuration Accepted', self._client)
-                    self._stats['CONNECTION'] = 'YES'
-                    logger.info('(%s) Connection to Master Completed', self._client)
-                else:
-                    self._stats['CONNECTION'] = 'NO'
-                    logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self._client)
+                elif self._stats['CONNECTION'] == 'AUTHENTICATED': # If we've sent the login challenge...
+                    if _data[6:10] == self._config['RADIO_ID']:
+                        logger.info('(%s) Repeater Authentication Accepted', self._client)
+                        _config_packet =  self._config['RADIO_ID']+\
+                                          self._config['CALLSIGN']+\
+                                          self._config['RX_FREQ']+\
+                                          self._config['TX_FREQ']+\
+                                          self._config['TX_POWER']+\
+                                          self._config['COLORCODE']+\
+                                          self._config['LATITUDE']+\
+                                          self._config['LONGITUDE']+\
+                                          self._config['HEIGHT']+\
+                                          self._config['LOCATION']+\
+                                          self._config['DESCRIPTION']+\
+                                          self._config['SLOTS']+\
+                                          self._config['URL']+\
+                                          self._config['SOFTWARE_ID']+\
+                                          self._config['PACKAGE_ID']
+                                  
+                        self.send_packet('RPTC'+_config_packet)
+                        self._stats['CONNECTION'] = 'CONFIG-SENT'
+                        logger.info('(%s) Repeater Configuration Sent', self._client)
+                    else:
+                        self._stats['CONNECTION'] = 'NO'
+                        logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self._client)
                 
-        elif _command == 'MSTP':    # Actually MSTPONG -- a reply to RPTPING (send by client)
-            self._stats['PINGS_ACKD'] += 1
-            logger.info('(%s) MSTPONG Received. Total Pongs Since Connected: %s', self._client, self._stats['PINGS_ACKD'])
+                elif self._stats['CONNECTION'] == 'CONFIG-SENT': # If we've sent out configuration to the master
+                    if _data[6:10] == self._config['RADIO_ID']:
+                        logger.info('(%s) Repeater Configuration Accepted', self._client)
+                        self._stats['CONNECTION'] = 'YES'
+                        logger.info('(%s) Connection to Master Completed', self._client)
+                    else:
+                        self._stats['CONNECTION'] = 'NO'
+                        logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self._client)
+                
+            elif _command == 'MSTP':    # Actually MSTPONG -- a reply to RPTPING (send by client)
+                if _data [7:11] == self._config['RADIO_ID']:
+                    self._stats['PINGS_ACKD'] += 1
+                    logger.info('(%s) MSTPONG Received. Total Pongs Since Connected: %s', self._client, self._stats['PINGS_ACKD'])
         
-        elif _command == 'MSTC':    # Actually MSTCL -- notify us the master is closing down
-            self._stats['CONNECTION'] = 'NO'
-            logger.info('(%s) MSTCL Recieved', self._client)
+            elif _command == 'MSTC':    # Actually MSTCL -- notify us the master is closing down
+                if _data[5:9] == self._config['RADIO_ID']:
+                    self._stats['CONNECTION'] = 'NO'
+                    logger.info('(%s) MSTCL Recieved', self._client)
         
-        else:
-            logger.error('(%s) Received an invalid command in packet: %s', self._client, h(_data))
+            else:
+                logger.error('(%s) Received an invalid command in packet: %s', self._client, h(_data))
  
-        # Keep This Line Commented Unless HEAVILY Debugging!
-        #logger.debug('(%s) Received Packet: %s', self._client, h(_data))
+            # Keep This Line Commented Unless HEAVILY Debugging!
+            #logger.debug('(%s) Received Packet: %s', self._client, h(_data))
 
 
 #************************************************
