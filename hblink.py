@@ -325,6 +325,7 @@ class HBCLIENT(DatagramProtocol):
                     self.dmrd_received(_radio_id, _data)
         
             elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
+                _radio_id = _data[4:8]
                 if self._config['RADIO_ID'] == _radio_id: # Check to ensure this packet is meant for us
                     logger.info('(%s) MSTNAK Received', self._client)
                     self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
