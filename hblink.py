@@ -83,7 +83,6 @@ def handler(_signal, _frame):
         this_master = masters[master]
         for client in CONFIG['MASTERS'][master]['CLIENTS']:
             this_master.send_packet(client, 'MSTCL'+client)
-            print(CONFIG['MASTERS'][master]['CLIENTS'][client]['RADIO_ID'])
             logger.info('(%s) Sending De-Registration to Client: %s', master, CONFIG['MASTERS'][master]['CLIENTS'][client]['RADIO_ID'])
     
     reactor.stop()
@@ -144,7 +143,7 @@ class HBMASTER(DatagramProtocol):
         pass    
     
     def datagramReceived(self, _data, (_host, _port)):
-            # Extract the command, which is various length, but only 4 significant characters
+            # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
             _command = _data[:4]
             
             if _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
@@ -215,35 +214,45 @@ class HBMASTER(DatagramProtocol):
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
                     logger.warning('(%s) Login challenge from Radio ID that has not logged in: %s', self._master, h(_radio_id))
                 
-            elif _command == 'RPTC':    # Repeater is sending it's configuraiton information
-                _radio_id = _data[4:8]
-                if _radio_id in self._clients \
-                            and self._clients[_radio_id]['CONNECTION'] == 'WAITING_CONFIG' \
-                            and self._clients[_radio_id]['IP'] == _host \
-                            and self._clients[_radio_id]['PORT'] == _port:
-                    _this_client = self._clients[_radio_id]
-                    _this_client['CONNECTION'] = 'YES'
-                    _this_client['LAST_PING'] = time()
-                    _this_client['CALLSIGN'] = _data[8:16]
-                    _this_client['RX_FREQ'] = _data[16:25]
-                    _this_client['TX_FREQ'] =  _data[25:34]
-                    _this_client['TX_POWER'] = _data[34:36]
-                    _this_client['COLORCODE'] = _data[36:38]
-                    _this_client['LATITUDE'] = _data[38:47]
-                    _this_client['LONGITUDE'] = _data[47:57]
-                    _this_client['HEIGHT'] = _data[57:60]
-                    _this_client['LOCATION'] = _data[60:80]
-                    _this_client['DESCRIPTION'] = _data[80:99]
-                    _this_client['SLOTS'] = _data[99:100]
-                    _this_client['URL'] = _data[100:224]
-                    _this_client['SOFTWARE_ID'] = _data[224:264]
-                    _this_client['PACKAGE_ID'] = _data[264:304]
+            elif _command == 'RPTC':    # Repeater is sending it's configuraiton OR disconnecting
+                if _data[:5] == 'RPTCL':    # Disconnect command
+                    _radio_id = _data[5:9]
+                    if _radio_id in self._clients \
+                                and self._clients[_radio_id]['CONNECTION'] == 'YES' \
+                                and self._clients[_radio_id]['IP'] == _host \
+                                and self._clients[_radio_id]['PORT'] == _port:
+                        logger.info('(%s) Client is closing down: %s', self._master, h(_radio_id))
+                        self.transport.write('MSTNAK'+_radio_id, (_host, _port))
+                        del self._clients[_radio_id]
+                else:               
+                    _radio_id = _data[4:8]      # Configure Command
+                    if _radio_id in self._clients \
+                                and self._clients[_radio_id]['CONNECTION'] == 'WAITING_CONFIG' \
+                                and self._clients[_radio_id]['IP'] == _host \
+                                and self._clients[_radio_id]['PORT'] == _port:
+                        _this_client = self._clients[_radio_id]
+                        _this_client['CONNECTION'] = 'YES'
+                        _this_client['LAST_PING'] = time()
+                        _this_client['CALLSIGN'] = _data[8:16]
+                        _this_client['RX_FREQ'] = _data[16:25]
+                        _this_client['TX_FREQ'] =  _data[25:34]
+                        _this_client['TX_POWER'] = _data[34:36]
+                        _this_client['COLORCODE'] = _data[36:38]
+                        _this_client['LATITUDE'] = _data[38:47]
+                        _this_client['LONGITUDE'] = _data[47:57]
+                        _this_client['HEIGHT'] = _data[57:60]
+                        _this_client['LOCATION'] = _data[60:80]
+                        _this_client['DESCRIPTION'] = _data[80:99]
+                        _this_client['SLOTS'] = _data[99:100]
+                        _this_client['URL'] = _data[100:224]
+                        _this_client['SOFTWARE_ID'] = _data[224:264]
+                        _this_client['PACKAGE_ID'] = _data[264:304]
     
-                    self.send_packet(_radio_id, 'RPTACK'+_radio_id)
-                    logger.info('(%s) Client %s has sent repeater configuration', self._master, _this_client['RADIO_ID'])
-                else:
-                    self.transport.write('MSTNAK'+_radio_id, (_host, _port))
-                    logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self._master, h(_radio_id))
+                        self.send_packet(_radio_id, 'RPTACK'+_radio_id)
+                        logger.info('(%s) Client %s has sent repeater configuration', self._master, _this_client['RADIO_ID'])
+                    else:
+                        self.transport.write('MSTNAK'+_radio_id, (_host, _port))
+                        logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self._master, h(_radio_id))
 
             elif _command == 'RPTP':    # RPTPing -- client is pinging us
                     _radio_id = _data[7:11]
@@ -317,7 +326,7 @@ class HBCLIENT(DatagramProtocol):
         
             elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
                 if self._config['RADIO_ID'] == _radio_id: # Check to ensure this packet is meant for us
-                    print('(%s) MSTNAK Received', self._client)
+                    logger.info('(%s) MSTNAK Received', self._client)
                     self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
         
             elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
@@ -368,7 +377,7 @@ class HBCLIENT(DatagramProtocol):
             elif _command == 'MSTP':    # Actually MSTPONG -- a reply to RPTPING (send by client)
                 if _data [7:11] == self._config['RADIO_ID']:
                     self._stats['PINGS_ACKD'] += 1
-                    logger.info('(%s) MSTPONG Received. Total Pongs Since Connected: %s', self._client, self._stats['PINGS_ACKD'])
+                    logger.info('(%s) MSTPONG Received. Pongs Since Connected: %s', self._client, self._stats['PINGS_ACKD'])
         
             elif _command == 'MSTC':    # Actually MSTCL -- notify us the master is closing down
                 if _data[5:9] == self._config['RADIO_ID']:
