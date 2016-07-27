@@ -138,23 +138,25 @@ class HBMASTER(DatagramProtocol):
         self.transport.write(_packet, (self._clients[_client]['IP'], self._clients[_client]['PORT']))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
-        
-    def dmrd_received(self, _radio_id, _data):
-        pass    
+    
+    def dmrd_received(self, _data):
+        pass
+        '''
+        if self._config['REPEAT'] == True:
+            for _client in self._clients:
+                if _client != _radio_id:
+                    self.send_packet(_client, _data)
+        else:
+            pass
+        '''
     
     def datagramReceived(self, _data, (_host, _port)):
             # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
             _command = _data[:4]
             
             if _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
-                _radio_id = _data[4:8]
-                if _radio_id in self._clients \
-                            and self._clients[_radio_id]['IP'] == _host \
-                            and self._clients[_radio_id]['PORT'] == _port:
-                    logger.debug('(%s) DMRD Received', self._master)
-                    self.dmrd_received(_radio_id, _data)
-                else:
-                    logger.warning('(%s) DMRD packet recieved from an invalid client')
+                logger.debug('(%s) DMRD Received', self._master)
+                self.dmrd_received(_data)
             
             elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
                 _radio_id = _data[4:8]
@@ -262,7 +264,7 @@ class HBMASTER(DatagramProtocol):
                                 and self._clients[_radio_id]['PORT'] == _port:
                         self._clients['LAST_PING'] = time()
                         self.send_packet(_radio_id, 'MSTPONG'+_radio_id)
-                        logger.info('(%s) Received and answered RPTPING from client %s', self._master, h(_radio_id))
+                        logger.debug('(%s) Received and answered RPTPING from client %s', self._master, h(_radio_id))
                     else:
                         self.transport.write('MSTNAK'+_radio_id, (_host, _port))
                         logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self._master, h(_radio_id))
@@ -303,14 +305,14 @@ class HBCLIENT(DatagramProtocol):
         if self._stats['CONNECTION'] == 'YES':
             self.send_packet('RPTPING'+self._config['RADIO_ID'])
             self._stats['PINGS_SENT'] += 1
-            logger.info('(%s) RPTPING Sent to Master. Pings Since Connected: %s', self._client, self._stats['PINGS_SENT'])
+            logger.debug('(%s) RPTPING Sent to Master. Pings Since Connected: %s', self._client, self._stats['PINGS_SENT'])
         
     def send_packet(self, _packet):
         self.transport.write(_packet, (self._config['MASTER_IP'], self._config['MASTER_PORT']))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
     
-    def dmrd_received(self, _radio_id, _data):
+    def dmrd_received(self, _data):
         pass
     
     def datagramReceived(self, _data, (_host, _port)):
@@ -319,15 +321,13 @@ class HBCLIENT(DatagramProtocol):
             # Extract the command, which is various length, but only 4 significant characters
             _command = _data[:4] 
             if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
-                _radio_id = _data[4:8]
-                if self._config['RADIO_ID'] == _radio_id: # Check to ensure this packet is meant for us
-                    logger.debug('(%s) DMRD Received', self._client)
-                    self.dmrd_received(_radio_id, _data)
+                logger.debug('(%s) DMRD Received', self._client)
+                self.dmrd_received(_data)
         
             elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
                 _radio_id = _data[4:8]
                 if self._config['RADIO_ID'] == _radio_id: # Check to ensure this packet is meant for us
-                    logger.info('(%s) MSTNAK Received', self._client)
+                    logger.warning('(%s) MSTNAK Received', self._client)
                     self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
         
             elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
@@ -378,7 +378,7 @@ class HBCLIENT(DatagramProtocol):
             elif _command == 'MSTP':    # Actually MSTPONG -- a reply to RPTPING (send by client)
                 if _data [7:11] == self._config['RADIO_ID']:
                     self._stats['PINGS_ACKD'] += 1
-                    logger.info('(%s) MSTPONG Received. Pongs Since Connected: %s', self._client, self._stats['PINGS_ACKD'])
+                    logger.debug('(%s) MSTPONG Received. Pongs Since Connected: %s', self._client, self._stats['PINGS_ACKD'])
         
             elif _command == 'MSTC':    # Actually MSTCL -- notify us the master is closing down
                 if _data[5:9] == self._config['RADIO_ID']:

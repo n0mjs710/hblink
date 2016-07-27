@@ -76,6 +76,7 @@ def build_config(_config_file):
                     # HomeBrew Master Configuration
                     CONFIG['MASTERS'].update({section: {
                         'ENABLED': config.getboolean(section, 'ENABLED'),
+                        'REPEAT': config.getboolean(section, 'REPEAT'),
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
                         'PASSPHRASE': config.get(section, 'PASSPHRASE')
