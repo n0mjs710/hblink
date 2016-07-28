@@ -103,6 +103,10 @@ def hex_str_4(_int_id):
     except TypeError:
         logger.error('hex_str_4: invalid integer length')
         
+# Convert a hex string to an int (radio ID, etc.)
+def int_id(_hex_string):
+    return int(h(_hex_string), 16)
+        
 #************************************************
 #     HB MASTER CLASS
 #************************************************
@@ -139,24 +143,30 @@ class HBMASTER(DatagramProtocol):
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
     
-    def dmrd_received(self, _data):
-        pass
-        '''
+    def dmrd_received(self, _radio_id, _data):
+        _seq = _data[4:5]
+        _rf_src = _data[5:8]
+        _dst_id = _data[8:11]
+        logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, _seq, int_id(_rf_src), int_id(_dst_id))
         if self._config['REPEAT'] == True:
             for _client in self._clients:
                 if _client != _radio_id:
                     self.send_packet(_client, _data)
-        else:
-            pass
-        '''
+                    logger.debug('(%s) Packet repeated to client: %s', self._master, int_id(_client))
     
     def datagramReceived(self, _data, (_host, _port)):
             # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
             _command = _data[:4]
             
             if _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
-                logger.debug('(%s) DMRD Received', self._master)
-                self.dmrd_received(_data)
+                _radio_id = _data[11:15]
+                print(h(_radio_id))
+                if _radio_id in self._clients \
+                            and self._clients[_radio_id]['CONNECTION'] == 'YES' \
+                            and self._clients[_radio_id]['IP'] == _host \
+                            and self._clients[_radio_id]['PORT'] == _port:
+                    logger.debug('(%s) DMRD Received', self._master)
+                    self.dmrd_received(_radio_id, _data)
             
             elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
                 _radio_id = _data[4:8]
@@ -312,8 +322,11 @@ class HBCLIENT(DatagramProtocol):
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
     
-    def dmrd_received(self, _data):
-        pass
+    def dmrd_received(self, _radio_id, _data):
+        _seq = _data[4:5]
+        _rf_src = _data[5:8]
+        _dst_id = _data[8:11]
+        logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._client, h(_seq), int_id(_rf_src), int_id(_dst_id))
     
     def datagramReceived(self, _data, (_host, _port)):
         # Validate that we receveived this packet from the master - security check!
@@ -321,12 +334,14 @@ class HBCLIENT(DatagramProtocol):
             # Extract the command, which is various length, but only 4 significant characters
             _command = _data[:4] 
             if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
-                logger.debug('(%s) DMRD Received', self._client)
-                self.dmrd_received(_data)
+                _radio_id = _data[11:15]
+                if _radio_id == self._config['RADIO_ID']: # Validate the source and intended target
+                    logger.debug('(%s) DMRD Received', self._client)
+                    self.dmrd_received(_radio_id, _data)
         
             elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
                 _radio_id = _data[4:8]
-                if self._config['RADIO_ID'] == _radio_id: # Check to ensure this packet is meant for us
+                if _radio_id == self._config['RADIO_ID']: # Validate the source and intended target
                     logger.warning('(%s) MSTNAK Received', self._client)
                     self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
         
