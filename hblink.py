@@ -81,7 +81,7 @@ def handler(_signal, _frame):
         
     for master in masters:
         this_master = masters[master]
-        for client in CONFIG['MASTERS'][master]['CLIENTS']:
+        for client in CONFIG['MASTERS'][master]['CLIENTS'].keys():
             this_master.send_packet(client, 'MSTCL'+client)
             logger.info('(%s) Sending De-Registration to Client: %s', master, CONFIG['MASTERS'][master]['CLIENTS'][client]['RADIO_ID'])
     
@@ -149,7 +149,7 @@ class HBMASTER(DatagramProtocol):
         _dst_id = _data[8:11]
         logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, _seq, int_id(_rf_src), int_id(_dst_id))
         if self._config['REPEAT'] == True:
-            for _client in self._clients:
+            for _client in self._clients.keys():
                 if _client != _radio_id:
                     self.send_packet(_client, _data)
                     logger.debug('(%s) Packet repeated to client: %s', self._master, int_id(_client))
