@@ -84,7 +84,7 @@ def handler(_signal, _frame):
         
     for master in masters:
         this_master = masters[master]
-        for client in CONFIG['MASTERS'][master]['CLIENTS'].keys():
+        for client in CONFIG['MASTERS'][master]['CLIENTS']:
             this_master.send_packet(client, 'MSTCL'+client)
             logger.info('(%s) Sending De-Registration to Client: %s', master, CONFIG['MASTERS'][master]['CLIENTS'][client]['RADIO_ID'])
     
@@ -163,7 +163,7 @@ class HBMASTER(DatagramProtocol):
     
     def master_maintenance_loop(self):
         logger.debug('(%s) Master maintenance loop started', self._master)
-        for client in self._clients.keys():
+        for client in self._clients:
             _this_client = self._clients[client]
             # Check to see if any of the clients have been quiet (no ping) longer than allowed
             if _this_client['LAST_PING']+CONFIG['GLOBAL']['PING_TIME']*CONFIG['GLOBAL']['MAX_MISSED'] < time():
@@ -172,7 +172,9 @@ class HBMASTER(DatagramProtocol):
                 del CONFIG['MASTERS'][self._master]['CLIENTS'][client]
                 
     def send_packet(self, _client, _packet):
-        self.transport.write(_packet, (self._clients[_client]['IP'], self._clients[_client]['PORT']))
+        _ip = self._clients[_client]['IP']
+        _port = self._clients[_client]['PORT']
+        self.transport.write(_packet, (_ip, _port))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._clients[_client]['RADIO_ID'], self._clients[_client]['IP'], self._clients[_client]['PORT'], h(_packet))
     
@@ -180,20 +182,19 @@ class HBMASTER(DatagramProtocol):
         _seq = _data[4:5]
         _rf_src = _data[5:8]
         _dst_id = _data[8:11]
-        logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, _seq, int_id(_rf_src), int_id(_dst_id))
+        logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
         if self._config['REPEAT'] == True:
-            for _client in self._clients.keys():
+            for _client in self._clients:
                 if _client != _radio_id:
                     self.send_packet(_client, _data)
                     logger.debug('(%s) Packet repeated to client: %s', self._master, int_id(_client))
-    
+
     def datagramReceived(self, _data, (_host, _port)):
             # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
             _command = _data[:4]
             
             if _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
                 _radio_id = _data[11:15]
-                print(h(_radio_id))
                 if _radio_id in self._clients \
                             and self._clients[_radio_id]['CONNECTION'] == 'YES' \
                             and self._clients[_radio_id]['IP'] == _host \
@@ -305,7 +306,7 @@ class HBMASTER(DatagramProtocol):
                                 and self._clients[_radio_id]['CONNECTION'] == "YES" \
                                 and self._clients[_radio_id]['IP'] == _host \
                                 and self._clients[_radio_id]['PORT'] == _port:
-                        self._clients['LAST_PING'] = time()
+                        self._clients[_radio_id]['LAST_PING'] = time()
                         self.send_packet(_radio_id, 'MSTPONG'+_radio_id)
                         logger.debug('(%s) Received and answered RPTPING from client %s', self._master, h(_radio_id))
                     else:
