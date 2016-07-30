@@ -141,7 +141,7 @@ class HBMASTER(DatagramProtocol):
     def send_packet(self, _client, _packet):
         self.transport.write(_packet, (self._clients[_client]['IP'], self._clients[_client]['PORT']))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
-        #logger.debug('(%s) TX Packet to %s on port %s: %s', self._clients[_client], self._clients[_client]['IP'], self._clients[_client]['PORT'], h(_packet))
+        #logger.debug('(%s) TX Packet to %s on port %s: %s', self._clients[_client]['RADIO_ID'], self._clients[_client]['IP'], self._clients[_client]['PORT'], h(_packet))
     
     def dmrd_received(self, _radio_id, _data):
         _seq = _data[4:5]
