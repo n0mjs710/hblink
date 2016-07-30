@@ -21,6 +21,8 @@ from socket import gethostbyname
 from random import randint
 from hashlib import sha256
 from time import time
+from bitstring import BitArray
+import socket
 
 # Debugging functions
 from pprint import pprint
@@ -70,6 +72,7 @@ if cli_args.LOG_LEVEL:
 logger = hb_log.config_logging(CONFIG['LOGGER'])
 logger.debug('Logging system started, anything from here on gets logged')
 
+
 # Shut ourselves down gracefully by disconnecting from the masters and clients.
 def handler(_signal, _frame):
     logger.info('*** HBLINK IS TERMINATING WITH SIGNAL %s ***', str(_signal))
@@ -106,7 +109,37 @@ def hex_str_4(_int_id):
 # Convert a hex string to an int (radio ID, etc.)
 def int_id(_hex_string):
     return int(h(_hex_string), 16)
-        
+
+#************************************************
+#     AMBE CLASS: Used to parse out AMBE and send to gateway
+#************************************************
+
+class AMBE:
+    _sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    def parseAMBE(self, _client, _data):
+        _seq = int_id(_data[4:5])
+        _srcID = int_id(_data[5:8])
+        _dstID = int_id(_data[8:11])
+        _rptID = int_id(_data[11:15])
+        _bits = int_id(_data[15:16])       # SCDV NNNN (Slot|Call type|Data|Voice|Seq or Data type)
+        _slot = 2 if _bits & 0x80 else 1
+        _callType = 1 if (_bits & 0x40) else 0
+        _frameType = (_bits & 0x30) >> 4
+        _voiceSeq = (_bits & 0x0f)
+        _streamID = int_id(_data[16:20])
+        logger.debug('(%s) seq: %d srcID: %d dstID: %d rptID: %d bits: %0X slot:%d callType: %d frameType:  %d voiceSeq: %d streamID: %0X',
+        _client, _seq, _srcID, _dstID, _rptID, _bits, _slot, _callType, _frameType, _voiceSeq, _streamID )
+
+        #logger.debug('Frame 1:(%s)', self.ByteToHex(_data))
+        _dmr_frame = BitArray('0x'+h(_data[20:]))
+        _ambe = _dmr_frame[0:108] + _dmr_frame[156:264]
+        #_sock.sendto(_ambe.tobytes(), ("127.0.0.1", 31000))
+
+        ambeBytes = _ambe.tobytes()
+        self._sock.sendto(ambeBytes[0:9], ("127.0.0.1", 31000))
+        self._sock.sendto(ambeBytes[9:18], ("127.0.0.1", 31000))
+        self._sock.sendto(ambeBytes[18:27], ("127.0.0.1", 31000))
+
 #************************************************
 #     HB MASTER CLASS
 #************************************************
@@ -287,6 +320,7 @@ class HBMASTER(DatagramProtocol):
 #************************************************            
     
 class HBCLIENT(DatagramProtocol):
+    ambe = AMBE()
     def __init__(self, *args, **kwargs):
         if len(args) == 1:
             self._client = args[0]
@@ -327,6 +361,7 @@ class HBCLIENT(DatagramProtocol):
         _rf_src = _data[5:8]
         _dst_id = _data[8:11]
         logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._client, h(_seq), int_id(_rf_src), int_id(_dst_id))
+        self.ambe.parseAMBE(self._client, _data)
     
     def datagramReceived(self, _data, (_host, _port)):
         # Validate that we receveived this packet from the master - security check!
