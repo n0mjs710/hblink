@@ -38,7 +38,7 @@ import hb_config
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
-__copyright__  = 'Copyright (c) 2013 - 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
+__copyright__  = 'Copyright (c) 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
 __credits__    = 'Colin Durbridge, G4EML, Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
 __license__    = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __maintainer__ = 'Cort Buffington, N0MJS'
@@ -116,6 +116,9 @@ def int_id(_hex_string):
 
 class AMBE:
     _sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    _exp_ip = CONFIG['AMBE']['EXPORT_IP']
+    _exp_port = CONFIG['AMBE']['EXPORT_PORT']
+    
     def parseAMBE(self, _client, _data):
         _seq = int_id(_data[4:5])
         _srcID = int_id(_data[5:8])
@@ -136,9 +139,9 @@ class AMBE:
         #_sock.sendto(_ambe.tobytes(), ("127.0.0.1", 31000))
 
         ambeBytes = _ambe.tobytes()
-        self._sock.sendto(ambeBytes[0:9], ("127.0.0.1", 31000))
-        self._sock.sendto(ambeBytes[9:18], ("127.0.0.1", 31000))
-        self._sock.sendto(ambeBytes[18:27], ("127.0.0.1", 31000))
+        self._sock.sendto(ambeBytes[0:9], (self._exp_ip, self._exp_port))
+        self._sock.sendto(ambeBytes[9:18], (self._exp_ip, self._exp_port))
+        self._sock.sendto(ambeBytes[18:27], (self._exp_ip, self._exp_port))
 
 #************************************************
 #     HB MASTER CLASS
@@ -151,6 +154,10 @@ class HBMASTER(DatagramProtocol):
             self._master = args[0]
             self._config = CONFIG['MASTERS'][self._master]
             self._clients = CONFIG['MASTERS'][self._master]['CLIENTS']
+            
+            # Configure for AMBE audio export if enabled
+            if self._config['EXPORT_AMBE']:
+                self._ambe = AMBE()
         else:
             # If we didn't get called correctly, log it and quit.
             logger.error('(%s) HBMASTER was not called with an argument. Terminating', self._master)
@@ -183,6 +190,11 @@ class HBMASTER(DatagramProtocol):
         _rf_src = _data[5:8]
         _dst_id = _data[8:11]
         logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
+        
+        # If AMBE audio exporting is configured... 
+        if self._config['EXPORT_AMBE']:
+            self._ambe.parseAMBE(self._master, _data)
+        
         if self._config['REPEAT'] == True:
             for _client in self._clients:
                 if _client != _radio_id:
@@ -319,19 +331,23 @@ class HBMASTER(DatagramProtocol):
 #************************************************
 #     HB CLIENT CLASS
 #************************************************            
-    
+
 class HBCLIENT(DatagramProtocol):
-    ambe = AMBE()
+
     def __init__(self, *args, **kwargs):
         if len(args) == 1:
             self._client = args[0]
             self._config = CONFIG['CLIENTS'][self._client]
             self._stats = self._config['STATS']
+            
+            # Configure for AMBE audio export if enabled        
+            if self._config['EXPORT_AMBE']:
+                self._ambe = AMBE()
         else:
             # If we didn't get called correctly, log it!
             logger.error('(%s) HBCLIENT was not called with an argument. Terminating', self._client)
             sys.exit()    
-            
+
     def startProtocol(self):
         # Set up periodic loop for sending pings to the master. Run every 'PING_TIME' seconds
         self._client_maintenance = task.LoopingCall(self.client_maintenance_loop)
@@ -362,7 +378,10 @@ class HBCLIENT(DatagramProtocol):
         _rf_src = _data[5:8]
         _dst_id = _data[8:11]
         logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._client, h(_seq), int_id(_rf_src), int_id(_dst_id))
-        self.ambe.parseAMBE(self._client, _data)
+        
+        # If AMBE audio exporting is configured...
+        if self._config['EXPORT_AMBE']:
+            self._ambe.parseAMBE(self._client, _data)
     
     def datagramReceived(self, _data, (_host, _port)):
         # Validate that we receveived this packet from the master - security check!

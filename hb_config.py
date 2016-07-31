@@ -14,6 +14,7 @@ def build_config(_config_file):
     CONFIG = {}
     CONFIG['GLOBAL'] = {}
     CONFIG['LOGGER'] = {}
+    CONFIG['AMBE'] = {}
     CONFIG['CLIENTS'] = {}
     CONFIG['MASTERS'] = {}
 
@@ -36,12 +37,20 @@ def build_config(_config_file):
                     'LOG_LEVEL': config.get(section, 'LOG_LEVEL'),
                     'LOG_NAME': config.get(section, 'LOG_NAME')
                 })
+                
+            elif section == 'AMBE':
+                # Process AMBE Export items in the configuration
+                CONFIG['AMBE'].update({
+                    'EXPORT_IP': gethostbyname(config.get(section, 'EXPORT_IP')),
+                    'EXPORT_PORT': config.getint(section, 'EXPORT_PORT'),
+                })
 
             elif config.getboolean(section, 'ENABLED'):
                 # HomeBrew Client (Repeater) Configuration(s)
                 if config.get(section, 'MODE') == 'CLIENT':
                     CONFIG['CLIENTS'].update({section: {
                         'ENABLED': config.getboolean(section, 'ENABLED'),
+                        'EXPORT_AMBE': config.getboolean(section, 'EXPORT_AMBE'),
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
                         'MASTER_IP': gethostbyname(config.get(section, 'MASTER_IP')),
@@ -77,6 +86,7 @@ def build_config(_config_file):
                     CONFIG['MASTERS'].update({section: {
                         'ENABLED': config.getboolean(section, 'ENABLED'),
                         'REPEAT': config.getboolean(section, 'REPEAT'),
+                        'EXPORT_AMBE': config.getboolean(section, 'EXPORT_AMBE'),
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
                         'PASSPHRASE': config.get(section, 'PASSPHRASE')
@@ -89,5 +99,3 @@ def build_config(_config_file):
         sys.exit('Could not parse configuration file, exiting...')
         
     return CONFIG
-
-
