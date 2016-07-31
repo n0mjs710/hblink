@@ -46,6 +46,10 @@ __email__      = 'n0mjs@me.com'
 __status__     = 'pre-alpha'
 
 
+# Global variables used whether we are a module or __main__
+masters = {}
+clients = {}
+
 # Change the current directory to the location of the application
 os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
 
@@ -98,6 +102,13 @@ for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGQUIT]:
 #************************************************
 #     UTILITY FUNCTIONS
 #************************************************
+
+# Create a 3 byte hex string from an integer
+def hex_str_3(_int_id):
+    try:
+        return hex(_int_id)[2:].rjust(6,'0').decode('hex')
+    except TypeError:
+        logger.error('hex_str_3: invalid integer length')
 
 # Create a 4 byte hex string from an integer
 def hex_str_4(_int_id):
@@ -185,21 +196,8 @@ class HBMASTER(DatagramProtocol):
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._clients[_client]['RADIO_ID'], self._clients[_client]['IP'], self._clients[_client]['PORT'], h(_packet))
     
-    def dmrd_received(self, _radio_id, _data):
-        _seq = _data[4:5]
-        _rf_src = _data[5:8]
-        _dst_id = _data[8:11]
-        logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
-        
-        # If AMBE audio exporting is configured... 
-        if self._config['EXPORT_AMBE']:
-            self._ambe.parseAMBE(self._master, _data)
-        
-        if self._config['REPEAT'] == True:
-            for _client in self._clients:
-                if _client != _radio_id:
-                    self.send_packet(_client, _data)
-                    logger.debug('(%s) Packet repeated to client: %s', self._master, int_id(_client))
+    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _data):
+        pass
 
     def datagramReceived(self, _data, (_host, _port)):
             # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
@@ -211,8 +209,24 @@ class HBMASTER(DatagramProtocol):
                             and self._clients[_radio_id]['CONNECTION'] == 'YES' \
                             and self._clients[_radio_id]['IP'] == _host \
                             and self._clients[_radio_id]['PORT'] == _port:
-                    logger.debug('(%s) DMRD Received', self._master)
-                    self.dmrd_received(_radio_id, _data)
+                    _seq = _data[4:5]
+                    _rf_src = _data[5:8]
+                    _dst_id = _data[8:11]
+                    logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
+        
+                    # If AMBE audio exporting is configured... 
+                    if self._config['EXPORT_AMBE']:
+                        self._ambe.parseAMBE(self._master, _data)
+                    
+                    # The basic purpose of a master is to repeat to the clients
+                    if self._config['REPEAT'] == True:
+                        for _client in self._clients:
+                            if _client != _radio_id:
+                                self.send_packet(_client, _data)
+                                logger.debug('(%s) Packet repeated to client: %s', self._master, int_id(_client))
+                    
+                    # Userland actions -- typically this is the function you subclass for an application
+                    self.dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _data)
             
             elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
                 _radio_id = _data[4:8]
@@ -373,15 +387,8 @@ class HBCLIENT(DatagramProtocol):
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
     
-    def dmrd_received(self, _radio_id, _data):
-        _seq = _data[4:5]
-        _rf_src = _data[5:8]
-        _dst_id = _data[8:11]
-        logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._client, h(_seq), int_id(_rf_src), int_id(_dst_id))
-        
-        # If AMBE audio exporting is configured...
-        if self._config['EXPORT_AMBE']:
-            self._ambe.parseAMBE(self._client, _data)
+    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _data):
+        pass
     
     def datagramReceived(self, _data, (_host, _port)):
         # Validate that we receveived this packet from the master - security check!
@@ -391,8 +398,17 @@ class HBCLIENT(DatagramProtocol):
             if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
                 _radio_id = _data[11:15]
                 if _radio_id == self._config['RADIO_ID']: # Validate the source and intended target
-                    logger.debug('(%s) DMRD Received', self._client)
-                    self.dmrd_received(_radio_id, _data)
+                    _seq = _data[4:5]
+                    _rf_src = _data[5:8]
+                    _dst_id = _data[8:11]
+                    logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._client, h(_seq), int_id(_rf_src), int_id(_dst_id))
+        
+                    # If AMBE audio exporting is configured...
+                    if self._config['EXPORT_AMBE']:
+                        self._ambe.parseAMBE(self._client, _data)
+                        
+                    # Userland actions -- typically this is the function you subclass for an application
+                    self.dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _data)
         
             elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
                 _radio_id = _data[4:8]
@@ -470,14 +486,13 @@ if __name__ == '__main__':
     logger.info('HBlink \'HBlink.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     
     # HBlink Master
-    masters = {}
     for master in CONFIG['MASTERS']:
         if CONFIG['MASTERS'][master]['ENABLED']:
             masters[master] = HBMASTER(master)
             reactor.listenUDP(CONFIG['MASTERS'][master]['PORT'], masters[master], interface=CONFIG['MASTERS'][master]['IP'])
             logger.debug('MASTER instance created: %s, %s', master, masters[master])
-        
-    clients = {}
+    
+    # HBlink Client
     for client in CONFIG['CLIENTS']:
         if CONFIG['CLIENTS'][client]['ENABLED']:
             clients[client] = HBCLIENT(client)
