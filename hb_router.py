@@ -48,7 +48,6 @@ for _system in RULES_FILE['MASTERS']:
         sys.exit('ERROR: Routing rules found for MASTER system not configured in main configuration')
 for _system in CONFIG['MASTERS']:
     if _system not in RULES_FILE['MASTERS']:
-        print(_system)
         sys.exit('ERROR: Routing rules not found for all MASTER systems configured')
         
 for _system in RULES_FILE['CLIENTS']:
@@ -62,7 +61,6 @@ for _system in RULES_FILE['CLIENTS']:
         for i, e in enumerate(_rule['OFF']):
             _rule['OFF'][i] = hex_str_3(_rule['OFF'][i])
     if _system not in CONFIG['CLIENTS']:
-        print(_system)
         sys.exit('ERROR: Routing rules found for CLIENT system not configured in main configuration')
 for _system in CONFIG['CLIENTS']:
     if _system not in RULES_FILE['CLIENTS']:
@@ -71,7 +69,7 @@ for _system in CONFIG['CLIENTS']:
 RULES = RULES_FILE
 
 # TEMPORARY DEBUGGING LINE -- TO BE REMOVED LATER
-pprint(RULES)
+#pprint(RULES)
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -84,10 +82,15 @@ __status__     = 'pre-alpha'
 
 
 class routerMASTER(HBMASTER):
-        pass
+        
+        def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _data):
+            for rule in RULES['MASTERS'][self._master]:
+                print(rule)
 
 class routerCLIENT(HBCLIENT):
-        pass
+        
+        def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _data):
+            pass
 
 #************************************************
 #      MAIN PROGRAM LOOP STARTS HERE
