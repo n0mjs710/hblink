@@ -87,14 +87,11 @@ class routerMASTER(HBMASTER):
             for rule in RULES['MASTERS'][self._master]['GROUP_VOICE']:
                 _target = rule['DST_NET']
                 if _target in RULES['MASTERS']:
-                    _tmp_data = _data
-                    masters[_target].send_clients(_client, _tmp_data)
+                    masters[_target].send_clients(_data)
                     logger.debug('(%s) Packet routed to master instance: %s', self._master, _target)
                     
                 elif _target in RULES['CLIENTS']:
-                    _tmp_data = _data
-                    _tmp_data = _tmp_data.replace(_radio_id, CONFIG['CLIENTS'][_target]['RADIO_ID'])
-                    clients[_target].send_packet(_tmp_data)
+                    clients[_target].send_packet(_data)
                     logger.debug('(%s) Packet routed to client instance: %s', self._master, _target)
                     
                 else:
@@ -108,14 +105,11 @@ class routerCLIENT(HBCLIENT):
             for rule in RULES['CLIENTS'][self._client]['GROUP_VOICE']:
                 _target = rule['DST_NET']
                 if _target in RULES['MASTERS']:
-                    _tmp_data = _data
-                    masters[_target].send_packet(_client, _tmp_data)
+                    masters[_target].send_clients(_data)
                     logger.debug('(%s) Packet routed to master instance: %s', self._client, _target)
                     
                 elif _target in RULES['CLIENTS']:
-                    _tmp_data = _data
-                    _tmp_data = _tmp_data.replace(_radio_id, CONFIG['CLIENTS'][_target]['RADIO_ID'])
-                    clients[_target].send_packet(_tmp_data)
+                    clients[_target].send_packet(_data)
                     logger.debug('(%s) Packet routed to client instance: %s', self._client, _target)
                     
                 else:
