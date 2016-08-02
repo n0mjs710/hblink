@@ -191,8 +191,8 @@ class HBMASTER(DatagramProtocol):
     def send_clients(self, _packet):
         for _client in self._clients:
             #add destiantion re-writer here split _data and insert target client radio_id at: _data[11:15]
-            _tmp_data = _data[:11] + _client + _data[15:]
-            self.send_packet(_client, _data)
+            _tmp_packet = _packet[:11] + _client + _packet[15:]
+            self.send_packet(_client, _tmp_packet)
         logger.debug('(%s) Packet sent to all connected clients', self._master)
     
     def send_packet(self, _client, _packet):
