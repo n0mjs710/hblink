@@ -112,7 +112,7 @@ class routerCLIENT(HBCLIENT):
                 _target = rule['DST_NET']
                 if _target in RULES['MASTERS']:
                     _tmp_data = _data
-                    _tmp_data = _tmp_data.replace(_radio_id, CONFIG['MASTERS'][_target]['RADIO_ID'])
+                    #_tmp_data = _tmp_data.replace(_radio_id, CONFIG['MASTERS'][_target]['RADIO_ID'])
                     for _client in CONFIG['MASTERS'][_target]._clients:
                         if _client != _radio_id:
                             masters[_target].send_packet(_client, _tmp_data)
