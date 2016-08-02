@@ -108,7 +108,7 @@ class routerMASTER(HBMASTER):
 class routerCLIENT(HBCLIENT):
         
         def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _data):
-            for rule in RULES['CLIENTS'][self._master]['GROUP_VOICE']:
+            for rule in RULES['CLIENTS'][self._client]['GROUP_VOICE']:
                 _target = rule['DST_NET']
                 if _target in RULES['MASTERS']:
                     _tmp_data = _data
