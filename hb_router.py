@@ -20,7 +20,7 @@ from twisted.internet import reactor
 from twisted.internet import task
 
 # Things we import from the main hblink module
-from hblink import CONFIG, HBMASTER, HBCLIENT, logger, masters, clients, hex_str_3
+from hblink import CONFIG, HBMASTER, HBCLIENT, logger, masters, clients, hex_str_3, int_id
 
 # Import Bridging rules
 # Note: A stanza *must* exist for any MASTER or CLIENT configured in the main
@@ -84,13 +84,49 @@ __status__     = 'pre-alpha'
 class routerMASTER(HBMASTER):
         
         def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _data):
-            for rule in RULES['MASTERS'][self._master]:
-                print(rule)
+            for rule in RULES['MASTERS'][self._master]['GROUP_VOICE']:
+                _target = rule['DST_NET']
+                if _target in RULES['MASTERS']:
+                    _tmp_data = _data
+                    _tmp_data = _tmp_data.replace(_radio_id, CONFIG['MASTERS'][_target]['RADIO_ID'])
+                    for _client in CONFIG['MASTERS'][_target]._clients:
+                        if _client != _radio_id:
+                            masters[_target].send_packet(_client, _tmp_data)
+                            logger.debug('(%s) Packet bridged to client: %s', self._master, _target)
+                    
+                elif _target in RULES['CLIENTS']:
+                    _tmp_data = _data
+                    _tmp_data = _tmp_data.replace(_radio_id, CONFIG['CLIENTS'][_target]['RADIO_ID'])
+                    clients[_target].send_packet(_tmp_data)
+                    logger.debug('(%s) Packet bridged to master: %s', self._master, _target)
+                    
+                else:
+                    print('no luck')
+                    continue
+                
 
 class routerCLIENT(HBCLIENT):
         
         def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _data):
-            pass
+            for rule in RULES['CLIENTS'][self._master]['GROUP_VOICE']:
+                _target = rule['DST_NET']
+                if _target in RULES['MASTERS']:
+                    _tmp_data = _data
+                    _tmp_data = _tmp_data.replace(_radio_id, CONFIG['MASTERS'][_target]['RADIO_ID'])
+                    for _client in CONFIG['MASTERS'][_target]._clients:
+                        if _client != _radio_id:
+                            masters[_target].send_packet(_client, _tmp_data)
+                            logger.debug('(%s) Packet bridged to client: %s', self._client, _target)
+                    
+                elif _target in RULES['CLIENTS']:
+                    _tmp_data = _data
+                    _tmp_data = _tmp_data.replace(_radio_id, CONFIG['CLIENTS'][_target]['RADIO_ID'])
+                    clients[_target].send_packet(_tmp_data)
+                    logger.debug('(%s) Packet bridged to master: %s', self._client, _target)
+                    
+                else:
+                    print('no luck')
+                    continue
 
 #************************************************
 #      MAIN PROGRAM LOOP STARTS HERE
@@ -102,13 +138,13 @@ if __name__ == '__main__':
     # HBlink Master
     for master in CONFIG['MASTERS']:
         if CONFIG['MASTERS'][master]['ENABLED']:
-            masters[master] = HBMASTER(master)
+            masters[master] = routerMASTER(master)
             reactor.listenUDP(CONFIG['MASTERS'][master]['PORT'], masters[master], interface=CONFIG['MASTERS'][master]['IP'])
             logger.debug('MASTER instance created: %s, %s', master, masters[master])
 
     for client in CONFIG['CLIENTS']:
         if CONFIG['CLIENTS'][client]['ENABLED']:
-            clients[client] = HBCLIENT(client)
+            clients[client] = routerCLIENT(client)
             reactor.listenUDP(CONFIG['CLIENTS'][client]['PORT'], clients[client], interface=CONFIG['CLIENTS'][client]['IP'])
             logger.debug('CLIENT instance created: %s, %s', client, clients[client])
 
