@@ -188,6 +188,13 @@ class HBMASTER(DatagramProtocol):
                 # Remove any timed out clients from the configuration 
                 del CONFIG['MASTERS'][self._master]['CLIENTS'][client]
                 
+    def send_clients(self, _packet):
+        for _client in self._clients:
+            #add destiantion re-writer here split _data and insert target client radio_id at: _data[11:15]
+            _tmp_data = _data[:11] + _client + _data[15:]
+            self.send_packet(_client, _data)
+        logger.debug('(%s) Packet sent to all connected clients', self._master)
+    
     def send_packet(self, _client, _packet):
         _ip = self._clients[_client]['IP']
         _port = self._clients[_client]['PORT']

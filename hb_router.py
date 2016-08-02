@@ -88,20 +88,17 @@ class routerMASTER(HBMASTER):
                 _target = rule['DST_NET']
                 if _target in RULES['MASTERS']:
                     _tmp_data = _data
-                    _tmp_data = _tmp_data.replace(_radio_id, CONFIG['MASTERS'][_target]['RADIO_ID'])
-                    for _client in CONFIG['MASTERS'][_target]._clients:
-                        if _client != _radio_id:
-                            masters[_target].send_packet(_client, _tmp_data)
-                            logger.debug('(%s) Packet bridged to client: %s', self._master, _target)
+                    masters[_target].send_clients(_client, _tmp_data)
+                    logger.debug('(%s) Packet routed to master instance: %s', self._master, _target)
                     
                 elif _target in RULES['CLIENTS']:
                     _tmp_data = _data
                     _tmp_data = _tmp_data.replace(_radio_id, CONFIG['CLIENTS'][_target]['RADIO_ID'])
                     clients[_target].send_packet(_tmp_data)
-                    logger.debug('(%s) Packet bridged to master: %s', self._master, _target)
+                    logger.debug('(%s) Packet routed to client instance: %s', self._master, _target)
                     
                 else:
-                    print('no luck')
+                    logger.debug('(%s) Packet router found no target for packet. Destination was: %s on target network %s', self._master, _dst_id, _target)
                     continue
                 
 
@@ -112,20 +109,17 @@ class routerCLIENT(HBCLIENT):
                 _target = rule['DST_NET']
                 if _target in RULES['MASTERS']:
                     _tmp_data = _data
-                    #_tmp_data = _tmp_data.replace(_radio_id, CONFIG['MASTERS'][_target]['RADIO_ID'])
-                    for _client in CONFIG['MASTERS'][_target]['CLIENTS']:
-                        if _client != _radio_id:
-                            masters[_target].send_packet(_client, _tmp_data)
-                            logger.debug('(%s) Packet bridged to client: %s', self._client, _target)
+                    masters[_target].send_packet(_client, _tmp_data)
+                    logger.debug('(%s) Packet routed to master instance: %s', self._client, _target)
                     
                 elif _target in RULES['CLIENTS']:
                     _tmp_data = _data
                     _tmp_data = _tmp_data.replace(_radio_id, CONFIG['CLIENTS'][_target]['RADIO_ID'])
                     clients[_target].send_packet(_tmp_data)
-                    logger.debug('(%s) Packet bridged to master: %s', self._client, _target)
+                    logger.debug('(%s) Packet routed to client instance: %s', self._client, _target)
                     
                 else:
-                    print('no luck')
+                    logger.debug('(%s) Packet router found no target for packet. Destination was: %s on target network %s', self._client, _dst_id, _target)
                     continue
 
 #************************************************
