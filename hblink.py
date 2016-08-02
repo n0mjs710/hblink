@@ -191,7 +191,7 @@ class HBMASTER(DatagramProtocol):
     def send_clients(self, _packet):
         for _client in self._clients:
             self.send_packet(_client, _packet)
-            logger.debug('(%s) Packet sent to client %s', self._master, _client)
+            logger.debug('(%s) Packet sent to client %s', self._master, self._clients[_client]['RADIO_ID'])
     
     def send_packet(self, _client, _packet):
         _ip = self._clients[_client]['IP']
