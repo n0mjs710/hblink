@@ -191,7 +191,7 @@ class HBMASTER(DatagramProtocol):
     def send_clients(self, _packet):
         for _client in self._clients:
             self.send_packet(_client, _packet)
-            logger.debug('(%s) Packet sent to client %s', self._master, self._clients[_client]['RADIO_ID'])
+            #logger.debug('(%s) Packet sent to client %s', self._master, self._clients[_client]['RADIO_ID'])
     
     def send_packet(self, _client, _packet):
         _ip = self._clients[_client]['IP']
@@ -219,7 +219,7 @@ class HBMASTER(DatagramProtocol):
                 _seq = _data[4:5]
                 _rf_src = _data[5:8]
                 _dst_id = _data[8:11]
-                logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
+                #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
     
                 # If AMBE audio exporting is configured... 
                 if self._config['EXPORT_AMBE']:
@@ -411,7 +411,7 @@ class HBCLIENT(DatagramProtocol):
                     _seq = _data[4:5]
                     _rf_src = _data[5:8]
                     _dst_id = _data[8:11]
-                    logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._client, h(_seq), int_id(_rf_src), int_id(_dst_id))
+                    #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._client, h(_seq), int_id(_rf_src), int_id(_dst_id))
         
                     # If AMBE audio exporting is configured...
                     if self._config['EXPORT_AMBE']:
