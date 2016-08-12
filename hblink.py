@@ -205,7 +205,7 @@ class HBMASTER(DatagramProtocol):
 
     def datagramReceived(self, _data, (_host, _port)):
         # Keep This Line Commented Unless HEAVILY Debugging!
-        # logger.debug('(%s) RX packet from %s:%s -- %s', self._client, _host, _port, h(_data))    
+        #logger.debug('(%s) RX packet from %s:%s -- %s', self._master, _host, _port, h(_data))    
         
         # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
         _command = _data[:4]
