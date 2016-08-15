@@ -22,7 +22,7 @@ RULES = {
                 # This rule can be enabled by transmitting on TGID 8
                 # This rule can be disabled by transmitting on TGID 9 or 10
                 # Repeat the above line for as many rules for this IPSC network as you want.
-            ]
+           ]
         },
     },
 }
