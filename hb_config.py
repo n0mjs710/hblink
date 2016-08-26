@@ -15,8 +15,7 @@ def build_config(_config_file):
     CONFIG['GLOBAL'] = {}
     CONFIG['LOGGER'] = {}
     CONFIG['AMBE'] = {}
-    CONFIG['CLIENTS'] = {}
-    CONFIG['MASTERS'] = {}
+    CONFIG['SYSTEMS'] = {}
 
     try:
         for section in config.sections():
@@ -48,7 +47,8 @@ def build_config(_config_file):
             elif config.getboolean(section, 'ENABLED'):
                 # HomeBrew Client (Repeater) Configuration(s)
                 if config.get(section, 'MODE') == 'CLIENT':
-                    CONFIG['CLIENTS'].update({section: {
+                    CONFIG['SYSTEMS'].update({section: {
+                        'MODE': config.get(section, 'MODE'),
                         'ENABLED': config.getboolean(section, 'ENABLED'),
                         'EXPORT_AMBE': config.getboolean(section, 'EXPORT_AMBE'),
                         'IP': gethostbyname(config.get(section, 'IP')),
@@ -72,7 +72,7 @@ def build_config(_config_file):
                         'SOFTWARE_ID': config.get(section, 'SOFTWARE_ID').ljust(40)[:40],
                         'PACKAGE_ID': config.get(section, 'PACKAGE_ID').ljust(40)[:40]
                     }})
-                    CONFIG['CLIENTS'][section].update({'STATS': {
+                    CONFIG['SYSTEMS'][section].update({'STATS': {
                         'CONNECTION': 'NO',             # NO, RTPL_SENT, AUTHENTICATED, CONFIG-SENT, YES 
                         'PINGS_SENT': 0,
                         'PINGS_ACKD': 0,
@@ -83,7 +83,8 @@ def build_config(_config_file):
         
                 elif config.get(section, 'MODE') == 'MASTER':
                     # HomeBrew Master Configuration
-                    CONFIG['MASTERS'].update({section: {
+                    CONFIG['SYSTEMS'].update({section: {
+                        'MODE': config.get(section, 'MODE'),
                         'ENABLED': config.getboolean(section, 'ENABLED'),
                         'REPEAT': config.getboolean(section, 'REPEAT'),
                         'EXPORT_AMBE': config.getboolean(section, 'EXPORT_AMBE'),
@@ -91,7 +92,7 @@ def build_config(_config_file):
                         'PORT': config.getint(section, 'PORT'),
                         'PASSPHRASE': config.get(section, 'PASSPHRASE')
                     }})
-                    CONFIG['MASTERS'][section].update({'CLIENTS': {}})
+                    CONFIG['SYSTEMS'][section].update({'CLIENTS': {}})
     
     except ConfigParser.Error, err:
 	# Very simple error reporting
@@ -99,3 +100,31 @@ def build_config(_config_file):
         sys.exit('Could not parse configuration file, exiting...')
         
     return CONFIG
+
+
+
+
+
+# Used to run this file direclty and print the config,
+# which might be useful for debugging
+if __name__ == '__main__':
+    import sys
+    import os
+    import argparse
+    from pprint import pprint
+    
+    # Change the current directory to the location of the application
+    os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
+
+    # CLI argument parser - handles picking up the config file from the command line, and sending a "help" message
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', action='store', dest='CONFIG_FILE', help='/full/path/to/config.file (usually hblink.cfg)')
+    cli_args = parser.parse_args()
+
+
+    # Ensure we have a path for the config file, if one wasn't specified, then use the execution directory
+    if not cli_args.CONFIG_FILE:
+        cli_args.CONFIG_FILE = os.path.dirname(os.path.abspath(__file__))+'/hblink.cfg'
+    
+    
+    pprint(build_config(cli_args.CONFIG_FILE))

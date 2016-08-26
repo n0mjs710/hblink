@@ -47,8 +47,7 @@ __status__     = 'pre-alpha'
 
 
 # Global variables used whether we are a module or __main__
-masters = {}
-clients = {}
+systems = {}
 
 # Change the current directory to the location of the application
 os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
@@ -80,17 +79,16 @@ logger.debug('Logging system started, anything from here on gets logged')
 def handler(_signal, _frame):
     logger.info('*** HBLINK IS TERMINATING WITH SIGNAL %s ***', str(_signal))
     
-    for client in clients:
-        this_client = clients[client]
-        this_client.send_packet('RPTCL'+CONFIG['CLIENTS'][client]['RADIO_ID'])
-        logger.info('(%s) De-Registering From the Master', client)
-        
-    for master in masters:
-        this_master = masters[master]
-        for client in CONFIG['MASTERS'][master]['CLIENTS']:
-            this_master.send_packet(client, 'MSTCL'+client)
-            logger.info('(%s) Sending De-Registration to Client: %s', master, CONFIG['MASTERS'][master]['CLIENTS'][client]['RADIO_ID'])
-    
+    for system in systems:
+        this_system = systems[system]
+        if CONFIG['SYSTEMS'][system]['MODE'] == 'MASTER':
+            for client in CONFIG['SYSTEMS'][system]['CLIENTS']:
+                this_system.send_client(client, 'MSTCL'+client)
+                logger.info('(%s) Sending De-Registration to Client: %s', system, CONFIG['SYSTEMS'][system]['CLIENTS'][client]['RADIO_ID'])
+        elif CONFIG['SYSTEMS'][system]['MODE'] == 'CLIENT':
+            this_system.send_master('RPTCL'+CONFIG['SYSTEMS'][system]['RADIO_ID'])
+            logger.info('(%s) De-Registering From the Master', system)
+
     reactor.stop()
 
 # Set signal handers so that we can gracefully exit if need be
@@ -162,8 +160,9 @@ class HBMASTER(DatagramProtocol):
         if len(args) == 1:
             # Define a few shortcuts to make the rest of the class more readable
             self._master = args[0]
-            self._config = CONFIG['MASTERS'][self._master]
-            self._clients = CONFIG['MASTERS'][self._master]['CLIENTS']
+            self._system = self._master
+            self._config = CONFIG['SYSTEMS'][self._master]
+            self._clients = CONFIG['SYSTEMS'][self._master]['CLIENTS']
             
             # Configure for AMBE audio export if enabled
             if self._config['EXPORT_AMBE']:
@@ -186,19 +185,23 @@ class HBMASTER(DatagramProtocol):
             if _this_client['LAST_PING']+CONFIG['GLOBAL']['PING_TIME']*CONFIG['GLOBAL']['MAX_MISSED'] < time():
                 logger.info('(%s) Client %s has timed out', self._master, _this_client['RADIO_ID'])
                 # Remove any timed out clients from the configuration 
-                del CONFIG['MASTERS'][self._master]['CLIENTS'][client]
-                
+                del CONFIG['SYSTEMS'][self._master]['CLIENTS'][client]
+    
     def send_clients(self, _packet):
         for _client in self._clients:
-            self.send_packet(_client, _packet)
+            self.send_client(_client, _packet)
             #logger.debug('(%s) Packet sent to client %s', self._master, self._clients[_client]['RADIO_ID'])
     
-    def send_packet(self, _client, _packet):
+    def send_client(self, _client, _packet):
         _ip = self._clients[_client]['IP']
         _port = self._clients[_client]['PORT']
         self.transport.write(_packet, (_ip, _port))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._clients[_client]['RADIO_ID'], self._clients[_client]['IP'], self._clients[_client]['PORT'], h(_packet))
+        
+    # Alias for other programs to use a common name to send a packet
+    # regardless of the system type (MASTER or CLIENT)
+    send_system = send_clients
     
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _data):
         pass
@@ -229,7 +232,7 @@ class HBMASTER(DatagramProtocol):
                 if self._config['REPEAT'] == True:
                     for _client in self._clients:
                         if _client != _radio_id:
-                            self.send_packet(_client, _data)
+                            self.send_client(_client, _data)
                             logger.debug('(%s) Packet repeated to client: %s', self._master, int_id(_client))
                 
                 # Userland actions -- typically this is the function you subclass for an application
@@ -263,7 +266,7 @@ class HBMASTER(DatagramProtocol):
                 }})
                 logger.info('(%s) Repeater Logging in with Radio ID: %s, %s:%s', self._master, int_id(_radio_id), _host, _port)
                 _salt_str = hex_str_4(self._clients[_radio_id]['SALT'])
-                self.send_packet(_radio_id, 'RPTACK'+_salt_str)
+                self.send_client(_radio_id, 'RPTACK'+_salt_str)
                 self._clients[_radio_id]['CONNECTION'] = 'CHALLENGE_SENT'
                 logger.info('(%s) Sent Challenge Response to %s for login: %s', self._master, int_id(_radio_id), self._clients[_radio_id]['SALT'])
             else:
@@ -283,7 +286,7 @@ class HBMASTER(DatagramProtocol):
                 _calc_hash = a(sha256(_salt_str+self._config['PASSPHRASE']).hexdigest())
                 if _sent_hash == _calc_hash:
                     _this_client['CONNECTION'] = 'WAITING_CONFIG'
-                    self.send_packet(_radio_id, 'RPTACK'+_radio_id)
+                    self.send_client(_radio_id, 'RPTACK'+_radio_id)
                     logger.info('(%s) Client %s has completed the login exchange successfully', self._master, _this_client['RADIO_ID'])
                 else:
                     logger.info('(%s) Client %s has FAILED the login exchange successfully', self._master, _this_client['RADIO_ID'])
@@ -327,7 +330,7 @@ class HBMASTER(DatagramProtocol):
                     _this_client['SOFTWARE_ID'] = _data[224:264]
                     _this_client['PACKAGE_ID'] = _data[264:304]
 
-                    self.send_packet(_radio_id, 'RPTACK'+_radio_id)
+                    self.send_client(_radio_id, 'RPTACK'+_radio_id)
                     logger.info('(%s) Client %s has sent repeater configuration', self._master, _this_client['RADIO_ID'])
                 else:
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
@@ -340,7 +343,7 @@ class HBMASTER(DatagramProtocol):
                             and self._clients[_radio_id]['IP'] == _host \
                             and self._clients[_radio_id]['PORT'] == _port:
                     self._clients[_radio_id]['LAST_PING'] = time()
-                    self.send_packet(_radio_id, 'MSTPONG'+_radio_id)
+                    self.send_client(_radio_id, 'MSTPONG'+_radio_id)
                     logger.debug('(%s) Received and answered RPTPING from client %s', self._master, int_id(_radio_id))
                 else:
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
@@ -358,7 +361,8 @@ class HBCLIENT(DatagramProtocol):
     def __init__(self, *args, **kwargs):
         if len(args) == 1:
             self._client = args[0]
-            self._config = CONFIG['CLIENTS'][self._client]
+            self._system = self._client
+            self._config = CONFIG['SYSTEMS'][self._client]
             self._stats = self._config['STATS']
             
             # Configure for AMBE audio export if enabled        
@@ -381,18 +385,22 @@ class HBCLIENT(DatagramProtocol):
             self._stats['PINGS_SENT'] = 0
             self._stats['PINGS_ACKD'] = 0
             self._stats['CONNECTION'] = 'RTPL_SENT'
-            self.send_packet('RPTL'+self._config['RADIO_ID'])
+            self.send_master('RPTL'+self._config['RADIO_ID'])
             logger.info('(%s) Sending login request to master %s:%s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'])
         # If we are connected, sent a ping to the master and increment the counter
         if self._stats['CONNECTION'] == 'YES':
-            self.send_packet('RPTPING'+self._config['RADIO_ID'])
+            self.send_master('RPTPING'+self._config['RADIO_ID'])
             self._stats['PINGS_SENT'] += 1
             logger.debug('(%s) RPTPING Sent to Master. Pings Since Connected: %s', self._client, self._stats['PINGS_SENT'])
         
-    def send_packet(self, _packet):
+    def send_master(self, _packet):
         self.transport.write(_packet, (self._config['MASTER_IP'], self._config['MASTER_PORT']))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s:%s -- %s', self._client, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
+    
+    # Alias for other programs to use a common name to send a packet
+    # regardless of the system type (MASTER or CLIENT)
+    send_system = send_master
     
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _data):
         pass
@@ -433,7 +441,7 @@ class HBCLIENT(DatagramProtocol):
                     logger.info('(%s) Repeater Login ACK Received with 32bit ID: %s', self._client, int_id(_login_int32))
                     _pass_hash = sha256(_login_int32+self._config['PASSPHRASE']).hexdigest()
                     _pass_hash = a(_pass_hash)
-                    self.send_packet('RPTK'+self._config['RADIO_ID']+_pass_hash)
+                    self.send_master('RPTK'+self._config['RADIO_ID']+_pass_hash)
                     self._stats['CONNECTION'] = 'AUTHENTICATED'
         
                 elif self._stats['CONNECTION'] == 'AUTHENTICATED': # If we've sent the login challenge...
@@ -455,7 +463,7 @@ class HBCLIENT(DatagramProtocol):
                                           self._config['SOFTWARE_ID']+\
                                           self._config['PACKAGE_ID']
                                   
-                        self.send_packet('RPTC'+_config_packet)
+                        self.send_master('RPTC'+_config_packet)
                         self._stats['CONNECTION'] = 'CONFIG-SENT'
                         logger.info('(%s) Repeater Configuration Sent', self._client)
                     else:
@@ -492,18 +500,14 @@ class HBCLIENT(DatagramProtocol):
 if __name__ == '__main__':
     logger.info('HBlink \'HBlink.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     
-    # HBlink Master
-    for master in CONFIG['MASTERS']:
-        if CONFIG['MASTERS'][master]['ENABLED']:
-            masters[master] = HBMASTER(master)
-            reactor.listenUDP(CONFIG['MASTERS'][master]['PORT'], masters[master], interface=CONFIG['MASTERS'][master]['IP'])
-            logger.debug('MASTER instance created: %s, %s', master, masters[master])
+    # HBlink instance creation
+    for system in CONFIG['SYSTEMS']:
+        if CONFIG['SYSTEMS'][system]['ENABLED']:
+            if CONFIG['SYSTEMS'][system]['MODE'] == 'MASTER':
+                systems[system] = HBMASTER(system)
+            elif CONFIG['SYSTEMS'][system]['MODE'] == 'CLIENT':
+                systems[system] = HBCLIENT(system)     
+            reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
+            logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
     
-    # HBlink Client
-    for client in CONFIG['CLIENTS']:
-        if CONFIG['CLIENTS'][client]['ENABLED']:
-            clients[client] = HBCLIENT(client)
-            reactor.listenUDP(CONFIG['CLIENTS'][client]['PORT'], clients[client], interface=CONFIG['CLIENTS'][client]['IP'])
-            logger.debug('CLIENT instance created: %s, %s', client, clients[client])
-
     reactor.run()
