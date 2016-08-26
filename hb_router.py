@@ -72,7 +72,7 @@ class routerMASTER(HBMASTER):
                 _target = rule['DST_NET']
                 if _target in RULES:
                     systems[_target].send_system(_data)
-                    logger.debug('(%s) Packet routed %s to system: %s', self._master, CONFIG['SYSTEMS'][_target]['MODE'], _target)
+                    logger.debug('(%s) Packet routed to %s system: %s', self._master, CONFIG['SYSTEMS'][_target]['MODE'], _target)
                     
                 else:
                     logger.debug('(%s) Packet router found no target for packet. Destination was: %s on target network %s', self._master, _dst_id, _target)
