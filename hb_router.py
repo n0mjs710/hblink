@@ -72,7 +72,7 @@ class routerMASTER(HBMASTER):
                 _target = rule['DST_NET']
                 if _target in RULES:
                     systems[_target].send_system(_data)
-                    logger.debug('(%s) Packet routed %s to system: %s', self._master, CONFIG[_target]['MODE'], _target)
+                    logger.debug('(%s) Packet routed %s to system: %s', self._master, CONFIG['SYSTEMS'][_target]['MODE'], _target)
                     
                 else:
                     logger.debug('(%s) Packet router found no target for packet. Destination was: %s on target network %s', self._master, _dst_id, _target)
@@ -85,8 +85,8 @@ class routerCLIENT(HBCLIENT):
             for rule in RULES[self._client]['GROUP_VOICE']:
                 _target = rule['DST_NET']
                 if _target in RULES:
-                    system[_target].send_system(_data)
-                    logger.debug('(%s) Packet routed to %s system: %s', self._client, CONFIG[_target]['MODE'], _target)
+                    systems[_target].send_system(_data)
+                    logger.debug('(%s) Packet routed to %s system: %s', self._client, CONFIG['SYSTEMS'][_target]['MODE'], _target)
                     
                 else:
                     logger.debug('(%s) Packet router found no target for packet. Destination was: %s on target network %s', self._client, _dst_id, _target)
@@ -103,9 +103,9 @@ if __name__ == '__main__':
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
             if CONFIG['SYSTEMS'][system]['MODE'] == 'MASTER':
-                systems[system] = HBMASTER(system)
+                systems[system] = routerMASTER(system)
             elif CONFIG['SYSTEMS'][system]['MODE'] == 'CLIENT':
-                systems[system] = HBCLIENT(system)     
+                systems[system] = routerCLIENT(system)     
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 

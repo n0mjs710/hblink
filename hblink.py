@@ -235,7 +235,6 @@ class HBMASTER(DatagramProtocol):
                 else:
                     _frame_type = 'none'
                 _stream_id = _data[16:20]
-                
                 #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
     
                 # If AMBE audio exporting is configured... 
