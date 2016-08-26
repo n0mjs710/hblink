@@ -219,9 +219,23 @@ class HBMASTER(DatagramProtocol):
                         and self._clients[_radio_id]['CONNECTION'] == 'YES' \
                         and self._clients[_radio_id]['IP'] == _host \
                         and self._clients[_radio_id]['PORT'] == _port:
-                _seq = _data[4:5]
+                _seq = _data[4]
                 _rf_src = _data[5:8]
                 _dst_id = _data[8:11]
+                _bits = int_id(_data[15])
+                _slot = 2 if (_bits & 0x40) else 1
+                _call_type = 'group' if (_bits & 0x40) else 'unit'
+                _raw_frame_type = (_bits & 0x30) >> 4
+                if _raw_frame_type == 0b00:
+                    _frame_type = 'voice'
+                elif _raw_frame_type == 0b01:
+                    _frame_type = 'voice_sync'
+                elif _raw_frame_type == 0b10:
+                    _frame_type = 'data_sync'
+                else:
+                    _frame_type = 'none'
+                _stream_id = _data[16:20]
+                
                 #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
     
                 # If AMBE audio exporting is configured... 
