@@ -67,51 +67,51 @@ __status__     = 'pre-alpha'
 
 class routerMASTER(HBMASTER):
         
-        def dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
-            _bits = int_id(_data[15])
+    def dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
+        _bits = int_id(_data[15])
 
-            if _call_type == 'group':
-                for rule in RULES[self._master]['GROUP_VOICE']:
-                    _target = rule['DST_NET']
-                    if (rule['SRC_GROUP'] == _dst_id and rule['SRC_TS'] == _slot and rule['ACTIVE'] == True):
-                        if RULE['SRC_TS'] != RULE['DST_TS']:
-                            _tmp_bits = _bits ^ 1 << 7
-                        else:
-                            _tmp_bits = _bits
-                        _tmp_data = _data[:8] + rule['DST_GROUP'] + _data[12:15] + chr(bits) + _data[16:]
-                        print(h(_tmp_data))
-                        print(h(_tmp_data))
-                        systems[_target].send_system(_tmp_data)
-                    
-                        logger.debug('(%s) Packet routed %s to system: %s', self._master, CONFIG[_target]['MODE'], _target)
+        if _call_type == 'group':
+            for rule in RULES[self._master]['GROUP_VOICE']:
+                _target = rule['DST_NET']
+                if (rule['SRC_GROUP'] == _dst_id and rule['SRC_TS'] == _slot and rule['ACTIVE'] == True):
+                    if RULE['SRC_TS'] != RULE['DST_TS']:
+                        _tmp_bits = _bits ^ 1 << 7
                     else:
-                        logger.debug('(%s) Packet router found no target for packet. Destination was: %s on target network %s', self._master, _dst_id, _target)
-                        continue
+                        _tmp_bits = _bits
+                    _tmp_data = _data[:8] + rule['DST_GROUP'] + _data[12:15] + chr(bits) + _data[16:]
+                    print(h(_tmp_data))
+                    print(h(_tmp_data))
+                    systems[_target].send_system(_tmp_data)
+                
+                    logger.debug('(%s) Packet routed %s to system: %s', self._master, CONFIG[_target]['MODE'], _target)
+                else:
+                    logger.debug('(%s) Packet router found no target for packet. Destination was: %s on target network %s', self._master, _dst_id, _target)
+                    continue
                 
 
 class routerCLIENT(HBCLIENT):
-        
-        def dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
-            _bits = int_id(_data[15])
+    
+    def dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
+        _bits = int_id(_data[15])
 
-            if _call_type == 'group':
-                for rule in RULES[self._client]['GROUP_VOICE']:
-                    _target = rule['DST_NET']
-                    if (rule['SRC_GROUP'] == _dst_id and rule['SRC_TS'] == _slot and rule['ACTIVE'] == True):
-                        if RULE['SRC_TS'] != RULE['DST_TS']:
-                            _tmp_bits = _bits ^ 1 << 7
-                        else:
-                            _tmp_bits = _bits
-                        _tmp_data = _data[:8] + rule['DST_GROUP'] + _data[12:15] + chr(bits) + _data[16:]
-                        print(h(_tmp_data))
-                        print(h(_tmp_data))
-                        systems[_target].send_system(_tmp_data)
-                        
-                        logger.debug('(%s) Packet routed to %s system: %s', self._client, CONFIG[_target]['MODE'], _target)
-                    
+        if _call_type == 'group':
+            for rule in RULES[self._client]['GROUP_VOICE']:
+                _target = rule['DST_NET']
+                if (rule['SRC_GROUP'] == _dst_id and rule['SRC_TS'] == _slot and rule['ACTIVE'] == True):
+                    if RULE['SRC_TS'] != RULE['DST_TS']:
+                        _tmp_bits = _bits ^ 1 << 7
                     else:
-                        logger.debug('(%s) Packet router found no target for packet. Destination was: %s on target network %s', self._client, _dst_id, _target)
-                        continue
+                        _tmp_bits = _bits
+                    _tmp_data = _data[:8] + rule['DST_GROUP'] + _data[12:15] + chr(bits) + _data[16:]
+                    print(h(_tmp_data))
+                    print(h(_tmp_data))
+                    systems[_target].send_system(_tmp_data)
+                    
+                    logger.debug('(%s) Packet routed to %s system: %s', self._client, CONFIG[_target]['MODE'], _target)
+                
+                else:
+                    logger.debug('(%s) Packet router found no target for packet. Destination was: %s on target network %s', self._client, _dst_id, _target)
+                    continue
 
 #************************************************
 #      MAIN PROGRAM LOOP STARTS HERE
@@ -124,9 +124,9 @@ if __name__ == '__main__':
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
             if CONFIG['SYSTEMS'][system]['MODE'] == 'MASTER':
-                systems[system] = HBMASTER(system)
+                systems[system] = routerMASTER(system)
             elif CONFIG['SYSTEMS'][system]['MODE'] == 'CLIENT':
-                systems[system] = HBCLIENT(system)     
+                systems[system] = routerCLIENT(system)     
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
