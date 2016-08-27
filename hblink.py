@@ -203,7 +203,7 @@ class HBMASTER(DatagramProtocol):
     # regardless of the system type (MASTER or CLIENT)
     send_system = send_clients
     
-    def dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
+    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
         pass
 
     def datagramReceived(self, _data, (_host, _port)):
@@ -224,7 +224,7 @@ class HBMASTER(DatagramProtocol):
                 _dst_id = _data[8:11]
                 _bits = int_id(_data[15])
                 _slot = 2 if (_bits & 0x80) else 1
-                _call_type = 'group' if (_bits & 0x40) else 'unit'
+                _call_type = 'unit' if (_bits & 0x40) else 'group'
                 _raw_frame_type = (_bits & 0x30) >> 4
                 if _raw_frame_type == 0b00:
                     _frame_type = 'voice'
@@ -415,7 +415,7 @@ class HBCLIENT(DatagramProtocol):
     # regardless of the system type (MASTER or CLIENT)
     send_system = send_master
     
-    def dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
+    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
         pass
     
     def datagramReceived(self, _data, (_host, _port)):
@@ -434,7 +434,7 @@ class HBCLIENT(DatagramProtocol):
                     _dst_id = _data[8:11]
                     _bits = int_id(_data[15])
                     _slot = 2 if (_bits & 0x80) else 1
-                    _call_type = 'group' if (_bits & 0x40) else 'unit'
+                    _call_type = 'unit' if (_bits & 0x40) else 'group'
                     _raw_frame_type = (_bits & 0x30) >> 4
                     if _raw_frame_type == 0b00:
                         _frame_type = 'voice'
