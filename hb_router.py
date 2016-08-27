@@ -71,6 +71,7 @@ class routerMASTER(HBMASTER):
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
         _bits = int_id(_data[15])
         if _call_type == 'group':
+            _routed = False
             for rule in RULES[self._master]['GROUP_VOICE']:
                 _target = rule['DST_NET']
                 if (rule['SRC_GROUP'] == _dst_id and rule['SRC_TS'] == _slot and rule['ACTIVE'] == True):
@@ -82,18 +83,18 @@ class routerMASTER(HBMASTER):
                     print(h(_data))
                     print(h(_tmp_data))
                     systems[_target].send_system(_tmp_data)
+                    _routed = True
                 
                     logger.debug('(%s) Packet routed to %s system: %s', self._master, CONFIG['SYSTEMS'][_target]['MODE'], _target)
-                else:
-                    logger.debug('(%s) Packet router no target TS/TGID %s/%s on target network %s', self._master, _slot, int_id(_dst_id), _target)
-                    continue
-                
+            if not _routed:
+                logger.debug('(%s) Packet router no target TS/TGID %s/%s', self._master, _slot, int_id(_dst_id))
 
 class routerCLIENT(HBCLIENT):
     
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
         _bits = int_id(_data[15])
         if _call_type == 'group':
+            _routed = False
             for rule in RULES[self._client]['GROUP_VOICE']:
                 _target = rule['DST_NET']
                 if (rule['SRC_GROUP'] == _dst_id and rule['SRC_TS'] == _slot and rule['ACTIVE'] == True):
@@ -105,12 +106,12 @@ class routerCLIENT(HBCLIENT):
                     print(h(_data))
                     print(h(_tmp_data))
                     systems[_target].send_system(_tmp_data)
+                    _routed = True
                     
                     logger.debug('(%s) Packet routed to %s system: %s', self._client, CONFIG['SYSTEMS'][_target]['MODE'], _target)
                 
-                else:
-                    logger.debug('(%s) Packet router no target TS/TGID %s/%s on target network %s', self._master, _slot, int_id(_dst_id), _target)
-                    continue
+            if not _routed:
+                logger.debug('(%s) Packet router no target TS/TGID %s/%s', self._client, _slot, int_id(_dst_id))
 
 #************************************************
 #      MAIN PROGRAM LOOP STARTS HERE
