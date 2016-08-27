@@ -203,7 +203,7 @@ class HBMASTER(DatagramProtocol):
     # regardless of the system type (MASTER or CLIENT)
     send_system = send_clients
     
-    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _data):
+    def dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
         pass
 
     def datagramReceived(self, _data, (_host, _port)):
@@ -223,7 +223,7 @@ class HBMASTER(DatagramProtocol):
                 _rf_src = _data[5:8]
                 _dst_id = _data[8:11]
                 _bits = int_id(_data[15])
-                _slot = 2 if (_bits & 0x40) else 1
+                _slot = 2 if (_bits & 0x80) else 1
                 _call_type = 'group' if (_bits & 0x40) else 'unit'
                 _raw_frame_type = (_bits & 0x30) >> 4
                 if _raw_frame_type == 0b00:
@@ -249,7 +249,7 @@ class HBMASTER(DatagramProtocol):
                             logger.debug('(%s) Packet repeated to client: %s', self._master, int_id(_client))
                 
                 # Userland actions -- typically this is the function you subclass for an application
-                self.dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _data)
+                self.dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data)
         
         elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
             _radio_id = _data[4:8]
@@ -415,7 +415,7 @@ class HBCLIENT(DatagramProtocol):
     # regardless of the system type (MASTER or CLIENT)
     send_system = send_master
     
-    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _data):
+    def dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
         pass
     
     def datagramReceived(self, _data, (_host, _port)):
@@ -432,6 +432,20 @@ class HBCLIENT(DatagramProtocol):
                     _seq = _data[4:5]
                     _rf_src = _data[5:8]
                     _dst_id = _data[8:11]
+                    _bits = int_id(_data[15])
+                    _slot = 2 if (_bits & 0x80) else 1
+                    _call_type = 'group' if (_bits & 0x40) else 'unit'
+                    _raw_frame_type = (_bits & 0x30) >> 4
+                    if _raw_frame_type == 0b00:
+                        _frame_type = 'voice'
+                    elif _raw_frame_type == 0b01:
+                        _frame_type = 'voice_sync'
+                    elif _raw_frame_type == 0b10:
+                        _frame_type = 'data_sync'
+                    else:
+                        _frame_type = 'none'
+                    _stream_id = _data[16:20]
+                    
                     #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._client, h(_seq), int_id(_rf_src), int_id(_dst_id))
         
                     # If AMBE audio exporting is configured...
@@ -439,7 +453,7 @@ class HBCLIENT(DatagramProtocol):
                         self._ambe.parseAMBE(self._client, _data)
                         
                     # Userland actions -- typically this is the function you subclass for an application
-                    self.dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _data)
+                    self.dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data)
         
             elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
                 _radio_id = _data[4:8]
