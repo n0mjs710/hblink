@@ -19,14 +19,14 @@ talkgroup_ids = {}
 def download_peers():
     try:
         print('Downloading peer ID file')
-        temp_file.retrieve('http://www.dmr-marc.net/cgi-bin/trbo-database/datadump.cgi?table=users&format=csv&header=0', PATH+'peer_ids.csv')
+        temp_file.retrieve('http://www.dmr-marc.net/cgi-bin/trbo-database/datadump.cgi?table=repeaters&format=csv&header=0', PATH+'peer_ids.csv')
     except IOError:
         print('Could not download Peer ID file')
 
 def download_subs():
     try:
         print('Downloading subscriber ID file')
-        temp_file.retrieve('http://www.dmr-marc.net/cgi-bin/trbo-database/datadump.cgi?table=repeaters&format=csv&header=0', PATH+'subscriber_ids.csv')
+        temp_file.retrieve('http://www.dmr-marc.net/cgi-bin/trbo-database/datadump.cgi?table=users&format=csv&header=0', PATH+'subscriber_ids.csv')
     except IOError:
         print('Could not download Subscriber ID file')
     
@@ -87,9 +87,10 @@ def reread_subscribers():
         print('Subscriber_ids.csv not found: Subscriber aliases will not be available')
 
 try_downloads()
+reread_subscribers()
 reread_peers()
 reread_talkgroups()
-reread_subscribers()
+
 
 def get_subscriber_info(_src_sub):
-    return get_info(int_id(_src_sub), subscriber_ids)
+    return get_info(int_id(_src_sub), subscriber_ids)    
