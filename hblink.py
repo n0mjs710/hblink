@@ -316,7 +316,7 @@ class HBMASTER(DatagramProtocol):
                             and self._clients[_radio_id]['CONNECTION'] == 'YES' \
                             and self._clients[_radio_id]['IP'] == _host \
                             and self._clients[_radio_id]['PORT'] == _port:
-                    logger.info('(%s) Client is closing down: %s (%s)', self._master, _self.clients[_radio_id]['CALLSIGN'], int_id(_radio_id))
+                    logger.info('(%s) Client is closing down: %s (%s)', self._master, self.clients[_radio_id]['CALLSIGN'], int_id(_radio_id))
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
                     del self._clients[_radio_id]
             else:               
