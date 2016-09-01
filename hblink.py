@@ -357,7 +357,7 @@ class HBMASTER(DatagramProtocol):
                             and self._clients[_radio_id]['PORT'] == _port:
                     self._clients[_radio_id]['LAST_PING'] = time()
                     self.send_client(_radio_id, 'MSTPONG'+_radio_id)
-                    logger.debug('(%s) Received and answered RPTPING from client %s', self._master, int_id(_radio_id))
+                    logger.debug('(%s) Received and answered RPTPING from client %s (%s)', self._master, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id))
                 else:
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
                     logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self._master, int_id(_radio_id))
