@@ -184,7 +184,7 @@ class HBMASTER(DatagramProtocol):
             # Check to see if any of the clients have been quiet (no ping) longer than allowed
             if _this_client['LAST_PING']+CONFIG['GLOBAL']['PING_TIME']*CONFIG['GLOBAL']['MAX_MISSED'] < time():
                 logger.info('(%s) Client %s (%s) has timed out', self._master, _this_client['CALLSIGN'], _this_client['RADIO_ID'])
-                # Remove any timed out clients from the configuration 
+                # Remove any timed out clients from the configuration
                 del CONFIG['SYSTEMS'][self._master]['CLIENTS'][client]
 
     def send_clients(self, _packet):
@@ -208,7 +208,7 @@ class HBMASTER(DatagramProtocol):
 
     def datagramReceived(self, _data, (_host, _port)):
         # Keep This Line Commented Unless HEAVILY Debugging!
-        #logger.debug('(%s) RX packet from %s:%s -- %s', self._master, _host, _port, h(_data))    
+        #logger.debug('(%s) RX packet from %s:%s -- %s', self._master, _host, _port, h(_data))
 
         # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
         _command = _data[:4]
@@ -237,7 +237,7 @@ class HBMASTER(DatagramProtocol):
                 _stream_id = _data[16:20]
                 #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._master, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
 
-                # If AMBE audio exporting is configured... 
+                # If AMBE audio exporting is configured...
                 if self._config['EXPORT_AMBE']:
                     self._ambe.parseAMBE(self._master, _data)
 
@@ -319,7 +319,7 @@ class HBMASTER(DatagramProtocol):
                     logger.info('(%s) Client is closing down: %s (%s)', self._master, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id))
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
                     del self._clients[_radio_id]
-            else:               
+            else:
                 _radio_id = _data[4:8]      # Configure Command
                 if _radio_id in self._clients \
                             and self._clients[_radio_id]['CONNECTION'] == 'WAITING_CONFIG' \
@@ -367,7 +367,7 @@ class HBMASTER(DatagramProtocol):
 
 #************************************************
 #     HB CLIENT CLASS
-#************************************************            
+#************************************************
 
 class HBCLIENT(DatagramProtocol):
 
@@ -378,13 +378,13 @@ class HBCLIENT(DatagramProtocol):
             self._config = CONFIG['SYSTEMS'][self._client]
             self._stats = self._config['STATS']
 
-            # Configure for AMBE audio export if enabled        
+            # Configure for AMBE audio export if enabled
             if self._config['EXPORT_AMBE']:
                 self._ambe = AMBE()
         else:
             # If we didn't get called correctly, log it!
             logger.error('(%s) HBCLIENT was not called with an argument. Terminating', self._client)
-            sys.exit()    
+            sys.exit()
 
     def startProtocol(self):
         # Set up periodic loop for sending pings to the master. Run every 'PING_TIME' seconds
@@ -425,7 +425,7 @@ class HBCLIENT(DatagramProtocol):
         # Validate that we receveived this packet from the master - security check!
         if self._config['MASTER_IP'] == _host and self._config['MASTER_PORT'] == _port:
             # Extract the command, which is various length, but only 4 significant characters
-            _command = _data[:4] 
+            _command = _data[:4]
             if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
                 _radio_id = _data[11:15]
                 if _radio_id == self._config['RADIO_ID']: # Validate the source and intended target
@@ -533,7 +533,7 @@ if __name__ == '__main__':
             if CONFIG['SYSTEMS'][system]['MODE'] == 'MASTER':
                 systems[system] = HBMASTER(system)
             elif CONFIG['SYSTEMS'][system]['MODE'] == 'CLIENT':
-                systems[system] = HBCLIENT(system)     
+                systems[system] = HBCLIENT(system)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
