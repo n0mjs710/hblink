@@ -344,7 +344,7 @@ class HBMASTER(DatagramProtocol):
                     _this_client['PACKAGE_ID'] = _data[264:304]
 
                     self.send_client(_radio_id, 'RPTACK'+_radio_id)
-                    logger.info('(%s) Client %s has sent repeater configuration', self._master, _this_client['RADIO_ID'])
+                    logger.info('(%s) Client %s (%s) has sent repeater configuration', self._master, _this_cient['cALLSIGN'], _this_client['RADIO_ID'])
                 else:
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
                     logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self._master, int_id(_radio_id))
