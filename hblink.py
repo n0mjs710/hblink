@@ -183,7 +183,7 @@ class HBMASTER(DatagramProtocol):
             _this_client = self._clients[client]
             # Check to see if any of the clients have been quiet (no ping) longer than allowed
             if _this_client['LAST_PING']+CONFIG['GLOBAL']['PING_TIME']*CONFIG['GLOBAL']['MAX_MISSED'] < time():
-                logger.info('(%s) Client %s has timed out', self._master, _this_client['RADIO_ID'])
+                logger.info('(%s) Client %s (%s) has timed out', self._master, _this_client['CALLSIGN'], _this_client['RADIO_ID'])
                 # Remove any timed out clients from the configuration 
                 del CONFIG['SYSTEMS'][self._master]['CLIENTS'][client]
     
