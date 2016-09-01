@@ -84,7 +84,7 @@ def handler(_signal, _frame):
         if CONFIG['SYSTEMS'][system]['MODE'] == 'MASTER':
             for client in CONFIG['SYSTEMS'][system]['CLIENTS']:
                 this_system.send_client(client, 'MSTCL'+client)
-                logger.info('(%s) Sending De-Registration to Client: %s', system, CONFIG['SYSTEMS'][system]['CLIENTS'][client]['RADIO_ID'])
+                logger.info('(%s) Sending De-Registration to Client: %s (%s)', system, CONFIG['SYSTEMS'][system]['CLIENTS'][client]['CALLSIGN'], CONFIG['SYSTEMS'][system]['CLIENTS'][client]['RADIO_ID'])
         elif CONFIG['SYSTEMS'][system]['MODE'] == 'CLIENT':
             this_system.send_master('RPTCL'+CONFIG['SYSTEMS'][system]['RADIO_ID'])
             logger.info('(%s) De-Registering From the Master', system)
