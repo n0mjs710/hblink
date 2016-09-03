@@ -246,7 +246,7 @@ class HBMASTER(DatagramProtocol):
                     for _client in self._clients:
                         if _client != _radio_id:
                             self.send_client(_client, _data)
-                            logger.debug('(%s) Packet repeated to client: %s (%s)', self._master, self._clients[_client]['CALLSIGN'], int_id(_client))
+                            logger.debug('(%s) Packet on TS%s from %s (%s) for destination ID %s repeated to client: %s (%s) [Stream ID: %s]', self._master, _slot, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id), int_id(_dst_id), self._clients[_client]['CALLSIGN'], int_id(_client), int_id(_stream_id))
 
                 # Userland actions -- typically this is the function you subclass for an application
                 self.dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data)
