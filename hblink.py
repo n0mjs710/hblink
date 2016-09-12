@@ -21,6 +21,8 @@ from socket import gethostbyname
 from random import randint
 from hashlib import sha256
 from time import time
+from urllib import URLopener
+from csv import reader as csv_reader
 from bitstring import BitArray
 import socket
 
@@ -73,6 +75,62 @@ if cli_args.LOG_LEVEL:
     CONFIG['LOGGER']['LOG_LEVEL'] = cli_args.LOG_LEVEL
 logger = hb_log.config_logging(CONFIG['LOGGER'])
 logger.debug('Logging system started, anything from here on gets logged')
+
+# Download and build dictionaries for mapping number to aliases
+# Used by applications. These lookups take time, please do not shove them
+# into this file everywhere and send a pull request!!!
+# Download a new file if it doesn't exist, or is older than the stale time
+def try_download(_path, _file, _url, _stale):
+    now = time()
+    url = URLopener()
+    file_exists = os.path.isfile(_path+_file) == True
+    if file_exists:
+        file_old = (os.path.getmtime(_path+_file) + _stale) < now
+    if not file_exists or (file_exists and file_old):
+        try:
+            url.retrieve(_url, _path+_file)
+            logger.info('ID ALIAS MAPPER: DOWNLOAD: \'%s\' successfully downloaded', _file)
+        except IOError:
+            logger.warning('ID ALIAS MAPPER: DOWNLOAD: \'%s\' could not be downloaded', _file)
+    else:
+        logger.info('ID ALIAS MAPPER: DOWNLOAD: \'%s\' is current, not downloaded', _file)
+    url.close()
+  
+def mk_id_dict(_path, _file):
+    dict = {}
+    try:
+        with open(_path+_file, 'rU') as _handle:
+            ids = csv_reader(_handle, dialect='excel', delimiter=',')
+            for row in ids:
+                dict[int(row[0])] = (row[1])
+            logger.info('ID ALIAS MAPPER: IMPORT: %s IDs from FILE %s', len(dict), _file)
+            _handle.close
+    except IOError:
+        logger.warning('ID ALIAS MAPPER: IMPORT: FILE %s not found; aliases will not be available', _file)
+    return dict
+
+def get_info(_id, _dict):
+    if _id in _dict:
+        return _dict[_id]
+    return _id
+ 
+# Download files and build the dictionaries
+if CONFIG['ALIASES']['TRY_DOWNLOAD'] == True:
+    try_download(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['PEER_FILE'], CONFIG['ALIASES']['PEER_URL'], CONFIG['ALIASES']['STALE_TIME'])
+    try_download(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['SUBSCRIBER_FILE'], CONFIG['ALIASES']['SUBSCRIBER_URL'], CONFIG['ALIASES']['STALE_TIME'])
+peer_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['PEER_FILE'])
+subscriber_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['SUBSCRIBER_FILE'])
+talkgroup_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['TGID_FILE'])
+
+# These are the functions you should use to look up IDs in the dictionaries  
+def sub_alias(_sub_id):
+    return get_info(int_id(_sub_id), subscriber_ids)
+    
+def peer_alias(_peer_id):
+    return get_info(int_id(_peer_id), peer_ids)
+
+def tg_alias(_tgid):
+    return get_info(int_id(_tgid), talkgroup_ids)
 
 
 # Shut ourselves down gracefully by disconnecting from the masters and clients.

@@ -14,14 +14,13 @@ def build_config(_config_file):
     CONFIG = {}
     CONFIG['GLOBAL'] = {}
     CONFIG['LOGGER'] = {}
+    CONFIG['ALIASES'] = {}
     CONFIG['AMBE'] = {}
     CONFIG['SYSTEMS'] = {}
 
     try:
         for section in config.sections():
             if section == 'GLOBAL':
-                
-                # Process GLOBAL items in the configuration
                 CONFIG['GLOBAL'].update({
                     'PATH': config.get(section, 'PATH'),
                     'PING_TIME': config.getint(section, 'PING_TIME'),
@@ -29,23 +28,32 @@ def build_config(_config_file):
                 })
 
             elif section == 'LOGGER':
-                # Process LOGGER items in the configuration
                 CONFIG['LOGGER'].update({
                     'LOG_FILE': config.get(section, 'LOG_FILE'),
                     'LOG_HANDLERS': config.get(section, 'LOG_HANDLERS'),
                     'LOG_LEVEL': config.get(section, 'LOG_LEVEL'),
                     'LOG_NAME': config.get(section, 'LOG_NAME')
                 })
-                
+
+            elif section == 'ALIASES':
+                CONFIG['ALIASES'].update({
+                    'TRY_DOWNLOAD': config.getboolean(section, 'TRY_DOWNLOAD'),
+                    'PATH': config.get(section, 'PATH'),
+                    'PEER_FILE': config.get(section, 'PEER_FILE'),
+                    'SUBSCRIBER_FILE': config.get(section, 'SUBSCRIBER_FILE'),
+                    'TGID_FILE': config.get(section, 'TGID_FILE'),
+                    'PEER_URL': config.get(section, 'PEER_URL'),
+                    'SUBSCRIBER_URL': config.get(section, 'SUBSCRIBER_URL'),
+                    'STALE_TIME': config.getint(section, 'STALE_DAYS') * 86400,
+                })
+
             elif section == 'AMBE':
-                # Process AMBE Export items in the configuration
                 CONFIG['AMBE'].update({
                     'EXPORT_IP': gethostbyname(config.get(section, 'EXPORT_IP')),
                     'EXPORT_PORT': config.getint(section, 'EXPORT_PORT'),
                 })
 
             elif config.getboolean(section, 'ENABLED'):
-                # HomeBrew Client (Repeater) Configuration(s)
                 if config.get(section, 'MODE') == 'CLIENT':
                     CONFIG['SYSTEMS'].update({section: {
                         'MODE': config.get(section, 'MODE'),
@@ -82,7 +90,6 @@ def build_config(_config_file):
                     }})
         
                 elif config.get(section, 'MODE') == 'MASTER':
-                    # HomeBrew Master Configuration
                     CONFIG['SYSTEMS'].update({section: {
                         'MODE': config.get(section, 'MODE'),
                         'ENABLED': config.getboolean(section, 'ENABLED'),
@@ -95,9 +102,8 @@ def build_config(_config_file):
                     CONFIG['SYSTEMS'][section].update({'CLIENTS': {}})
     
     except ConfigParser.Error, err:
-	# Very simple error reporting
-	print "Cannot parse configuration file. %s" %err
-        sys.exit('Could not parse configuration file, exiting...')
+	    print "Cannot parse configuration file. %s" %err
+            sys.exit('Could not parse configuration file, exiting...')
         
     return CONFIG
 

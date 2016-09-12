@@ -263,6 +263,10 @@
 1112265,W3RX,Stephen B Liggett,,Treasure Island,Florida,United States,DMR<br/>
 1112266,KW4XT,Dennis Zasnicoff,Zasnicoff,Winter Garden,Florida,United States,Other<br/>
 1112267,KK4WDR,Richard T Stone,Rick,Crestview,Florida,United States,DMR<br/>
+1112268,KA2LAL,Bryon C Clemons,,North Port,Florida,United States,DMR<br/>
+1112269,WA1YQB,Frank A Castro,,Sun City Center,Florida,United States,DMR<br/>
+1112270,N4UQV,Adam A Kraus,,Avon Park,Florida,United States,DMR<br/>
+1112271,N4UQV,Adam A Kraus,,Avon Park,Florida,United States,DMR<br/>
 1136001,K2FPC,Antonio Lipari,Tony,Champlain,New York,United States,DMR<br/>
 1136002,KB2JM,James S Meahl,Jim,Lockport,New York,United States,DMR<br/>
 1136003,K2BRT,Paul Polischuk,,New Windsor,New York,United States,DMR<br/>
@@ -4523,6 +4527,7 @@
 2220340,IU0HHU,Savy Pieri,,Rome,Lazio,Italy,<br/>
 2220341,IW0RJ,IW0RJ BIGINI,,PERUGIA,cnty,Italy,<br/>
 2220342,IU0HMG,IU0HMG Ramberti,,Perugia,cnty,Italy,<br/>
+2220343,IU0FNW,ANTONIO ,,Roma,Lazio,Italy,<br/>
 2220344,IU0GEJ,ROBERTO Peroni,,Pisa,Lazio,Italy,<br/>
 2220345,IU0GEH,IU0GEH Catanesi,,Marta,Lazio,Italy,<br/>
 2220346,IZ0OYM,IZ0OYM Cestini,,Citta di castello,Umbria,Italy,<br/>
@@ -5233,6 +5238,7 @@
 2222414,IU2BWK,Eddy ,,Sesto San Giovanni,Lombardy,Italy,<br/>
 2222415,IU2GZQ,Alessandro ,,Montirone,Lombardy,Italy,<br/>
 2222416,IU2HEE,Marco ,,Onore,Lombardy,Italy,<br/>
+2222417,IZ2PAG,Bonny Marco ,,Fonteno,Lombardy,Italy,<br/>
 2223001,IW3SRH,Stefano ,Stefano,Trieste,Friuli-Venetia Giuli,Italy,Portable<br/>
 2223002,IV3DVE,Corrado ,Corrado,Trieste,Friuli-Venetia Giuli,Italy,Portable<br/>
 2223003,IV3FHS,Antonio ,Antonio,Latisana,Friuli-Venetia Giuli,Italy,Portable<br/>
@@ -6064,6 +6070,7 @@
 2227106,IZ7UAJ,PIERANTONIO ,,Grottaglie,Apulia,Italy,<br/>
 2227107,IZ7SKY,GIANLUCA ,,San Giovanni Rotondo,Apulia,Italy,<br/>
 2227108,IK7UKC,Giuseppe ,,Putignano,Apulia,Italy,<br/>
+2227109,IZ7VII,VITO MICHELE ,,MOLFETTA,Apulia,Italy,<br/>
 2228001,IZ8IYJ,Nicola ,Nicola,Cosenza,Calabria,Italy,Portable<br/>
 2228002,IW8XQP,Elio ,Elio,Isernia,Molise,Italy,Mobile<br/>
 2228003,IZ8XSS,Federico ,Federico,Aversa,Campania,Italy,Mobile<br/>
@@ -21772,6 +21779,8 @@
 3023660,VE3IWI,Maurice Dusome,Moe,Penetanguishene,Ontario,Canada,DMR<br/>
 3023661,VE3AYY,Thomas Strickland,,Niagara Falls,Ontario,Canada,DMR<br/>
 3023662,VE3WJD,Jeffrey Wallace,,Toronto,Ontario,Canada,DMR<br/>
+3023663,VE3WJD,Jeffrey Wallace,,Toronto,Ontario,Canada,DMR<br/>
+3023664,VA3WV,William J Schneider,,Acton,Ontario,Canada,DMR<br/>
 3024001,VE4RRB,Rob Boux,,Blumenort,Manitoba,Canada,DMR<br/>
 3024002,VE4RRB,Rob Boux,,Blumenort,Manitoba,Canada,DMR<br/>
 3024003,VE4AI,Shaun Mcleod,,Winnipeg,Manitoba,Canada,Portable<br/>
@@ -22737,7 +22746,7 @@
 3104459,KF7SLP,Stephen  Metcalf,,Gilbert,Arizona,United States,DMR<br/>
 3104460,KG7WUA,John D Fisher,,Gila Bend,Arizona,United States,DMR<br/>
 3104461,KI7DCF,Daniel L Karnes,Dan K,Apache Junction,Arizona,United States,DMR<br/>
-3104462,KI7FTN,Theodore F Harden,Ted,Phoenix,Arizona,United States,DMR<br/>
+3104462,N7RTH,Theodore F Harden,Ted,Phoenix,Arizona,United States,DMR<br/>
 3104463,N2MV,Matthew W Vania,Matt,Tempe,Arizona,United States,DMR<br/>
 3104464,K1AN,David L Anderson,Dave,Quartzsite,Arizona,United States,DMR<br/>
 3104465,NU7Y,Quinton A Gleason,,Oro Valley,Arizona,United States,CCS7<br/>
@@ -22757,6 +22766,7 @@
 3104480,K1XYZ,Richard Corpron,,Phoenix,Arizona,United States,DMR<br/>
 3104481,N4NHQ,Robert J Furlong,Bob,Phoenix,Arizona,United States,DMR<br/>
 3104482,WE7H,Edward P Hutchinson,,Tucson,Arizona,United States,DMR<br/>
+3104483,KF7VWN,Matthew J Huffman,,Mesa,Arizona,United States,DMR<br/>
 3105001,N5QM,Robert Garcia,,Little Rock,Arkansas,United States,Portable<br/>
 3105002,KB6FO,George Roher,,Edgemont,Arkansas,United States,Portable<br/>
 3105003,W5KEC,Kenneth Carpenter,,Edgemont,Arkansas,United States,Portable<br/>
@@ -24103,7 +24113,7 @@
 3107173,KJ6PEU,Paul Collins,Paul,Chula Vista,California,United States,<br/>
 3107174,W6LPB,Larry Bernstein,LARRY,LOS ANGELES,California,United States,<br/>
 3107175,N6BNP,Knut Myhre,Knut,Rango Palos Verde,California,United States,<br/>
-3107176,KE6JOW,Bryan Wollenberg,Bryan,Lancaster,California,United States,<br/>
+3107176,N3FAA,Bryan Wollenberg,Bryan,Lancaster,California,United States,DMR<br/>
 3107177,N6KTO,Jason Kruse,Jason,Soquel,California,United States,<br/>
 3107178,KC6UXQ,Mark Bonney,Mark,Buena Park,California,United States,<br/>
 3107179,KD6HME,Michael Leclaire,Michael,Alhambra,California,United States,<br/>
@@ -24743,6 +24753,9 @@
 3107817,AE6TR,Paul G Hager,,Crestline,California,United States,DMR<br/>
 3107818,N6UAH,Aaron Chandler,,Corona,California,United States,DMR<br/>
 3107819,KG6HNF,Geoff Ethridge,,Pasadena,California,United States,CCS7<br/>
+3107820,K6ECB,Eric C Bolus,,Sacramento,California,United States,DMR<br/>
+3107821,KF6OHR,Johnathan T Pham,,Lancaster,California,United States,DMR<br/>
+3107822,AK6TT,Steven F Champeau,,Orange,California,United States,DMR<br/>
 3108001,NR2Y,Marinus Jacobs,,Colorado Springs,Colorado,United States,Portable<br/>
 3108002,WA2YZT,Paul Deeth,,Golden,Colorado,United States,Mobile<br/>
 3108003,K0JSC,Jeff Carrier,,Canon City,Colorado,United States,Portable #1<br/>
@@ -26149,6 +26162,7 @@
 3109576,W1JLZ,John L Zatowski,Jack,Mansfield Center,Connecticut,United States,DMR<br/>
 3109577,KC1EUM,Derek  Langlois,,Andover,Connecticut,United States,DMR<br/>
 3109578,AB1JT,Joseph T Clark,,Vernon Rockville,Connecticut,United States,DMR<br/>
+3109579,KD2FCS,Jacob C Clark,,Vernon Rockville,Connecticut,United States,DMR<br/>
 3110001,N2VRQ,David Larson,,Bear,Delaware,United States,Portable<br/>
 3110002,KB3WQH,Robert Dobie,,Newark,Delaware,United States,Portable<br/>
 3110003,KC3BNZ,Street, Earl,,Claymont,Delaware,United States,Portable<br/>
@@ -27567,6 +27581,7 @@
 3113397,KM4KPI,Jeffrey D Hochberg,,Atlanta,Georgia,United States,DMR<br/>
 3113398,KW4KWJ,Kevin W Jones,,Gainesville,Georgia,United States,DMR<br/>
 3113399,KM4VGM,Brian Cleary,,Milton,Georgia,United States,DMR<br/>
+3113400,AB4MM,Marvin A Mealer,,Tunnel Hill ,Georgia,United States,DMR<br/>
 3115001,NH7YS,Tad Miura,,Lihue,Hawaii,United States,Mobile<br/>
 3115002,KH6DQ,Jack Tsujimura,,Honolulu,Hawaii,United States,Portable<br/>
 3115003,AH6PR,Mark Pascal,,Kailua,Hawaii,United States,Portable<br/>
@@ -29239,6 +29254,7 @@
 3118750,W9COD,Charles F Procarione,Chuck,Clinton,Indiana,United States,DMR<br/>
 3118751,KC9TXQ,Gerald W Stewart,,Ramsey,Indiana,United States,DMR<br/>
 3118752,KC9TXQ,Gerald W Stewart,,Ramsey,Indiana,United States,DMR<br/>
+3118753,W9MCP,Sean L Mcpherson,,Jeffersonville,Indiana,United States,DMR<br/>
 3119002,WD0FIA,Keith Carpenter,Keith,Bridgewater,Iowa,United States,<br/>
 3119003,W0DT,Donald Talaska,,Cedar Falls,Iowa,United States,Portable<br/>
 3119004,KD0WY,Roger Gorzney,,CLINTON,Iowa,United States,Mobile<br/>
@@ -29387,6 +29403,7 @@
 3120076,KD0RYE,Deborah G Buckner,,Overland Park,Kansas,United States,DMR<br/>
 3120077,K8RQX,Bruce D Dubin,,Shawnee,Kansas,United States,DMR<br/>
 3120078,W0PT,William M Van Kirk,,Mound City,Kansas,United States,DMR<br/>
+3120079,KK4MHI,David A Mclemore,,Overland Park,Kansas,United States,DMR<br/>
 3120101,N0MJS,Cort Buffington,,Lawrence,Kansas,United States,Portable<br/>
 3120102,KD0CYJ,Shannon O�connor,,Lawrence,Kansas,United States,Portable<br/>
 3120103,N0MJS,Cort Buffington,,Lawrence,Kansas,United States,Portable<br/>
@@ -32110,6 +32127,7 @@
 3131119,KE6DZD,Wayne R Jorns,,Bellevue,Nebraska,United States,DMR<br/>
 3131120,KD0MMG,Adam G Kavan,,Omaha,Nebraska,United States,DMR<br/>
 3131121,N0JOB,Jason M Fink,,La Vista,Nebraska,United States,DMR<br/>
+3131122,KE0KIO,Marvin L Freimund,Marv,Bellevue,Nebraska,United States,DMR<br/>
 3132001,KG7VUJ,Joseph Simeo,Joe,Reno,Nevada,United States,<br/>
 3132002,NR7H,Bill Foster,Bill,Reno,Nevada,United States,<br/>
 3132003,WB9STH,Steve Gebhard,,Las Vegas,Nevada,United States,Portable<br/>
@@ -32772,6 +32790,7 @@
 3133257,WX1N,Robert Noll,,Unity,New Hampshire,United States,DMR<br/>
 3133258,KC1EDK,Robert E Ward,,Bethlehem,New Hampshire,United States,DMR<br/>
 3133259,W1JCN,John C Noll,,Charlestown,New Hampshire,United States,DMR<br/>
+3133260,KA1QEK,Peter W Bretschneider,,Brookline,New Hampshire,United States,DMR<br/>
 3134001,K2XTS,Alex Chadis-ny Sysop,,Hoboken,New Jersey,United States,Portable<br/>
 3134002,K2XTS,Alex Chadis-ny Sysop,,Hoboken,New Jersey,United States,Mobile<br/>
 3134003,KC2WNG,Israel Goldstein,,East Brunswick,New Jersey,United States,Portable<br/>
@@ -33346,6 +33365,8 @@
 3134572,KD2DRL,Henry Shannon Shannon,Hank,Linden,New Jersey,United States,DMR<br/>
 3134573,KD2LTN,Dmytro Shmagin,Dima,Rockaway,New Jersey,United States,DMR<br/>
 3134574,K2DNR,Robert Dubenezic Dubenezic,,Jersey City,New Jersey,United States,DMR<br/>
+3134575,K2GMT,James V Neufell,Jim,Wayne, Nj,New Jersey,United States,DMR<br/>
+3134576,N2FWI,Nancy C Beattie,Nancy,Bergenfield,New Jersey,United States,DMR<br/>
 3135001,N5BG,Larry Griggs,,Virden,New Mexico,United States,Mobile<br/>
 3135002,N5BG,Larry Griggs,,Virden,New Mexico,United States,Mobile<br/>
 3135003,N5UBJ,William Van Huss,,Farmington,New Mexico,United States,Mobile<br/>
@@ -35059,8 +35080,8 @@
 3137651,KS4DE,Jim Mccoy,,Waynesville,North Carolina,United States,Portable<br/>
 3137652,KG4ZFV,Richard L. Dickens,,Hertford,North Carolina,United States,Mobile<br/>
 3137653,KM4PJG,Patti Glen,,Newland,North Carolina,United States,Portable<br/>
-3137654,KM4NJV,Chris Diederich,,SNEADS FERRY,North Carolina,United States,Portable<br/>
-3137655,KM4NJV,Chris Diederich,,Sneads Ferry,North Carolina,United States,Portable<br/>
+3137654,K1LDO,Chris Diederich,,SNEADS FERRY,North Carolina,United States,DMR<br/>
+3137655,K1LDO,Chris Diederich,,Sneads Ferry,North Carolina,United States,DMR<br/>
 3137656,KC4VWM,Glenda Robbins,,Mount Airy,North Carolina,United States,Portable<br/>
 3137657,NO4Y,Herman Cox,,ELIZABETH CTY,North Carolina,United States,DMR<br/>
 3137658,KK4ONG,Barker, William A.,,Lake Junaluska,North Carolina,United States,Mobile<br/>
@@ -36215,6 +36236,7 @@
 3139812,NA8W,Darl E Deeds,,Findlay,Ohio,United States,DMR<br/>
 3139813,KB8O,Jason  Pecora,Jay,Elyria,Ohio,United States,DMR<br/>
 3139814,K8LER,Lawrence E Rock,Larry,Toronto,Ohio,United States,DMR<br/>
+3139815,NC8OS,Timothy E Lovejoy,Tim,Elyria,Ohio,United States,DMR<br/>
 3140001,AE5DN,Mark Matalik,,Oklahoma City,Oklahoma,United States,Portable<br/>
 3140002,AE5DN,Mark Matalik,,Oklahoma City,Oklahoma,United States,Mobile<br/>
 3140003,KE5BDG,Leah Matalik,,Oklahoma City,Oklahoma,United States,Portable<br/>
@@ -37123,6 +37145,7 @@
 3142389,AG6T,Kirk J Weatherman,Latenight,East Stroudsburg ,Pennsylvania,United States,DMR<br/>
 3142390,KC3FMT,Brian M Smith,,Newtown Square,Pennsylvania,United States,DMR<br/>
 3142391,KF4AWH,Anthony P Garcia,,Brookhaven,Pennsylvania,United States,DMR<br/>
+3142392,N6AAB,Bi Dong Sun,Alexs,University Park,Pennsylvania,United States,DMR<br/>
 3144001,KB1ISZ,William Carlson,,Smithfield,Rhode Island,United States,Hytera Portable<br/>
 3144002,KB1ISZ,William Carlson,,Smithfield,Rhode Island,United States,Hytera Loaner<br/>
 3144003,KC2FMI,Joseph Miklovic,,North Kingstown,Rhode Island,United States,Portable<br/>
@@ -39038,6 +39061,8 @@
 3148826,W5YAG,Chad Yaggie,,Dallas,Texas,United States,DMR<br/>
 3148827,AB5KM,Kent Anderson,,Kingwood,Texas,United States,CCS7<br/>
 3148828,KE5IMZ,Glen L Rekeweg,,Kingwood,Texas,United States,DMR<br/>
+3148829,KD5TSA,Carl A Perry,,Austin,Texas,United States,DMR<br/>
+3148830,KE5FTJ,Robert E Deshazer,,Houston,Texas,United States,DMR<br/>
 3149001,N6DVZ,Roger Davies,,West Jordan,Utah,United States,Portable<br/>
 3149002,KC7WSU,Chris Andrist,,Lehi,Utah,United States,DMR<br/>
 3149003,WR7O,Douglas Datwyler,,Sandy,Utah,United States,Portable<br/>
@@ -39888,6 +39913,7 @@
 3153259,K7IOI,Adam S Peterson,,Olympia,Washington,United States,DMR<br/>
 3153260,KD7RYY,Marc A Lacy,,Vancouver,Washington,United States,DMR<br/>
 3153261,K5IN,Brian R Horst,,Olympia,Washington,United States,DMR<br/>
+3153262,AB7OB,Nobunori Sayama,Nob,South Seattle,Washington,United States,DMR<br/>
 3154001,WV8VFD,Tyler Lewis,,Parkersburg,West Virginia,United States,Portable<br/>
 3154002,WB3JPB,Bruce Conley,,Inwood,West Virginia,United States,Portable<br/>
 3154003,WB8WKO,Mike Vargo,,Mount Hope,West Virginia,United States,Portable<br/>
@@ -40363,6 +40389,7 @@
 3341044,XE1RMN,Noe Quiroz,,Tepoztlan,Morelos,Mexico,CCS7<br/>
 3341045,XE1GOX,Yanni Alexandro Garcia Huizar,Yanni,Guadalajara,Jalisco,Mexico,DMR<br/>
 3341046,XE1GYL,Eduardo Velazquez Mora,Eduardo,Guadalajara,Jalisco,Mexico,DMR<br/>
+3341047,XE1GPD,Miguel Arturo Gomez,Makiu,Tlaquepaque ,Jalisco,Mexico,DMR<br/>
 3342001,XE2PMP,Pablo Mejia,,Chihuahua,Chihuahua,Mexico,Portable<br/>
 3342002,XE2JEG,Eduardo Gallegos,,Chihuahua,Chihuahua,Mexico,Mobile<br/>
 3342003,XE2JEG,Eduardo Gallegos,,Chihuahua,Chihuahua,Mexico,Portable<br/>
@@ -40599,6 +40626,7 @@
 4403014,JL3ZGJ,Jr3vh Club,Jr3vh,Osaka,Kinki,Japan,DMR<br/>
 4403015,JA1NCN,Yasumune Hayashi,,Osaka,Kinki,Japan,DMR<br/>
 4403016,JA3RGQ,Ogawa Sugao,,Kyoto,Kinki,Japan,DMR<br/>
+4403017,JA3ASU,Sayama Nobunori,Nob,Kyoto,Kinki,Japan,DMR<br/>
 4404001,JO4DYL,Masanobu Ikemoto,,Yanai,Chugoku,Japan,Mobile<br/>
 4404002,JO4DYL,Masanobu Ikemoto,,Yanai City,Chugoku,Japan,Mobile<br/>
 4406001,JF6ROW,Hamasaki Satoshi,Gon,Fukuoka,Kyushu,Japan,CCS7<br/>
@@ -40718,6 +40746,7 @@
 4500058,6K5CWE,Byung-Gyu Park,,Busan,Gijang gun,Korea S, Republic of,DMR<br/>
 4500059,DS5ANY,Shin Sang-Hee,,Sahagu,Busan Si,Korea S, Republic of,CCS7<br/>
 4500060,HL5BHH,Jeryang "Jery" Juhn,Jery,Busan,Busan Si,Korea S, Republic of,DMR<br/>
+4500061,HL5BSX,Cheon Jong-Cheol,Jong,Busan,Busan Si,Korea S, Republic of,DMR<br/>
 4501001,6K2GBE,Seongjin Oh,,Suwon,Chungeheongbuk,Korea, Republic of,<br/>
 4501002,DS4GYP,Won-gil Jung,,KwangJu,KWangJu Si,Korea S, Republic of,Other<br/>
 4501003,DS5TUK,Joon Ho Shin,,Suseonggu,Daeku Si,Korea S, Republic of,DMR<br/>
@@ -40777,6 +40806,7 @@
 4507016,HL1AHS,Sookun Chae,Guss Chae,Seoul,Seoul,Korea S, Republic of,DMR<br/>
 4507017,HL1RR,Seong-Gyu Lim,,Seoul,Seoul,Korea S, Republic of,DMR<br/>
 4507018,HL1LUA,김진호 Kim,,Seoul,Seoul,Korea S, Republic of,DMR<br/>
+4507019,HL1LUA,Jinho Kim,Jinho,Seoul,Seoul,Korea S, Republic of,DMR<br/>
 4540001,VR2XJN,Charles Tsang,,Hong Kong,Hong Kong,China,Mobile<br/>
 4540002,VR2XJT,Hkprc ,,Hong Kong,Hong Kong,China,Portable<br/>
 4540003,VR2RG,Hkprc ,,Hong Kong,Hong Kong,China,Portable<br/>
@@ -41547,6 +41577,7 @@
 5054102,VK4RY,Richard Philp,,Mooloolah Valley,Queensland,Australia,DMR<br/>
 5054103,VK4CL,Chris Lowe,,Tewantin,Queensland,Australia,DMR<br/>
 5054104,VK4HTN,Bob Hilton,,Sapphire,Queensland,Australia,CCS7<br/>
+5054105,VK4ID,Allan Gilbey,,Glasshouse Mts,Queensland,Australia,DMR<br/>
 5055001,VK5FBFB,Brendan Blackman,,adelaide,South Australia,Australia,Portable<br/>
 5055002,VK5FBFB,Brendan Blackman,,Adelaide ,South Australia,Australia,DMR<br/>
 5055003,VK5RZ,Stephan Forka,,Seaford Rise,South Australia,Australia,Other<br/>
@@ -41737,6 +41768,7 @@
 5200096,E21MLC,Pimpun Piputvat,Pimpun,Nonthaburi,Nonthaburi,Thailand,DMR<br/>
 5200097,HS9AWO,Kasem Sirisuwan,Sam,Song Khla,Bangkok,Thailand,DMR<br/>
 5200098,HS8JCV,Mr.Supparerk Saikaew,X,Hatyai,Nakhon,Thailand,DMR<br/>
+5200099,HS0WXG,Panya Watthanawangsakul,,Phrapradaeng,Bangkok,Thailand,DMR<br/>
 5206001,HS0ZET,Ralf Klingler,,Nongkrot,Nakhon Sawan,Thailand,Portable<br/>
 5206002,HS3LIQ,Wiwat Metheekasiwat,,Nakhonratchasima,Nakhon Ratchasima,Thailand,<br/>
 5250001,9V1JC,Wiyanto Jacob,Jacob,Singapore,Singapore,Singapore,DMR<br/>
