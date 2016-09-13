@@ -45,7 +45,6 @@ __credits__    = 'Colin Durbridge, G4EML, Steve Zingman, N4IRS; Mike Zingman, N4
 __license__    = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
-__status__     = 'pre-alpha'
 
 
 # Global variables used whether we are a module or __main__
