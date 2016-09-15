@@ -19,6 +19,11 @@ __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 
 
+#------------------------------------------------------------------------------
+# Hamming 15,11,3 routines
+#------------------------------------------------------------------------------
+
+# ENCODER- returns a BitArray object containing the hamming checksums
 def enc_hamming_15113(_data):
     csum = BitArray(4)
     csum[0] = _data[0] ^ _data[1] ^ _data[2] ^ _data[3] ^ _data[5] ^ _data[7] ^ _data[8]
@@ -27,6 +32,7 @@ def enc_hamming_15113(_data):
     csum[3] = _data[0] ^ _data[1] ^ _data[2] ^ _data[4] ^ _data[6] ^ _data[7] ^ _data[10]
     return csum
 
+# DECODER - Returns a tuple of (decoded data, True if an error was corrected)
 def dec_hamming_15113(_data):
     chk0 = _data[0] ^ _data[1] ^ _data[2] ^ _data[3] ^ _data[5] ^ _data[7] ^ _data[8]
     chk1 = _data[1] ^ _data[2] ^ _data[3] ^ _data[4] ^ _data[6] ^ _data[8] ^ _data[9]
@@ -61,6 +67,11 @@ def dec_hamming_15113(_data):
     return (_data, False)
 
 
+#------------------------------------------------------------------------------
+# Hamming 13,9,3 routines
+#------------------------------------------------------------------------------
+
+# ENCODER - returns a BitArray object containing the hamming checksums
 def enc_hamming_1393(_data):
     csum = BitArray(4)
     csum[0] = _data[0] ^ _data[1] ^ _data[3] ^ _data[5] ^ _data[6]
@@ -69,6 +80,7 @@ def enc_hamming_1393(_data):
     csum[3] = _data[0] ^ _data[2] ^ _data[4] ^ _data[5] ^ _data[8]
     return csum
 
+# DECODER  - Returns a tuple of (decoded data, True if an error was corrected)
 def dec_hamming_1393(_data):
     chk0 = _data[0] ^ _data[1] ^ _data[3] ^ _data[5] ^ _data[6]
     chk1 = _data[0] ^ _data[1] ^ _data[2] ^ _data[4] ^ _data[6] ^ _data[7]
@@ -100,6 +112,10 @@ def dec_hamming_1393(_data):
     
     return (_data, False)
 
+
+#------------------------------------------------------------------------------
+# Used to execute the module directly to run built-in tests
+#------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     

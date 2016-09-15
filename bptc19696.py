@@ -18,21 +18,29 @@ __license__    = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unpo
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 
+#------------------------------------------------------------------------------
+# BPTC(196,96) Decoding routings
+#------------------------------------------------------------------------------
 
+# Converts a DMR frame using 98-68-98 (info-sync/EMB-info) into 196 bit array 
 def dec_get_binary_19696(_data):
     _data = bytearray(_data)
     _data = BitArray(_data)
     return _data[:98] + _data[-98:]
-    
+
+
+# Applies interleave indecies de-interleave 196 bit array
 def dec_deinterleave_19696(_data):
     deint = BitArray(196)
     for index in range(196):
         deint[index] = _data[(index * 181) % 196]
     return deint
 
+# Applies BTPC error detection/correction routines (INCOMPLETE)
 def dec_error_check_19696(_data):
     checked = BitArray(196)
 
+# Returns useable LC data - 9 bytes info + 3 bytes RS(12,9) ECC
 def dec_get_data_19696(_data):
     databits = BitArray()
     databits.append(_data[4:12])
@@ -45,7 +53,17 @@ def dec_get_data_19696(_data):
     databits.append(_data[106:117])
     databits.append(_data[121:132])
     return databits.tobytes()
+
+
+#------------------------------------------------------------------------------
+# BPTC(196,96) Decoding routings
+#------------------------------------------------------------------------------
+# not yet implemented
     
+    
+#------------------------------------------------------------------------------
+# Used to execute the module directly to run built-in tests
+#------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     
