@@ -19,18 +19,21 @@ __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 
 
-def binary_196(_data):
+def dec_get_binary_19696(_data):
     _data = bytearray(_data)
     _data = BitArray(_data)
     return _data[:98] + _data[-98:]
     
-def deint_196(_data):
+def dec_deinterleave_19696(_data):
     deint = BitArray(196)
     for index in range(196):
         deint[index] = _data[(index * 181) % 196]
     return deint
-    
-def extract_196(_data):
+
+def dec_error_check_19696(_data):
+    checked = BitArray(196)
+
+def dec_get_data_19696(_data):
     databits = BitArray()
     databits.append(_data[4:12])
     databits.append(_data[16:27])
@@ -51,25 +54,26 @@ if __name__ == '__main__':
     # Validation Example
     data = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20'
     
-    bin_data = binary_196(data)
-    deint_data = deint_196(bin_data)
-    ext_data = extract_196(deint_data)
+    bin_data = dec_get_binary_19696(data)
+    deint_data = dec_deinterleave_19696(bin_data)
+    #err_corrected = dec_error_check_19696(deint_data)
+    ext_data = dec_get_data_19696(deint_data)
     
     print('original 33 byte data block:')
     print(h(data))
-    print(len(data))
+    print(len(data), 'bytes')
     print()
     
     print('binary data (discarding sync)')
-    print(bin_data.len)
+    print(bin_data.len, 'bits')
     print(bin_data)
     print()
 
     print('deinterleaved binary data')
-    print(deint_data.len)
+    print(deint_data.len, 'bits')
     print(deint_data)
     print()
 
     print('decoded hex data')
-    print(len(ext_data)*8)
+    print(len(ext_data), 'bytes')
     print(h(ext_data))
