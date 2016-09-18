@@ -80,8 +80,8 @@ class routerMASTER(HBMASTER):
                     else:
                         _tmp_bits = _bits
                     _tmp_data = _data[:8] + rule['DST_GROUP'] + _data[11:15] + chr(_tmp_bits) + _data[16:]
-                    print(h(_data))
-                    print(h(_tmp_data))
+                    #print(h(_data))
+                    #print(h(_tmp_data))
                     systems[_target].send_system(_tmp_data)
                     _routed = True
                 
@@ -103,8 +103,8 @@ class routerCLIENT(HBCLIENT):
                     else:
                         _tmp_bits = _bits
                     _tmp_data = _data[:8] + rule['DST_GROUP'] + _data[11:15] + chr(_bits) + _data[16:]
-                    print(h(_data))
-                    print(h(_tmp_data))
+                    #print(h(_data))
+                    #print(h(_tmp_data))
                     systems[_target].send_system(_tmp_data)
                     _routed = True
                     
