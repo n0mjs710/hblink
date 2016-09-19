@@ -41,12 +41,12 @@ def dec_get_binary_19696(_data):
     _data = BitArray(_data)
     return _data[:98] + _data[-98:]
 
-
 # Applies interleave indecies de-interleave 196 bit array
 def dec_deinterleave_19696(_data):
     deint = BitArray(196)
-    for index in range(196):
-        deint[index] = _data[(index * 181) % 196]
+    for index in xrange(196):
+        #deint[index] = _data[(index * 181) % 196]
+        deint[index] = _data[mod_181_index[index]]
     return deint
 
 # Applies BTPC error detection/correction routines (INCOMPLETE)
@@ -81,7 +81,7 @@ def dec_get_data_19696(_data):
 if __name__ == '__main__':
     
     from binascii import b2a_hex as h
-    
+
     # Validation Example
     data = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20'
     
