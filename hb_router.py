@@ -68,7 +68,7 @@ __status__     = 'pre-alpha'
 
 class routerMASTER(HBMASTER):
 
-    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
+    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         _bits = int_id(_data[15])
         if _call_type == 'group':
             _routed = False
@@ -91,7 +91,7 @@ class routerMASTER(HBMASTER):
 
 class routerCLIENT(HBCLIENT):
     
-    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
+    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         _bits = int_id(_data[15])
         if _call_type == 'group':
             _routed = False
