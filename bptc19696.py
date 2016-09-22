@@ -49,7 +49,7 @@ def dec_deinterleave_19696(_data):
 
 # Applies BTPC error detection/correction routines (INCOMPLETE)
 def dec_error_check_19696(_data):
-    checked = BitArray(196)
+    checked = bitarray(196)
 
 # Returns useable LC data - 9 bytes info + 3 bytes RS(12,9) ECC
 def dec_get_data_19696(_data):
@@ -97,6 +97,7 @@ if __name__ == '__main__':
     print('deinterleaved binary data')
     print(len(deint_data), 'bits')
     print(deint_data)
+    print(h(deint_data.tobytes()))
     print()
 
     print('decoded hex data')

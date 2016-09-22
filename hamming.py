@@ -120,17 +120,20 @@ if __name__ == '__main__':
     
     # Validation Example
     
-    raw_data = '\x44\x4d\x52\x44\x00\x2f\x9b\xe5\x00\x0c\x30\x00\x04\xc2\xc4\xa1\xa1\x99\x48\x6e\x2b\x60\x04\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2\x00\x00'
-    raw_data = raw_data[20:53]
+    # Good
+    _data = bitarray('0000000000000000000100000011101000000000000000000000110001110011000000100100111110011010110111100101111001011010110101101100010110100110000110000111100111010011101101000010101001110000100101010100')
+    # Bad
+    _data = bitarray('0000000000000000000110000011101000000000000000000000110001110011000000100100111110011010110111100101111001011010110101101100010110100110000110000111100111010011101101000010101001110000100101010100')
+
+    rows = (_data[1:16],_data[16:31],_data[31:46],_data[46:61],_data[61:76],_data[76:91],_data[91:106],_data[106:121],_data[121:136])
     
-    data = bitarray(endian='big')
-    data.frombytes('raw_data')
-    data = data[4:]
+    for row in rows:
+        print('original data:', row[0:11], 'original parity:', row[11:15])
+        
+        hamming_dec = dec_hamming_15113(row[0:15])
+        code = hamming_dec[0]
+        error = hamming_dec[1]
     
-    print(data[0:11], data[11:15])
-    print(dec_hamming_15113(data[0:15])[0][0:11], dec_hamming_15113(data[0:15])[0][11:15], dec_hamming_15113(data[0:15])[1])
-    print(enc_hamming_15113(data[0:11]))
-    print()
-    print(data[0:9], data[9:13])
-    print(dec_hamming_1393(data[0:13])[0][0:9], dec_hamming_1393(data[0:13])[0][9:13], dec_hamming_15113(data[0:15])[1])
-    print(enc_hamming_1393(data[0:9]))
+        print('return data:  ', code[0:11], 'return parity:  ', code[11:15], 'return error:', error)
+        print('calculated parity:', enc_hamming_15113(row[0:11]))
+        print()
