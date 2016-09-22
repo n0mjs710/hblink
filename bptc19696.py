@@ -7,8 +7,7 @@
 # California, 94041, USA.
 
 from __future__ import print_function
-
-from bitstring import BitArray
+from bitarray import bitarray
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -37,16 +36,15 @@ mod_181_index = (
 
 # Converts a DMR frame using 98-68-98 (info-sync/EMB-info) into 196 bit array 
 def dec_get_binary_19696(_data):
-    _data = bytearray(_data)
-    _data = BitArray(_data)
-    return _data[:98] + _data[-98:]
+    _bits = bitarray(endian='big')
+    _bits.frombytes(_data)
+    return _bits[:98] + _bits[-98:]
 
 # Applies interleave indecies de-interleave 196 bit array
 def dec_deinterleave_19696(_data):
-    deint = BitArray(196)
+    deint = bitarray(196)
     for index in xrange(196):
-        #deint[index] = _data[(index * 181) % 196]
-        deint[index] = _data[mod_181_index[index]]
+        deint[index] = _data[mod_181_index[index]]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
     return deint
 
 # Applies BTPC error detection/correction routines (INCOMPLETE)
@@ -55,16 +53,7 @@ def dec_error_check_19696(_data):
 
 # Returns useable LC data - 9 bytes info + 3 bytes RS(12,9) ECC
 def dec_get_data_19696(_data):
-    databits = BitArray()
-    databits.append(_data[4:12])
-    databits.append(_data[16:27])
-    databits.append(_data[31:42])
-    databits.append(_data[46:57])
-    databits.append(_data[61:72])
-    databits.append(_data[76:87])
-    databits.append(_data[91:102])
-    databits.append(_data[106:117])
-    databits.append(_data[121:132])
+    databits = _data[4:12]+_data[16:27]+_data[31:42]+_data[46:57]+_data[61:72]+_data[76:87]+_data[91:102]+_data[106:117]+_data[121:132]
     return databits.tobytes()
 
 
@@ -81,14 +70,19 @@ def dec_get_data_19696(_data):
 if __name__ == '__main__':
     
     from binascii import b2a_hex as h
+    from time import time
 
     # Validation Example
-    data = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20'
+    data = '\x44\x4d\x52\x44\x00\x2f\x9b\xe5\x00\x0c\x30\x00\x04\xc2\xc4\xa1\xa1\x99\x48\x6e\x2b\x60\x04\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2\x00\x00'
+    data = data[20:53]
     
+    t0 = time()
     bin_data = dec_get_binary_19696(data)
     deint_data = dec_deinterleave_19696(bin_data)
     #err_corrected = dec_error_check_19696(deint_data)
     ext_data = dec_get_data_19696(deint_data)
+    t1 = time()
+    print('TIME: ', t1-t0, '\n')
     
     print('original 33 byte data block:')
     print(h(data))
@@ -96,12 +90,12 @@ if __name__ == '__main__':
     print()
     
     print('binary data (discarding sync)')
-    print(bin_data.len, 'bits')
+    print(len(bin_data), 'bits')
     print(bin_data)
     print()
 
     print('deinterleaved binary data')
-    print(deint_data.len, 'bits')
+    print(len(deint_data), 'bits')
     print(deint_data)
     print()
 

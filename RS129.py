@@ -12,7 +12,6 @@ Slight gratuitous modifications were made to match functionality with HBlink and
 
 from __future__ import print_function
 from binascii import b2a_hex as h
-from binascii import a2b_hex as a2b
 
 START_MASK = [0x96, 0x96, 0x96]
 END_MASK = [0x99, 0x99, 0x99]

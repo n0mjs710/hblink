@@ -7,8 +7,7 @@
 # California, 94041, USA.
 
 from __future__ import print_function
-
-from bitstring import BitArray
+from bitarray import bitarray
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -23,9 +22,9 @@ __email__      = 'n0mjs@me.com'
 # Hamming 15,11,3 routines
 #------------------------------------------------------------------------------
 
-# ENCODER- returns a BitArray object containing the hamming checksums
+# ENCODER- returns a bitarray object containing the hamming checksums
 def enc_hamming_15113(_data):
-    csum = BitArray(4)
+    csum = bitarray(4)
     csum[0] = _data[0] ^ _data[1] ^ _data[2] ^ _data[3] ^ _data[5] ^ _data[7] ^ _data[8]
     csum[1] = _data[1] ^ _data[2] ^ _data[3] ^ _data[4] ^ _data[6] ^ _data[8] ^ _data[9]
     csum[2] = _data[2] ^ _data[3] ^ _data[4] ^ _data[5] ^ _data[7] ^ _data[9] ^ _data[10]
@@ -71,9 +70,9 @@ def dec_hamming_15113(_data):
 # Hamming 13,9,3 routines
 #------------------------------------------------------------------------------
 
-# ENCODER - returns a BitArray object containing the hamming checksums
+# ENCODER - returns a bitarray object containing the hamming checksums
 def enc_hamming_1393(_data):
-    csum = BitArray(4)
+    csum = bitarray(4)
     csum[0] = _data[0] ^ _data[1] ^ _data[3] ^ _data[5] ^ _data[6]
     csum[1] = _data[0] ^ _data[1] ^ _data[2] ^ _data[4] ^ _data[6] ^ _data[7]
     csum[2] = _data[0] ^ _data[1] ^ _data[2] ^ _data[3] ^ _data[5] ^ _data[7] ^ _data[8]
@@ -120,12 +119,18 @@ def dec_hamming_1393(_data):
 if __name__ == '__main__':
     
     # Validation Example
-    data = BitArray('0x1cd1bb1910f3051031011061cc1aa3800e204002100100147')
     
-    print(data[0:11].bin, data[11:15].bin)
-    print(dec_hamming_15113(data[0:15])[0][0:11].bin, dec_hamming_15113(data[0:15])[0][11:15].bin)
-    print(enc_hamming_15113(data[0:11]).bin)
+    raw_data = '\x44\x4d\x52\x44\x00\x2f\x9b\xe5\x00\x0c\x30\x00\x04\xc2\xc4\xa1\xa1\x99\x48\x6e\x2b\x60\x04\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2\x00\x00'
+    raw_data = raw_data[20:53]
+    
+    data = bitarray(endian='big')
+    data.frombytes('raw_data')
+    data = data[4:]
+    
+    print(data[0:11], data[11:15])
+    print(dec_hamming_15113(data[0:15])[0][0:11], dec_hamming_15113(data[0:15])[0][11:15], dec_hamming_15113(data[0:15])[1])
+    print(enc_hamming_15113(data[0:11]))
     print()
-    print(data[0:9].bin, data[9:13].bin)
-    print(dec_hamming_1393(data[0:13])[0][0:9].bin, dec_hamming_1393(data[0:13])[0][9:13].bin)
-    print(enc_hamming_1393(data[0:9]).bin)
+    print(data[0:9], data[9:13])
+    print(dec_hamming_1393(data[0:13])[0][0:9], dec_hamming_1393(data[0:13])[0][9:13], dec_hamming_15113(data[0:15])[1])
+    print(enc_hamming_1393(data[0:9]))
