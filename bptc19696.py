@@ -35,24 +35,24 @@ mod_181_index = (
 195, 180, 165, 150, 135, 120, 105, 90, 75, 60, 45, 30, 15)
 
 # Converts a DMR frame using 98-68-98 (info-sync/EMB-info) into 196 bit array 
-def dec_get_binary_19696(_data):
+def to_binary_19696(_data):
     _bits = bitarray(endian='big')
     _bits.frombytes(_data)
     return _bits[:98] + _bits[-98:]
 
 # Applies interleave indecies de-interleave 196 bit array
-def dec_deinterleave_19696(_data):
+def deinterleave_19696(_data):
     deint = bitarray(196)
     for index in xrange(196):
         deint[index] = _data[mod_181_index[index]]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
     return deint
 
 # Applies BTPC error detection/correction routines (INCOMPLETE)
-def dec_error_check_19696(_data):
+def error_check_19696(_data):
     checked = bitarray(196)
 
 # Returns useable LC data - 9 bytes info + 3 bytes RS(12,9) ECC
-def dec_get_data_19696(_data):
+def to_bytes_19696(_data):
     databits = _data[4:12]+_data[16:27]+_data[31:42]+_data[46:57]+_data[61:72]+_data[76:87]+_data[91:102]+_data[106:117]+_data[121:132]
     return databits.tobytes()
 
@@ -77,10 +77,10 @@ if __name__ == '__main__':
     data = data[20:53]
     
     t0 = time()
-    bin_data = dec_get_binary_19696(data)
-    deint_data = dec_deinterleave_19696(bin_data)
+    bin_data = to_binary_19696(data)
+    deint_data = deinterleave_19696(bin_data)
     #err_corrected = dec_error_check_19696(deint_data)
-    ext_data = dec_get_data_19696(deint_data)
+    ext_data = to_bytes_19696(deint_data)
     t1 = time()
     print('TIME: ', t1-t0, '\n')
     
