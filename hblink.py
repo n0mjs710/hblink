@@ -260,7 +260,7 @@ class HBMASTER(DatagramProtocol):
     # regardless of the system type (MASTER or CLIENT)
     send_system = send_clients
 
-    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
+    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pass
 
     def datagramReceived(self, _data, (_host, _port)):
@@ -473,7 +473,7 @@ class HBCLIENT(DatagramProtocol):
     # regardless of the system type (MASTER or CLIENT)
     send_system = send_master
 
-    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _stream_id, _data):
+    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pass
 
     def datagramReceived(self, _data, (_host, _port)):
