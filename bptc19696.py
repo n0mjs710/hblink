@@ -22,7 +22,7 @@ __email__      = 'n0mjs@me.com'
 # BPTC(196,96) Decoding routings
 #------------------------------------------------------------------------------
 
-mod_181_index = (
+INDEX_181 = (
 0, 181, 166, 151, 136, 121, 106, 91, 76, 61, 46, 31, 16, 1, 182, 167, 152, 137,
 122, 107, 92, 77, 62, 47, 32, 17, 2, 183, 168, 153, 138, 123, 108, 93, 78, 63,
 48, 33, 18, 3, 184, 169, 154, 139, 124, 109, 94, 79, 64, 49, 34, 19, 4, 185, 170,
@@ -45,17 +45,26 @@ def to_binary_19696(_data):
 def deinterleave_19696(_data):
     deint = bitarray(196)
     for index in xrange(196):
-        deint[index] = _data[mod_181_index[index]]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
+        deint[index] = _data[INDEX_181[index]]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
     return deint
 
 # Applies BTPC error detection/correction routines (INCOMPLETE)
 def error_check_19696(_data):
     errors = False
     count = 0
-    do:
-        pass
-    while errors && count < 5
-
+    column = bitarray(13)
+    
+    while True:
+        for col in xrange(15):
+            pos = col + 1
+            for index in xrange(13):
+                column[index] = _data[pos]
+                pos += 15
+            
+            if hamming.dec_1393(col)
+        if not errors or count < 5: break
+    return _data
+    
 # Returns useable LC data - 9 bytes info + 3 bytes RS(12,9) ECC
 def to_bytes_19696(_data):
     databits = _data[4:12]+_data[16:27]+_data[31:42]+_data[46:57]+_data[61:72]+_data[76:87]+_data[91:102]+_data[106:117]+_data[121:132]
@@ -84,7 +93,7 @@ if __name__ == '__main__':
     t0 = time()
     bin_data = to_binary_19696(data)
     deint_data = deinterleave_19696(bin_data)
-    err_corrected = dec_error_check_19696(deint_data)
+    err_corrected = error_check_19696(deint_data)
     ext_data = to_bytes_19696(deint_data)
     t1 = time()
     print('TIME: ', t1-t0, '\n')
