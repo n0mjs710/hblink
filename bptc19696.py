@@ -8,6 +8,7 @@
 
 from __future__ import print_function
 from bitarray import bitarray
+import hamming
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -49,7 +50,11 @@ def deinterleave_19696(_data):
 
 # Applies BTPC error detection/correction routines (INCOMPLETE)
 def error_check_19696(_data):
-    checked = bitarray(196)
+    errors = False
+    count = 0
+    do:
+        pass
+    while errors && count < 5
 
 # Returns useable LC data - 9 bytes info + 3 bytes RS(12,9) ECC
 def to_bytes_19696(_data):
@@ -79,7 +84,7 @@ if __name__ == '__main__':
     t0 = time()
     bin_data = to_binary_19696(data)
     deint_data = deinterleave_19696(bin_data)
-    #err_corrected = dec_error_check_19696(deint_data)
+    err_corrected = dec_error_check_19696(deint_data)
     ext_data = to_bytes_19696(deint_data)
     t1 = time()
     print('TIME: ', t1-t0, '\n')

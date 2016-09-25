@@ -23,7 +23,7 @@ __email__      = 'n0mjs@me.com'
 #------------------------------------------------------------------------------
 
 # ENCODER- returns a bitarray object containing the hamming checksums
-def enc_hamming_15113(_data):
+def enc_15113(_data):
     csum = bitarray(4)
     csum[0] = _data[0] ^ _data[1] ^ _data[2] ^ _data[3] ^ _data[5] ^ _data[7] ^ _data[8]
     csum[1] = _data[1] ^ _data[2] ^ _data[3] ^ _data[4] ^ _data[6] ^ _data[8] ^ _data[9]
@@ -32,7 +32,7 @@ def enc_hamming_15113(_data):
     return csum
 
 # DECODER - Returns a tuple of (decoded data, True if an error was corrected)
-def dec_hamming_15113(_data):
+def dec_15113(_data):
     chk0 = _data[0] ^ _data[1] ^ _data[2] ^ _data[3] ^ _data[5] ^ _data[7] ^ _data[8]
     chk1 = _data[1] ^ _data[2] ^ _data[3] ^ _data[4] ^ _data[6] ^ _data[8] ^ _data[9]
     chk2 = _data[2] ^ _data[3] ^ _data[4] ^ _data[5] ^ _data[7] ^ _data[9] ^ _data[10]
@@ -71,7 +71,7 @@ def dec_hamming_15113(_data):
 #------------------------------------------------------------------------------
 
 # ENCODER - returns a bitarray object containing the hamming checksums
-def enc_hamming_1393(_data):
+def enc_1393(_data):
     csum = bitarray(4)
     csum[0] = _data[0] ^ _data[1] ^ _data[3] ^ _data[5] ^ _data[6]
     csum[1] = _data[0] ^ _data[1] ^ _data[2] ^ _data[4] ^ _data[6] ^ _data[7]
@@ -80,7 +80,7 @@ def enc_hamming_1393(_data):
     return csum
 
 # DECODER  - Returns a tuple of (decoded data, True if an error was corrected)
-def dec_hamming_1393(_data):
+def dec_1393(_data):
     chk0 = _data[0] ^ _data[1] ^ _data[3] ^ _data[5] ^ _data[6]
     chk1 = _data[0] ^ _data[1] ^ _data[2] ^ _data[4] ^ _data[6] ^ _data[7]
     chk2 = _data[0] ^ _data[1] ^ _data[2] ^ _data[3] ^ _data[5] ^ _data[7] ^ _data[8]
@@ -116,7 +116,7 @@ def dec_hamming_1393(_data):
 #------------------------------------------------------------------------------
 
 # ENCODER - returns a bitarray object containing the hamming checksums
-def enc_hamming_16114(_data):
+def enc_16114(_data):
     csum = bitarray(5)
     csum[0] = _data[0] ^ _data[1] ^ _data[2] ^ _data[3] ^ _data[5] ^ _data[7] ^ _data[8]
     csum[1] = _data[1] ^ _data[2] ^ _data[3] ^ _data[4] ^ _data[6] ^ _data[8] ^ _data[9]
@@ -126,7 +126,7 @@ def enc_hamming_16114(_data):
     return csum
 
 # DECODER  - Returns a tuple of (decoded data, True if an error was corrected)
-def dec_hamming_16114(_data):
+def dec_16114(_data):
     chk0 = _data[0] ^ _data[1] ^ _data[2] ^ _data[3] ^ _data[5] ^ _data[7] ^ _data[8]
     chk1 = _data[1] ^ _data[2] ^ _data[3] ^ _data[4] ^ _data[6] ^ _data[8] ^ _data[9]
     chk2 = _data[2] ^ _data[3] ^ _data[4] ^ _data[5] ^ _data[7] ^ _data[9] ^ _data[10]
@@ -179,12 +179,12 @@ if __name__ == '__main__':
         for row in rows:
             print('original data:', row[0:11], 'original parity:', row[11:15])
         
-            hamming_dec = dec_hamming_15113(row[0:15])
+            hamming_dec = dec_15113(row[0:15])
             code = hamming_dec[0]
             error = hamming_dec[1]
     
             print('\tDECODE: data:  ', code[0:11], 'parity:  ', code[11:15], 'error:', error)
-            print('\tENCODE: calculated parity:', enc_hamming_15113(row[0:11]))
+            print('\tENCODE: calculated parity:', enc_15113(row[0:11]))
             print()
             
     check_15113(good_data_15113)
