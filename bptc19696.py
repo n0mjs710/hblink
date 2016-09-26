@@ -43,7 +43,7 @@ def to_binary_19696(_data):
 
 # Applies interleave indecies de-interleave 196 bit array
 def deinterleave_19696(_data):
-    deint = bitarray(196)
+    deint = bitarray(196, endian='big')
     for index in xrange(196):
         deint[index] = _data[INDEX_181[index]]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
     return deint
@@ -51,7 +51,7 @@ def deinterleave_19696(_data):
 # Applies BTPC error detection/correction routines (INCOMPLETE)
 def error_check_19696(_data):
     count = 0
-    column = bitarray(13)
+    column = bitarray(13, endian='big')
     
     while True:
         errors = False
@@ -81,7 +81,7 @@ def error_check_19696(_data):
         count += 1
         print('pass count is {}'.format(count))   
         if not errors or count > 4: break
-    return (_data, (errors))
+    return (errors)
     
 # Returns useable LC data - 9 bytes info + 3 bytes RS(12,9) ECC
 def to_bytes_19696(_data):
@@ -105,16 +105,18 @@ if __name__ == '__main__':
     from time import time
 
     # Validation Example
+    # Good Data
     data = '\x2b\x60\x04\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
-    data = '\x2b\x60\x04\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
-    
+    # Bad Data
+    data = '\xff\xff\x14\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
+     
     t0 = time()
     bin_data = to_binary_19696(data)
     deint_data = deinterleave_19696(bin_data)
-    err_corrected = error_check_19696(deint_data)
-    if err_corrected[1]:
+    err_corrected = error_check_19696(deint_data) # This corrects deint_data in place -- it does not return a new array!!!
+    if err_corrected:
         print('WARNING DATA COULD NOT BE CORRECTED')
-    ext_data = to_bytes_19696(err_corrected[0])
+    ext_data = to_bytes_19696(deint_data)
     t1 = time()
     print('TIME: ', t1-t0, '\n')
     
