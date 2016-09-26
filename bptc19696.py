@@ -122,8 +122,8 @@ def enc_bptc_19696(_data):
     # Pad out the bitarray to a full 196 bits. Can't insert into 'columns'
     for i in xrange(60):
         _bdata.append(0)
-    column = bitarray(9, endian='big')  # Temporary bitarray to hold column data
     
+    column = bitarray(9, endian='big')  # Temporary bitarray to hold column data
     for col in xrange(15):
         spos = col + 1
         for index in xrange(9):
@@ -164,7 +164,6 @@ if __name__ == '__main__':
     #dec_data = '\x2b\x60\xff\xff\xff\x85\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
     
     t0 = time()
-    #bin_data = dec_to_binary_19696(dec_data)
     deint_data = deinterleave_19696(dec_data)
     err_corrected = error_check_19696(deint_data) # This corrects deint_data in place -- it does not return a new array!!!
     ext_data = to_bytes_19696(deint_data)
