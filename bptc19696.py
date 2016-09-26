@@ -50,20 +50,38 @@ def deinterleave_19696(_data):
 
 # Applies BTPC error detection/correction routines (INCOMPLETE)
 def error_check_19696(_data):
-    errors = False
     count = 0
     column = bitarray(13)
     
     while True:
+        errors = False
         for col in xrange(15):
             pos = col + 1
             for index in xrange(13):
                 column[index] = _data[pos]
                 pos += 15
             
-            if hamming.dec_1393(col)
-        if not errors or count < 5: break
-    return _data
+            result_1393 = hamming.dec_1393(column)
+            if result_1393[1]:
+                pos = col + 1
+                for index in xrange(13):
+                    _data[pos] = result_1393[0][index]
+                    pos += 15
+                errors = True
+                print('fixing error in column {}'.format(col))
+                
+        for index in xrange(9):
+            pos = (index*15) + 1
+            result_15113 = hamming.dec_15113(_data[pos:(pos+15)])
+            if result_15113[1]:
+                errors = True
+                _data[pos:(pos+15)] = result_15113[0]
+                print('fixing error in row {}'.format(index))
+        
+        count += 1
+        print('pass count is {}'.format(count))   
+        if not errors or count > 4: break
+    return (_data, (errors))
     
 # Returns useable LC data - 9 bytes info + 3 bytes RS(12,9) ECC
 def to_bytes_19696(_data):
@@ -87,14 +105,16 @@ if __name__ == '__main__':
     from time import time
 
     # Validation Example
-    data = '\x44\x4d\x52\x44\x00\x2f\x9b\xe5\x00\x0c\x30\x00\x04\xc2\xc4\xa1\xa1\x99\x48\x6e\x2b\x60\x04\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2\x00\x00'
-    data = data[20:53]
+    data = '\x2b\x60\x04\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
+    data = '\x2b\x60\x04\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
     
     t0 = time()
     bin_data = to_binary_19696(data)
     deint_data = deinterleave_19696(bin_data)
     err_corrected = error_check_19696(deint_data)
-    ext_data = to_bytes_19696(deint_data)
+    if err_corrected[1]:
+        print('WARNING DATA COULD NOT BE CORRECTED')
+    ext_data = to_bytes_19696(err_corrected[0])
     t1 = time()
     print('TIME: ', t1-t0, '\n')
     
@@ -114,6 +134,6 @@ if __name__ == '__main__':
     print(h(deint_data.tobytes()))
     print()
 
-    print('decoded hex data')
+    print('decoded hex data should be: 001020000c302f9be5dad45a')
+    print('decoded data is:           ', h(ext_data))
     print(len(ext_data), 'bytes')
-    print(h(ext_data))

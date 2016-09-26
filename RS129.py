@@ -95,32 +95,32 @@ def encode(_msg):
         parity[0] = log_mult(POLY[0], dbyte)
     return [parity[2], parity[1], parity[0]]
 
-# Apply DMR XOR LC start MASK
-def lc_start_mask(_parity):
+# Apply DMR XOR LC Header MASK
+def lc_header_mask(_parity):
     xor = [0,0,0]
     for i in range(len(_parity)):
         xor[i] = _parity[i] ^ START_MASK[i]
     return xor
     
-# Apply DMR XOR LC end MASK
-def lc_end_mask(_parity):
+# Apply DMR XOR LC Terminator MASK
+def lc_terminator_mask(_parity):
     xor = [0,0,0]
     for i in range(len(_parity)):
         xor[i] = _parity[i] ^ END_MASK[i]
     return xor
 
 # All Inclusive function to take an LC string and provide the RS129 string to append
-def lc_start_encode(_message):
+def lc_header_encode(_message):
     bin_message = bytearray(_message)
     parity = encode(bin_message)
-    masked_parity = lc_start_mask(parity)
+    masked_parity = lc_header_mask(parity)
     return chr(masked_parity[0]) + chr(masked_parity[1]) + chr(masked_parity[2])
     
 # All Inclusive function to take an LC string and provide the RS129 string to append
-def lc_end_encode(_message):
+def lc_terminator_encode(_message):
     bin_message = bytearray(_message)
     parity = encode(bin_message)
-    masked_parity = lc_end_mask(parity)
+    masked_parity = lc_terminator_mask(parity)
     return chr(masked_parity[0]) + chr(masked_parity[1]) + chr(masked_parity[2])
     
     
@@ -133,7 +133,10 @@ if __name__ == '__main__':
     
     # Validation Example
     message = '\x00\x10\x20\x00\x0c\x30\x2f\x9b\xe5'
+    message = bytearray(message)
     parity_should_be = '\xda\x4d\x5a'
-    parity = lc_start_encode(message)
+    print('Original Message:            {}'.format(h(message)))
     print('Masked Parity Should be:     {}'.format(h(parity_should_be)))
+    
+    parity = lc_header_encode(message)
     print('Calculated Masked Parity is: {}'.format(h(parity)))
