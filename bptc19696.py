@@ -18,9 +18,7 @@ __license__    = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unpo
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 
-#------------------------------------------------------------------------------
-# BPTC(196,96) Decoding routings
-#------------------------------------------------------------------------------
+# Interleaer index
 
 INDEX_181 = (
 0, 181, 166, 151, 136, 121, 106, 91, 76, 61, 46, 31, 16, 1, 182, 167, 152, 137,
@@ -35,20 +33,25 @@ INDEX_181 = (
 73, 58, 43, 28, 13, 194, 179, 164, 149, 134, 119, 104, 89, 74, 59, 44, 29, 14,
 195, 180, 165, 150, 135, 120, 105, 90, 75, 60, 45, 30, 15)
 
-# Converts a DMR frame using 98-68-98 (info-sync/EMB-info) into 196 bit array 
-def to_binary_19696(_data):
-    _bits = bitarray(endian='big')
-    _bits.frombytes(_data)
-    return _bits[:98] + _bits[-98:]
 
+#------------------------------------------------------------------------------
+# BPTC(196,96) Decoding Routings
+#------------------------------------------------------------------------------
+
+# Converts a DMR frame using 98-68-98 (info-sync/EMB-info) into 196 bit array
 # Applies interleave indecies de-interleave 196 bit array
 def deinterleave_19696(_data):
+    _bits = bitarray(endian='big')
+    _bits.frombytes(_data)
+    for i in xrange(68):
+        _bits.pop(98)
     deint = bitarray(196, endian='big')
     for index in xrange(196):
-        deint[index] = _data[INDEX_181[index]]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
+        deint[index] = _bits[INDEX_181[index]]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
     return deint
 
-# Applies BTPC error detection/correction routines (INCOMPLETE)
+# Applies BTPC error detection/correction routines
+# This routine, in practice, will not be used in HBlink or DMRlink - it's only usefull for OTA direct data
 def error_check_19696(_data):
     count = 0
     column = bitarray(13, endian='big')
@@ -68,7 +71,6 @@ def error_check_19696(_data):
                     _data[pos] = result_1393[0][index]
                     pos += 15
                 errors = True
-                print('fixing error in column {}'.format(col))
                 
         for index in xrange(9):
             pos = (index*15) + 1
@@ -76,10 +78,8 @@ def error_check_19696(_data):
             if result_15113[1]:
                 errors = True
                 _data[pos:(pos+15)] = result_15113[0]
-                print('fixing error in row {}'.format(index))
         
         count += 1
-        print('pass count is {}'.format(count))   
         if not errors or count > 4: break
     return (errors)
     
@@ -90,9 +90,54 @@ def to_bytes_19696(_data):
 
 
 #------------------------------------------------------------------------------
-# BPTC(196,96) Decoding routings
+# BPTC(196,96) Encoding Routings
 #------------------------------------------------------------------------------
-# not yet implemented
+
+def interleave_19696(_data):
+    inter = bitarray(196, endian='big')
+    for index in xrange(196):
+        inter[INDEX_181[index]] = _data[index]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
+    return inter
+
+# Accepts 12 byte LC header + RS1293, converts to binary and pads for 196 bit
+# encode hamming 15113 to rows and 1393 to columns
+def enc_bptc_19696(_data):
+    # Create a bitarray from the 4 bytes of LC data (includes RS1293 ECC)
+    _bdata = bitarray(endian='big')
+    _bdata.frombytes(_data)
+    
+    # Insert R0-R3 bits
+    for i in xrange(4):
+        _bdata.insert(0, 0)
+    
+    # Get row hamming 15,11,3 and append. +1 is to account for R3 that makes an even 196bit string
+    for index in xrange(9):
+        spos = (index*15) + 1
+        epos= spos + 11
+        _rowp = hamming.enc_15113(_bdata[spos:epos])
+        for pbit in xrange(4):
+            _bdata.insert(epos+pbit,_rowp[pbit])
+    
+    # Get column hamming 13,9,3 and append. +1 is to account for R3 that makes an even 196bit string
+    # Pad out the bitarray to a full 196 bits. Can't insert into 'columns'
+    for i in xrange(60):
+        _bdata.append(0)
+    column = bitarray(9, endian='big')  # Temporary bitarray to hold column data
+    
+    for col in xrange(15):
+        spos = col + 1
+        for index in xrange(9):
+            column[index] = _bdata[spos]
+            spos += 15
+        _colp = hamming.enc_1393(column)
+        
+        # Insert bits into matrix...
+        cpar = 136 + col                # Starting location in the matrix for column bits
+        for pbit in xrange(4):
+            _bdata[cpar] =  _colp[pbit]
+            cpar += 15
+
+    return _bdata
     
     
 #------------------------------------------------------------------------------
@@ -105,37 +150,45 @@ if __name__ == '__main__':
     from time import time
 
     # Validation Example
-    # Good Data
-    data = '\x2b\x60\x04\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
-    # Bad Data
-    data = '\xff\xff\x14\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
-     
+    
+    orig_data = '\x00\x10\x20\x00\x0c\x30\x2f\x9b\xe5\xda\xd4\x5a'
     t0 = time()
-    bin_data = to_binary_19696(data)
-    deint_data = deinterleave_19696(bin_data)
+    enc_data = enc_bptc_19696(orig_data)
+    inter_data = interleave_19696(enc_data)
+    t1 = time()
+    encode_time = t1-t0
+    
+    # Good Data
+    dec_data = '\x2b\x60\x04\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
+    # Bad Data
+    #dec_data = '\x2b\x60\xff\xff\xff\x85\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
+    
+    t0 = time()
+    #bin_data = dec_to_binary_19696(dec_data)
+    deint_data = deinterleave_19696(dec_data)
     err_corrected = error_check_19696(deint_data) # This corrects deint_data in place -- it does not return a new array!!!
-    if err_corrected:
-        print('WARNING DATA COULD NOT BE CORRECTED')
     ext_data = to_bytes_19696(deint_data)
     t1 = time()
-    print('TIME: ', t1-t0, '\n')
+    decode_time = t1-t0
     
-    print('original 33 byte data block:')
-    print(h(data))
-    print(len(data), 'bytes')
+    
+    print('VALIDATION ROUTINE:')
+    print()
+    print('ENCODER TEST:')
+    print('Original Data: {}, {} bytes'.format(h(orig_data), len(orig_data)))
+    print('Encoding time: {} seconds'.format(encode_time))
+    print('Encoded data:  {}, {} bits'.format(enc_data, len(enc_data)))
+    print()
+    print('DECODER TEST:')
+    print('Encoded data:  {}, {} bytes'.format(h(dec_data), len(dec_data)))
+    print('Decoding Time: {} seconds'.format(t1-t0))
+    if err_corrected:
+        print('WARNING DATA COULD NOT BE CORRECTED')
+    else:
+        print('Decoded Data:  {}, {} bytes'.format(h(ext_data), len(ext_data)))
     print()
     
-    print('binary data (discarding sync)')
-    print(len(bin_data), 'bits')
-    print(bin_data)
-    print()
-
-    print('deinterleaved binary data')
-    print(len(deint_data), 'bits')
-    print(deint_data)
-    print(h(deint_data.tobytes()))
-    print()
-
-    print('decoded hex data should be: 001020000c302f9be5dad45a')
-    print('decoded data is:           ', h(ext_data))
-    print(len(ext_data), 'bytes')
+    print('ENCODED vs. DECODED:')
+    print('enc:', enc_data)
+    print('dec:', deint_data)
+    print(enc_data == deint_data)
