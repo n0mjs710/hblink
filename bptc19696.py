@@ -18,7 +18,10 @@ __license__    = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unpo
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 
-# Interleaer index
+
+#------------------------------------------------------------------------------
+# Interleaver Index
+#------------------------------------------------------------------------------
 
 INDEX_181 = (
 0, 181, 166, 151, 136, 121, 106, 91, 76, 61, 46, 31, 16, 1, 182, 167, 152, 137,
