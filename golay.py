@@ -225,7 +225,7 @@ def decode_2087(_data):
 
 def encode_2087(_data):
     value = data[0]
-    cksum = ENCODING_TABLE_2087[value]
+    cksum = ENCODE_2087[value]
     data[1] = cksum & 0xFF
     data[2] = cksum >> 8
     return _data
@@ -239,3 +239,11 @@ if __name__ == '__main__':
     
     from binascii import b2a_hex as h
     from time import time
+    
+    # For testing the code
+    def print_hex(_list):
+        print('[{}]'.format(', '.join(hex(x) for x in _list)))
+    
+    data = [0x12,0x23,0x45]
+    
+    print_hex(encode_2087(data))

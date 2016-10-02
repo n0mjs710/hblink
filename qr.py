@@ -72,14 +72,14 @@ def get_synd_1576(_pattern):
 def encode(_data):
     value = (_data[0] >> 1) & 0x7F
     cksum = ENCODE_1676[value]
-    data[0] = cksum >> 8
-    data[1] = cksum & 0xFF
+    _data[0] = cksum >> 8
+    _data[1] = cksum & 0xFF
     return _data
 
 def decode(_data):
 	code = (_data[0] << 7) + (_data[1] >> 1)
 	syndrome = get_synd_1576(code)
-	error_pattern = DECODING_TABLE_1576[syndrome]
+	error_pattern = DECODE_1576[syndrome]
 	code ^= error_pattern
 	return code >> 7
 
