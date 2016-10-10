@@ -23,6 +23,7 @@ X11     = 0x00000800   # vector representation of X^11
 MASK8   = 0xfffff800   # auxiliary vector for testing
 GENPOL  = 0x00000c75   # generator polinomial, g(x)
 
+# Precalculated codes in numeric value. This encoder doesn't currently use them, see the next codeblock
 ENCODE_2087 = (
 	0x0000, 0xB08E, 0xE093, 0x501D, 0x70A9, 0xC027, 0x903A, 0x20B4, 0x60DC, 0xD052, 0x804F, 0x30C1, 0x1075, 0xA0FB,
     0xF0E6, 0x4068, 0x7036, 0xC0B8, 0x90A5, 0x202B, 0x009F, 0xB011, 0xE00C, 0x5082, 0x10EA, 0xA064, 0xF079, 0x40F7,
@@ -43,6 +44,11 @@ ENCODE_2087 = (
     0xE088, 0x5006, 0x001B, 0xB095, 0x9021, 0x20AF, 0x70B2, 0xC03C, 0x8054, 0x30DA, 0x60C7, 0xD049, 0xF0FD, 0x4073,
     0x106E, 0xA0E0, 0x90BE, 0x2030, 0x702D, 0xC0A3, 0xE017, 0x5099, 0x0084, 0xB00A, 0xF062, 0x40EC, 0x10F1, 0xA07F,
 	0x80CB, 0x3045, 0x6058, 0xD0D6)
+
+# This routine currently uses hex strings of the precalculated codes, this generates them from the above    
+ENCSTR_2087 = [0 for x in xrange(256)]
+for value in xrange(256):
+    ENCSTR_2087[value] = hex(ENCODE_2087[value])[2:].rjust(4,'0').decode('hex')
 
 DECODE_1987 = (
 	0x00000, 0x00001, 0x00002, 0x00003, 0x00004, 0x00005, 0x00006, 0x00007, 0x00008, 0x00009, 0x0000A, 0x0000B, 0x0000C, 
@@ -205,30 +211,27 @@ DECODE_1987 = (
 	0x11000, 0x11003, 0x11002, 0x11005, 0x11004, 0x28081, 0x28080)
 
 def get_synd_1987(_pattern):
-	aux = X18
-	if _pattern >= X11:
-		while _pattern & MASK8:
-			while not (aux & _pattern):
-				aux = aux >> 1
-			_pattern ^= (aux / X11) * GENPOL
-	return _pattern
+    aux = X18
+    
+    if _pattern >= X11:
+        while _pattern & MASK8:
+            while not (aux & _pattern):
+                aux = aux >> 1
+            _pattern = _pattern ^ ((aux / X11) * GENPOL)
+    return _pattern
 
 def decode_2087(_data):
-	code = (data[0] << 11) + (data[1] << 3) + (data[2] >> 5)
-	syndrome = get_synd_1987(code)
-	error_pattern = DECODING_TABLE_1987[syndrome]
-
-	if error_pattern != 0x00:
-		code ^= error_pattern
-
-	return code >> 11
+    bin_data = int(h(_data), 16)
+    syndrome = get_synd_1987(bin_data)
+    error_pattern = DECODE_1987[syndrome]
+    if error_pattern != 0x00:
+        bin_data = bin_data ^ error_pattern
+	return bin_data >> 11
 
 def encode_2087(_data):
-    value = data[0]
-    cksum = ENCODE_2087[value]
-    data[1] = cksum & 0xFF
-    data[2] = cksum >> 8
-    return _data
+    byte = ord(_data)
+    cksum = ENCODE_2087[byte]
+    return (cksum & 0xff, cksum >> 8)
 
 
 #------------------------------------------------------------------------------
@@ -244,7 +247,8 @@ if __name__ == '__main__':
     def print_hex(_list):
         print('[{}]'.format(', '.join(hex(x) for x in _list)))
     
-    print(len(ENCODE_2087), len(DECODE_1987))
-    data = [0x12,0x23,0x45]
+    to_encode = '\x72'
+    to_decode = '\x03\xd0\xd6'
     
-    print_hex(encode_2087(data))
+    print((encode_2087(to_encode)))
+    print(decode_2087(to_decode))
