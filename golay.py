@@ -226,12 +226,12 @@ def decode_2087(_data):
     error_pattern = DECODE_1987[syndrome]
     if error_pattern != 0x00:
         bin_data = bin_data ^ error_pattern
-	return bin_data >> 11
+    return bin_data >> 12
 
 def encode_2087(_data):
     byte = ord(_data)
     cksum = ENCODE_2087[byte]
-    return (cksum & 0xff, cksum >> 8)
+    return ( byte << 12 | (cksum & 0xFF) << 4 | cksum >> 12)
 
 
 #------------------------------------------------------------------------------
@@ -247,8 +247,10 @@ if __name__ == '__main__':
     def print_hex(_list):
         print('[{}]'.format(', '.join(hex(x) for x in _list)))
     
-    to_encode = '\x72'
-    to_decode = '\x03\xd0\xd6'
+    to_decode = '\x01\x2a\x59'
+    to_encode = '\x12'
+
+    print(hex(decode_2087(to_decode)))
     
-    print((encode_2087(to_encode)))
-    print(decode_2087(to_decode))
+    encoded = encode_2087(to_encode)
+    print(hex(encoded))
