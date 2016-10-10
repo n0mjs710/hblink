@@ -43,19 +43,15 @@ INDEX_181 = (
 
 # Converts a DMR frame using 98-68-98 (info-sync/EMB-info) into 196 bit array
 # Applies interleave indecies de-interleave 196 bit array
-def deinterleave_19696(_data):
-    _bits = bitarray(endian='big')
-    _bits.frombytes(_data)
-    for i in xrange(68):
-        _bits.pop(98)
+def deinterleave(_data):
     deint = bitarray(196, endian='big')
     for index in xrange(196):
-        deint[index] = _bits[INDEX_181[index]]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
+        deint[index] = _data[INDEX_181[index]]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
     return deint
 
 # Applies BTPC error detection/correction routines
 # This routine, in practice, will not be used in HBlink or DMRlink - it's only usefull for OTA direct data
-def error_check_19696(_data):
+def error_check(_data):
     count = 0
     column = bitarray(13, endian='big')
     
@@ -85,18 +81,12 @@ def error_check_19696(_data):
         count += 1
         if not errors or count > 4: break
     return (errors)
-    
-# Returns useable LC data - 9 bytes info + 3 bytes RS(12,9) ECC
-def to_bytes_19696(_data):
-    databits = _data[4:12]+_data[16:27]+_data[31:42]+_data[46:57]+_data[61:72]+_data[76:87]+_data[91:102]+_data[106:117]+_data[121:132]
-    return databits.tobytes()
-
 
 #------------------------------------------------------------------------------
 # BPTC(196,96) Encoding Routings
 #------------------------------------------------------------------------------
 
-def interleave_19696(_data):
+def interleave(_data):
     inter = bitarray(196, endian='big')
     for index in xrange(196):
         inter[INDEX_181[index]] = _data[index]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
@@ -104,7 +94,7 @@ def interleave_19696(_data):
 
 # Accepts 12 byte LC header + RS1293, converts to binary and pads for 196 bit
 # encode hamming 15113 to rows and 1393 to columns
-def enc_bptc_19696(_data):
+def encode(_data):
     # Create a bitarray from the 4 bytes of LC data (includes RS1293 ECC)
     _bdata = bitarray(endian='big')
     _bdata.frombytes(_data)
@@ -141,8 +131,8 @@ def enc_bptc_19696(_data):
             cpar += 15
 
     return _bdata
-    
-    
+
+
 #------------------------------------------------------------------------------
 # Used to execute the module directly to run built-in tests
 #------------------------------------------------------------------------------
@@ -151,13 +141,21 @@ if __name__ == '__main__':
     
     from binascii import b2a_hex as h
     from time import time
-
+    
+    def to_bytes(_bits):
+        #add_bits = 8 - (len(_bits) % 8)
+        #if add_bits < 8:
+        #    for bit in xrange(add_bits):
+        #        _bits.insert(0,0)
+        _string =  _bits.tobytes()
+        return _string
+        
     # Validation Example
     
     orig_data = '\x00\x10\x20\x00\x0c\x30\x2f\x9b\xe5\xda\xd4\x5a'
     t0 = time()
-    enc_data = enc_bptc_19696(orig_data)
-    inter_data = interleave_19696(enc_data)
+    enc_data = encode(orig_data)
+    inter_data = interleave(enc_data)
     t1 = time()
     encode_time = t1-t0
     
@@ -166,10 +164,14 @@ if __name__ == '__main__':
     # Bad Data
     #dec_data = '\x2b\x60\xff\xff\xff\x85\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
     
+    dec_bits = bitarray(endian='big')
+    dec_bits.frombytes(dec_data)
+    dec_bits = dec_bits[0:98] + dec_bits[166:264]
+    
     t0 = time()
-    deint_data = deinterleave_19696(dec_data)
-    err_corrected = error_check_19696(deint_data) # This corrects deint_data in place -- it does not return a new array!!!
-    ext_data = to_bytes_19696(deint_data)
+    deint_data = deinterleave(dec_bits)
+    err_corrected = error_check(deint_data) # This corrects deint_data in place -- it does not return a new array!!!
+    ext_data = to_bytes(deint_data)
     t1 = time()
     decode_time = t1-t0
     

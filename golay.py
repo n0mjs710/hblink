@@ -244,6 +244,7 @@ if __name__ == '__main__':
     def print_hex(_list):
         print('[{}]'.format(', '.join(hex(x) for x in _list)))
     
+    print(len(ENCODE_2087), len(DECODE_1987))
     data = [0x12,0x23,0x45]
     
     print_hex(encode_2087(data))
