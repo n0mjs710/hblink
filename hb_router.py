@@ -22,6 +22,7 @@ from twisted.internet import task
 
 # Things we import from the main hblink module
 from hblink import CONFIG, HBMASTER, HBCLIENT, logger, systems, hex_str_3, int_id
+import dmr_decon
 
 # Import Bridging rules
 # Note: A stanza *must* exist for any MASTER or CLIENT configured in the main
@@ -71,6 +72,12 @@ class routerMASTER(HBMASTER):
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         _bits = int_id(_data[15])
         if _call_type == 'group':
+            
+            if _frame_type == 'data_sync' and (_dtype_vseq == 1 or _dtype_vseq == 2):
+                print(dmr_decon.voice_head_term(_data[20:53]))
+            elif _frame_type == 'voice' or _frame_type == 'voice_sync':
+                print(dmr_decon.voice_burst(_data[20:53]))
+            
             _routed = False
             for rule in RULES[self._master]['GROUP_VOICE']:
                 _target = rule['DST_NET']
