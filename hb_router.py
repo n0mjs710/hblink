@@ -11,6 +11,7 @@ from __future__ import print_function
 # Python modules we need
 import sys
 from binascii import b2a_hex as h
+from bitarray import bitarray
 
 # Debugging functions
 from pprint import pprint
@@ -22,7 +23,7 @@ from twisted.internet import task
 
 # Things we import from the main hblink module
 from hblink import CONFIG, HBMASTER, HBCLIENT, logger, systems, hex_str_3, int_id
-import dmr_decon
+import dmr_decon, crc
 
 # Import Bridging rules
 # Note: A stanza *must* exist for any MASTER or CLIENT configured in the main
@@ -68,15 +69,28 @@ __status__     = 'pre-alpha'
 
 
 class routerMASTER(HBMASTER):
+    
+    def __init__(self, *args, **kwargs):
+        HBMASTER.__init__(self, *args, **kwargs)
+        self.lc_fragments = {'B': '', 'C': '', 'D': '', 'E': '', 'F': ''}
 
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         _bits = int_id(_data[15])
         if _call_type == 'group':
             
-            if _frame_type == 'data_sync' and (_dtype_vseq == 1 or _dtype_vseq == 2):
-                print(dmr_decon.voice_head_term(_data[20:53]))
-            elif _frame_type == 'voice' or _frame_type == 'voice_sync':
-                print(dmr_decon.voice_burst(_data[20:53]))
+            if _frame_type == 'data_sync':
+                lc = dmr_decon.voice_head_term(_data[20:53])[0]
+                print(h(lc))
+                if _dtype_vseq == 1:
+                    lc_bits = bitarray()
+                    lc_bits.frombytes(lc)
+                    embedded_lc = lc_bits + crc.csum5(lc)
+                    print('SHIT IS TEH SHIT:', lc_bits)
+                    print('THIS IS THE SHIT:', embedded_lc)
+            elif _frame_type == 'voice_sync':
+                print(dmr_decon.voice_sync(_data[20:53]))
+            elif _frame_type == 'voice':
+                print(dmr_decon.voice(_data[20:53]))
             
             _routed = False
             for rule in RULES[self._master]['GROUP_VOICE']:
@@ -97,6 +111,10 @@ class routerMASTER(HBMASTER):
                 logger.debug('(%s) Packet router no target TS/TGID %s/%s', self._master, _slot, int_id(_dst_id))
 
 class routerCLIENT(HBCLIENT):
+    
+    def __init__(self, *args, **kwargs):
+        HBCLIENT.__init__(self, *args, **kwargs)
+        self.lc_fragments = {'B': '', 'C': '', 'D': '', 'E': '', 'F': ''}
     
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         _bits = int_id(_data[15])

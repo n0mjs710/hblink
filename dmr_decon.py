@@ -39,38 +39,33 @@ def voice_head_term(_string):
     info = burst[0:98] + burst[166:264]
     de_int_info = bptc19696.deinterleave(info)    
     slot_type = burst[98:108] + burst[156:166]
-    sync = burst[108:156]
-    if sync == const.BS_DATA_SYNC:
-        sync = True
-    else:
-        sync = False
     lc = to_bytes(lc_data_9(de_int_info))
     cc = to_bytes(slot_type[0:4])
     dtype = to_bytes(slot_type[4:8])
-    return (lc, cc, dtype, sync)
+    return (lc, cc, dtype)
 
 
-def voice_burst(_string):
+def voice_sync(_string):
     burst = to_bits(_string)
     ambe = [0,0,0]
     ambe[0] = burst[0:72]
     ambe[1] = burst[72:108] + burst[156:192]
     ambe[2] = burst[192:264]
-    sync = burst [108:156]
-    if sync == const.BS_VOICE_SYNC:
-        cc = bitarray('00')
-        lcss = bitarray('00')
-        sync = True
-    else:
-        emb = burst[108:116] + burst[148:156]
-        embeded = burst[116:148]
-        cc = (emb[0:4])
-        # pi = (emb[4:5])
-        lcss = (emb[5:7])
-        sync = False
-    if not sync and lcss == const.LCSS_FIRST_FRAG or  lcss == const.LCSS_CONT_FRAG or lcss == const.LCSS_LAST_FRAG:
-        pass
-    return (ambe, cc, lcss, sync)
+    return (ambe)
+    
+    
+def voice(_string):
+    burst = to_bits(_string)
+    ambe = [0,0,0]
+    ambe[0] = burst[0:72]
+    ambe[1] = burst[72:108] + burst[156:192]
+    ambe[2] = burst[192:264]
+    emb = burst[108:116] + burst[148:156]
+    embeded = burst[116:148]
+    cc = (emb[0:4])
+    # pi = (emb[4:5])
+    lcss = (emb[5:7])
+    return (ambe, cc, lcss, embeded)
 
 
 def to_bytes(_bits):
@@ -107,47 +102,47 @@ if __name__ == '__main__':
     t0 = time()
     lc = voice_head_term(data_head)
     t1 = time()
-    print(h(lc[0]), h(lc[1]), h(lc[2]), lc[3])
+    print(h(lc[0]), h(lc[1]), h(lc[2]))
     print(t1-t0, '\n')
     
     print('Voice Burst A Validation:')
     t0 = time()
-    lc = voice_burst(voice_a)
+    lc = voice_sync(voice_a)
     t1 = time()
-    print(lc[0], h(lc[1]), h(lc[2]), lc[3])
+    print(lc[0])
     print(t1-t0, '\n')
     
     print('Voice Burst B Validation:')
     t0 = time()
-    lc = voice_burst(voice_b)
+    lc = voice(voice_b)
     t1 = time()
     print(lc[0], h(lc[1]), h(lc[2]), lc[3])
     print(t1-t0, '\n')
     
     print('Voice Burst C Validation:')
     t0 = time()
-    lc = voice_burst(voice_c)
+    lc = voice(voice_c)
     t1 = time()
     print(lc[0], h(lc[1]), h(lc[2]), lc[3])
     print(t1-t0, '\n')
     
     print('Voice Burst D Validation:')
     t0 = time()
-    lc = voice_burst(voice_d)
+    lc = voice(voice_d)
     t1 = time()
     print(lc[0], h(lc[1]), h(lc[2]), lc[3])
     print(t1-t0, '\n')
     
     print('Voice Burst E Validation:')
     t0 = time()
-    lc = voice_burst(voice_e)
+    lc = voice(voice_e)
     t1 = time()
     print(lc[0], h(lc[1]), h(lc[2]), lc[3])
     print(t1-t0, '\n')
     
     print('Voice Burst F Validation:')
     t0 = time()
-    lc = voice_burst(voice_f)
+    lc = voice(voice_f)
     t1 = time()
     print(lc[0], h(lc[1]), h(lc[2]), lc[3])
     print(t1-t0, '\n')
@@ -156,5 +151,5 @@ if __name__ == '__main__':
     t0 = time()
     lc = voice_head_term(voice_term)
     t1 = time()
-    print(h(lc[0]), h(lc[1]), h(lc[2]), lc[3])
+    print(h(lc[0]), h(lc[1]), h(lc[2]))
     print(t1-t0)
