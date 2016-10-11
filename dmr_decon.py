@@ -10,7 +10,7 @@ from __future__ import print_function
 
 from bitarray import bitarray
 import bptc19696
-import constants
+import constants as const
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -40,7 +40,7 @@ def voice_head_term(_string):
     de_int_info = bptc19696.deinterleave(info)    
     slot_type = burst[98:108] + burst[156:166]
     sync = burst[108:156]
-    if sync.tobytes() == constants.BS_DATA_SYNC:
+    if sync == const.BS_DATA_SYNC:
         sync = True
     else:
         sync = False
@@ -57,27 +57,20 @@ def voice_burst(_string):
     ambe[1] = burst[72:108] + burst[156:192]
     ambe[2] = burst[192:264]
     sync = burst [108:156]
-    if sync.tobytes() == constants.BS_VOICE_SYNC:
-        cc = '\x00'
-        lcss = '\x00'
+    if sync == const.BS_VOICE_SYNC:
+        cc = bitarray('00')
+        lcss = bitarray('00')
         sync = True
     else:
         emb = burst[108:116] + burst[148:156]
         embeded = burst[116:148]
-        cc = to_bytes(emb[0:4])
-        pi = to_bytes(emb[4:5])
-        lcss = to_bytes(emb[5:7])
+        cc = (emb[0:4])
+        # pi = (emb[4:5])
+        lcss = (emb[5:7])
         sync = False
+    if not sync and lcss == const.LCSS_FIRST_FRAG or  lcss == const.LCSS_CONT_FRAG or lcss == const.LCSS_LAST_FRAG:
+        pass
     return (ambe, cc, lcss, sync)
-
-
-def voice(_string):
-    burst = to_bits(_string)
-    voice = _burst[0:108] + _burst[156:264]
-    emb = burst[108:116] + _burst[148:156]
-    embedded = burst[116:148]
-    
-    return (voice, emb, embedded)
 
 
 def to_bytes(_bits):
