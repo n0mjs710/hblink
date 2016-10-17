@@ -43,7 +43,7 @@ INDEX_181 = (
 
 # Converts a DMR frame using 98-68-98 (info-sync/EMB-info) into 196 bit array
 # Applies interleave indecies de-interleave 196 bit array
-def deinterleave(_data):
+def deinterleave_19696(_data):
     deint = bitarray(196, endian='big')
     for index in xrange(196):
         deint[index] = _data[INDEX_181[index]]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
@@ -51,7 +51,7 @@ def deinterleave(_data):
 
 # Applies BTPC error detection/correction routines
 # This routine, in practice, will not be used in HBlink or DMRlink - it's only usefull for OTA direct data
-def error_check(_data):
+def error_check_19696(_data):
     count = 0
     column = bitarray(13, endian='big')
     
@@ -86,7 +86,7 @@ def error_check(_data):
 # BPTC(196,96) Encoding Routings
 #------------------------------------------------------------------------------
 
-def interleave(_data):
+def interleave_19696(_data):
     inter = bitarray(196, endian='big')
     for index in xrange(196):
         inter[INDEX_181[index]] = _data[index]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
@@ -94,7 +94,7 @@ def interleave(_data):
 
 # Accepts 12 byte LC header + RS1293, converts to binary and pads for 196 bit
 # encode hamming 15113 to rows and 1393 to columns
-def encode(_data):
+def encode_19696(_data):
     # Create a bitarray from the 4 bytes of LC data (includes RS1293 ECC)
     _bdata = bitarray(endian='big')
     _bdata.frombytes(_data)
@@ -137,6 +137,16 @@ def encode(_data):
 # Used to execute the module directly to run built-in tests
 #------------------------------------------------------------------------------
 
+
+#------------------------------------------------------------------------------
+# BPTC Embedded LC Decoding Routines
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+# BPTC Embedded LC Encoding Routines
+#------------------------------------------------------------------------------
+
 if __name__ == '__main__':
     
     from binascii import b2a_hex as h
@@ -154,8 +164,8 @@ if __name__ == '__main__':
     
     orig_data = '\x00\x10\x20\x00\x0c\x30\x2f\x9b\xe5\xda\xd4\x5a'
     t0 = time()
-    enc_data = encode(orig_data)
-    inter_data = interleave(enc_data)
+    enc_data = encode_19696(orig_data)
+    inter_data = interleave_19696(enc_data)
     t1 = time()
     encode_time = t1-t0
     
@@ -169,8 +179,8 @@ if __name__ == '__main__':
     dec_bits = dec_bits[0:98] + dec_bits[166:264]
     
     t0 = time()
-    deint_data = deinterleave(dec_bits)
-    err_corrected = error_check(deint_data) # This corrects deint_data in place -- it does not return a new array!!!
+    deint_data = deinterleave_19696(dec_bits)
+    err_corrected = error_check_19696(deint_data) # This corrects deint_data in place -- it does not return a new array!!!
     ext_data = to_bytes(deint_data)
     t1 = time()
     decode_time = t1-t0
