@@ -163,12 +163,8 @@ def encode_emblc(_lc, _csum5):
         for hindex,hbit in zip(xrange(index+11,index+16), hamming.enc_16114(_binlc[index:index+11])):
             _binlc.insert(hindex,hbit)
     
-    print(_binlc, len(_binlc))
-    
     for index in xrange(0,16):
         _binlc.insert(index+112, _binlc[index+0] ^ _binlc[index+16] ^ _binlc[index+32] ^ _binlc[index+48] ^ _binlc[index+64] ^ _binlc[index+80] ^ _binlc[index+96])
-    
-    print(_binlc, len(_binlc))
     
     # TO DO NEXT:        
     # INTERLEAVE, RETURN A TUPLE OR LIBRARY OR EACH SEGMENT OF THE LC
