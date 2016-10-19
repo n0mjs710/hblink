@@ -152,7 +152,7 @@ def encode_emblc(_lc, _csum5):
     _binlc.frombytes(_lc)
     
     # Insert the checksum bits at the right location in the matrix (this is actually faster than with a for loop)
-    _binlc.insert(32, _csum5[0])
+    _binlc.insert(32,_csum5[0])
     _binlc.insert(43,_csum5[1])
     _binlc.insert(54,_csum5[2])
     _binlc.insert(65,_csum5[3])
