@@ -9,6 +9,7 @@
 from __future__ import print_function
 from bitarray import bitarray
 import hamming
+from time import time
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -134,11 +135,6 @@ def encode_19696(_data):
 
 
 #------------------------------------------------------------------------------
-# Used to execute the module directly to run built-in tests
-#------------------------------------------------------------------------------
-
-
-#------------------------------------------------------------------------------
 # BPTC Embedded LC Decoding Routines
 #------------------------------------------------------------------------------
 
@@ -147,10 +143,39 @@ def encode_19696(_data):
 # BPTC Embedded LC Encoding Routines
 #------------------------------------------------------------------------------
 
+
+# Accepts 12 byte LC header + 5-bit checksum, converts to binary and builts out the BPTC
+# encoded result with hamming(16,11,4) and parity.
+def encode_emblc(_lc, _csum5):
+    # Create a bitarray from the 4 bytes of LC data (includes 5-bit checksum).
+    _binlc = bitarray(endian='big')
+    _binlc.frombytes(_lc)
+    
+    # Insert the checksum bits at the right location in the matrix (this is actually faster than with a for loop)
+    _binlc.insert(32, _csum5[0])
+    _binlc.insert(43,_csum5[1])
+    _binlc.insert(54,_csum5[2])
+    _binlc.insert(65,_csum5[3])
+    _binlc.insert(76,_csum5[4])
+
+    # Insert the hamming bits at the right location in the matrix
+    for index in xrange(0,112,16):
+        for hindex,hbit in zip(xrange(index+11,index+16), hamming.enc_16114(_binlc[index:index+11])):
+            _binlc.insert(hindex,hbit)
+    
+    # TO DO NEXT:        
+    # ADD PARITY BIT CALUCATIONS AND INTERLEAVE, RETURN A TUPLE OR LIBRARY OR EACH SEGMENT OF THE LC
+    
+
+#------------------------------------------------------------------------------
+# Used to execute the module directly to run built-in tests
+#------------------------------------------------------------------------------
+
 if __name__ == '__main__':
     
     from binascii import b2a_hex as h
     from time import time
+    import crc
     
     def to_bytes(_bits):
         #add_bits = 8 - (len(_bits) % 8)
@@ -206,3 +231,8 @@ if __name__ == '__main__':
     print('enc:', enc_data)
     print('dec:', deint_data)
     print(enc_data == deint_data)
+    
+    orig_data = '\x00\x10\x20\x00\x0c\x30\x2f\x9b\xe5'
+    orig_csum = crc.csum5(orig_data)
+    emblc = encode_emblc(orig_data, orig_csum)
+    
