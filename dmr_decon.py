@@ -25,21 +25,12 @@ def to_bits(_string):
     _bits.frombytes(_string)
     return _bits
 
-# Returns useable LC data - 9 bytes info + 3 bytes RS(12,9) ECC
-def lc_data_12(_data):
-    return _data[4:12]+_data[16:27]+_data[31:42]+_data[46:57]+_data[61:72]+_data[76:87]+_data[91:102]+_data[106:117]+_data[121:132]
-    
-# Returns useable LC data - 9 bytes info, no ECC
-def lc_data_9(_data):
-    return _data[4:12]+_data[16:27]+_data[31:42]+_data[46:57]+_data[61:72]+_data[76:87]+_data[91:100]
-
 
 def voice_head_term(_string):
     burst = to_bits(_string)
     info = burst[0:98] + burst[166:264]
-    de_int_info = bptc.deinterleave_19696(info)    
     slot_type = burst[98:108] + burst[156:166]
-    lc = to_bytes(lc_data_9(de_int_info))
+    lc = bptc.decode_full_lc(info).tobytes()
     cc = to_bytes(slot_type[0:4])
     dtype = to_bytes(slot_type[4:8])
     return (lc, cc, dtype)
@@ -116,35 +107,35 @@ if __name__ == '__main__':
     t0 = time()
     lc = voice(voice_b)
     t1 = time()
-    print(lc[0], h(lc[1]), h(lc[2]), lc[3])
+    print(lc[0], h(lc[1]), h(lc[2]), h(lc[3].tobytes()))
     print(t1-t0, '\n')
     
     print('Voice Burst C Validation:')
     t0 = time()
     lc = voice(voice_c)
     t1 = time()
-    print(lc[0], h(lc[1]), h(lc[2]), lc[3])
+    print(lc[0], h(lc[1]), h(lc[2]), h(lc[3].tobytes()))
     print(t1-t0, '\n')
     
     print('Voice Burst D Validation:')
     t0 = time()
     lc = voice(voice_d)
     t1 = time()
-    print(lc[0], h(lc[1]), h(lc[2]), lc[3])
+    print(lc[0], h(lc[1]), h(lc[2]), h(lc[3].tobytes()))
     print(t1-t0, '\n')
     
     print('Voice Burst E Validation:')
     t0 = time()
     lc = voice(voice_e)
     t1 = time()
-    print(lc[0], h(lc[1]), h(lc[2]), lc[3])
+    print(lc[0], h(lc[1]), h(lc[2]), h(lc[3].tobytes()))
     print(t1-t0, '\n')
     
     print('Voice Burst F Validation:')
     t0 = time()
     lc = voice(voice_f)
     t1 = time()
-    print(lc[0], h(lc[1]), h(lc[2]), lc[3])
+    print(lc[0], h(lc[1]), h(lc[2]), h(lc[3].tobytes()))
     print(t1-t0, '\n')
     
     print('Terminator Validation:')
