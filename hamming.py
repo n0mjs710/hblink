@@ -117,6 +117,7 @@ def dec_1393(_data):
 
 # ENCODER - returns a bitarray object containing the hamming checksums
 def enc_16114(_data):
+    assert len(_data) == 11, 'Hamming Encoder 16,11,4: Data not 11 bits long'
     csum = bitarray(5)
     csum[0] = _data[0] ^ _data[1] ^ _data[2] ^ _data[3] ^ _data[5] ^ _data[7] ^ _data[8]
     csum[1] = _data[1] ^ _data[2] ^ _data[3] ^ _data[4] ^ _data[6] ^ _data[8] ^ _data[9]

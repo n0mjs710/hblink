@@ -9,7 +9,7 @@
 from __future__ import print_function
 
 from bitarray import bitarray
-import bptc19696
+import bptc
 import constants as const
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
@@ -37,7 +37,7 @@ def lc_data_9(_data):
 def voice_head_term(_string):
     burst = to_bits(_string)
     info = burst[0:98] + burst[166:264]
-    de_int_info = bptc19696.deinterleave(info)    
+    de_int_info = bptc.deinterleave_19696(info)    
     slot_type = burst[98:108] + burst[156:166]
     lc = to_bytes(lc_data_9(de_int_info))
     cc = to_bytes(slot_type[0:4])

@@ -22,12 +22,14 @@ def csum5(_data):
     _data = bytearray(_data)
     accum = 0
     assert len(_data) == 9, 'csum5 expected 9 bytes of data and got something else'
+    
     for i in xrange(9):
         accum += _data[i]
     accum = chr(accum % 31)
     csum = bitarray()
     csum.frombytes(accum)
     del csum[0:3]
+
     return csum
 
  

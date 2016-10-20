@@ -9,6 +9,7 @@
 from __future__ import print_function
 from bitarray import bitarray
 import hamming
+from time import time
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -43,7 +44,7 @@ INDEX_181 = (
 
 # Converts a DMR frame using 98-68-98 (info-sync/EMB-info) into 196 bit array
 # Applies interleave indecies de-interleave 196 bit array
-def deinterleave(_data):
+def deinterleave_19696(_data):
     deint = bitarray(196, endian='big')
     for index in xrange(196):
         deint[index] = _data[INDEX_181[index]]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
@@ -51,7 +52,7 @@ def deinterleave(_data):
 
 # Applies BTPC error detection/correction routines
 # This routine, in practice, will not be used in HBlink or DMRlink - it's only usefull for OTA direct data
-def error_check(_data):
+def error_check_19696(_data):
     count = 0
     column = bitarray(13, endian='big')
     
@@ -86,7 +87,7 @@ def error_check(_data):
 # BPTC(196,96) Encoding Routings
 #------------------------------------------------------------------------------
 
-def interleave(_data):
+def interleave_19696(_data):
     inter = bitarray(196, endian='big')
     for index in xrange(196):
         inter[INDEX_181[index]] = _data[index]  # the real math is slower: deint[index] = _data[(index * 181) % 196]
@@ -94,7 +95,7 @@ def interleave(_data):
 
 # Accepts 12 byte LC header + RS1293, converts to binary and pads for 196 bit
 # encode hamming 15113 to rows and 1393 to columns
-def encode(_data):
+def encode_19696(_data):
     # Create a bitarray from the 4 bytes of LC data (includes RS1293 ECC)
     _bdata = bitarray(endian='big')
     _bdata.frombytes(_data)
@@ -134,6 +135,42 @@ def encode(_data):
 
 
 #------------------------------------------------------------------------------
+# BPTC Embedded LC Decoding Routines
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+# BPTC Embedded LC Encoding Routines
+#------------------------------------------------------------------------------
+
+
+# Accepts 12 byte LC header + 5-bit checksum, converts to binary and builts out the BPTC
+# encoded result with hamming(16,11,4) and parity.
+def encode_emblc(_lc, _csum5):
+    # Create a bitarray from the 4 bytes of LC data (includes 5-bit checksum).
+    _binlc = bitarray(endian='big')
+    _binlc.frombytes(_lc)
+    
+    # Insert the checksum bits at the right location in the matrix (this is actually faster than with a for loop)
+    _binlc.insert(32,_csum5[0])
+    _binlc.insert(43,_csum5[1])
+    _binlc.insert(54,_csum5[2])
+    _binlc.insert(65,_csum5[3])
+    _binlc.insert(76,_csum5[4])
+
+    # Insert the hamming bits at the right location in the matrix
+    for index in xrange(0,112,16):
+        for hindex,hbit in zip(xrange(index+11,index+16), hamming.enc_16114(_binlc[index:index+11])):
+            _binlc.insert(hindex,hbit)
+    
+    for index in xrange(0,16):
+        _binlc.insert(index+112, _binlc[index+0] ^ _binlc[index+16] ^ _binlc[index+32] ^ _binlc[index+48] ^ _binlc[index+64] ^ _binlc[index+80] ^ _binlc[index+96])
+    
+    # TO DO NEXT:        
+    # INTERLEAVE, RETURN A TUPLE OR LIBRARY OR EACH SEGMENT OF THE LC
+    # EACH SEGMENT IS 4 COLUMNS, TOP TO BOTTOM, LEFT TO RIGHT (PAGE 124 ETSI)
+
+#------------------------------------------------------------------------------
 # Used to execute the module directly to run built-in tests
 #------------------------------------------------------------------------------
 
@@ -141,6 +178,7 @@ if __name__ == '__main__':
     
     from binascii import b2a_hex as h
     from time import time
+    import crc
     
     def to_bytes(_bits):
         #add_bits = 8 - (len(_bits) % 8)
@@ -154,8 +192,8 @@ if __name__ == '__main__':
     
     orig_data = '\x00\x10\x20\x00\x0c\x30\x2f\x9b\xe5\xda\xd4\x5a'
     t0 = time()
-    enc_data = encode(orig_data)
-    inter_data = interleave(enc_data)
+    enc_data = encode_19696(orig_data)
+    inter_data = interleave_19696(enc_data)
     t1 = time()
     encode_time = t1-t0
     
@@ -169,8 +207,8 @@ if __name__ == '__main__':
     dec_bits = dec_bits[0:98] + dec_bits[166:264]
     
     t0 = time()
-    deint_data = deinterleave(dec_bits)
-    err_corrected = error_check(deint_data) # This corrects deint_data in place -- it does not return a new array!!!
+    deint_data = deinterleave_19696(dec_bits)
+    err_corrected = error_check_19696(deint_data) # This corrects deint_data in place -- it does not return a new array!!!
     ext_data = to_bytes(deint_data)
     t1 = time()
     decode_time = t1-t0
@@ -196,3 +234,8 @@ if __name__ == '__main__':
     print('enc:', enc_data)
     print('dec:', deint_data)
     print(enc_data == deint_data)
+    
+    orig_data = '\x00\x10\x20\x00\x0c\x30\x2f\x9b\xe5'
+    orig_csum = crc.csum5(orig_data)
+    emblc = encode_emblc(orig_data, orig_csum)
+    
