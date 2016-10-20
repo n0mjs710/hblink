@@ -163,8 +163,18 @@ def encode_emblc(_lc, _csum5):
         for hindex,hbit in zip(xrange(index+11,index+16), hamming.enc_16114(_binlc[index:index+11])):
             _binlc.insert(hindex,hbit)
     
+    # Insert the column parity bits at the right location in the matrix
     for index in xrange(0,16):
         _binlc.insert(index+112, _binlc[index+0] ^ _binlc[index+16] ^ _binlc[index+32] ^ _binlc[index+48] ^ _binlc[index+64] ^ _binlc[index+80] ^ _binlc[index+96])
+    
+    t0 = time()
+    emblc_a = bitarray(endian='big')
+    emblc_a.extend([_binlc[0],_binlc[16],_binlc[32],_binlc[48],_binlc[64],_binlc[80],_binlc[96],_binlc[112]])
+    emblc_a.extend([_binlc[1],_binlc[17],_binlc[33],_binlc[49],_binlc[65],_binlc[81],_binlc[97],_binlc[113]])
+    emblc_a.extend([_binlc[2],_binlc[18],_binlc[34],_binlc[50],_binlc[66],_binlc[82],_binlc[98],_binlc[114]])
+    emblc_a.extend([_binlc[3],_binlc[19],_binlc[35],_binlc[51],_binlc[67],_binlc[83],_binlc[99],_binlc[115]])
+    t1 = time()
+    print(t1-t0)
     
     # TO DO NEXT:        
     # INTERLEAVE, RETURN A TUPLE OR LIBRARY OR EACH SEGMENT OF THE LC
