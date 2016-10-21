@@ -103,6 +103,9 @@ if __name__ == '__main__':
     lc = voice_sync(voice_a)
     t1 = time()
     print('VOICE SYNC: {}'.format(h(lc[1])))
+    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
+    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
+    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
     print(t1-t0, '\n')
     
     print('Voice Burst B:')
@@ -111,6 +114,9 @@ if __name__ == '__main__':
     embedded_lc += lc[3]
     t1 = time()
     print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
+    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
+    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
+    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
     print(t1-t0, '\n')
     
     print('Voice Burst C:')
@@ -119,6 +125,9 @@ if __name__ == '__main__':
     embedded_lc += lc[3]
     t1 = time()
     print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
+    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
+    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
+    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
     print(t1-t0, '\n')
     
     print('Voice Burst D:')
@@ -127,6 +136,9 @@ if __name__ == '__main__':
     embedded_lc += lc[3]
     t1 = time()
     print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
+    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
+    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
+    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
     print(t1-t0, '\n')
     
     print('Voice Burst E:')
@@ -137,6 +149,9 @@ if __name__ == '__main__':
     t1 = time()
     print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
     print('COMPLETE EMBEDDED LC: {}'.format(h(embedded_lc)))
+    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
+    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
+    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
     print(t1-t0, '\n')
     
     print('Voice Burst F:')
@@ -144,6 +159,9 @@ if __name__ == '__main__':
     lc = voice(voice_f)
     t1 = time()
     print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
+    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
+    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
+    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
     print(t1-t0, '\n')
     
     print('Terminator:')
