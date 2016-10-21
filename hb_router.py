@@ -72,7 +72,8 @@ class routerMASTER(HBMASTER):
     
     def __init__(self, *args, **kwargs):
         HBMASTER.__init__(self, *args, **kwargs)
-        self.lc_fragments = {'B': '', 'C': '', 'D': '', 'E': '', 'F': ''}
+        self.embeddec_lc_rx = {'B': '', 'C': '', 'D': '', 'E': '', 'F': ''}
+        self.embeddec_lc_tx = {'B': '', 'C': '', 'D': '', 'E': '', 'F': ''}
 
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         _bits = int_id(_data[15])
@@ -114,7 +115,8 @@ class routerCLIENT(HBCLIENT):
     
     def __init__(self, *args, **kwargs):
         HBCLIENT.__init__(self, *args, **kwargs)
-        self.lc_fragments = {'B': '', 'C': '', 'D': '', 'E': '', 'F': ''}
+        self.embeddec_lc_rx = {'B': '', 'C': '', 'D': '', 'E': '', 'F': ''}
+        self.embeddec_lc_tx = {'B': '', 'C': '', 'D': '', 'E': '', 'F': ''}
     
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         _bits = int_id(_data[15])

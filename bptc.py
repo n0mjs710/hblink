@@ -120,16 +120,16 @@ def encode_terminator_lc(_lc):
 # BPTC Embedded LC Decoding Routines
 #------------------------------------------------------------------------------
 
-def decode_emblc(_elc_b, _elc_c, _elc_d, _elc_e):
+def decode_emblc(_elc):
     
     _binlc = bitarray(endian='big')
-    _binlc.extend([_elc_b[0],_elc_b[8], _elc_b[16],_elc_b[24],_elc_c[0],_elc_c[8], _elc_c[16],_elc_c[24],_elc_d[0],_elc_d[8] ,_elc_d[16]])
-    _binlc.extend([_elc_b[1],_elc_b[9], _elc_b[17],_elc_b[25],_elc_c[1],_elc_c[9], _elc_c[17],_elc_c[25],_elc_d[1],_elc_d[9] ,_elc_d[17]])
-    _binlc.extend([_elc_b[2],_elc_b[10],_elc_b[18],_elc_b[26],_elc_c[2],_elc_c[10],_elc_c[18],_elc_c[26],_elc_d[2],_elc_d[10]])
-    _binlc.extend([_elc_b[3],_elc_b[11],_elc_b[19],_elc_b[27],_elc_c[3],_elc_c[11],_elc_c[19],_elc_c[27],_elc_d[3],_elc_d[11]])
-    _binlc.extend([_elc_b[4],_elc_b[12],_elc_b[20],_elc_b[28],_elc_c[4],_elc_c[12],_elc_c[20],_elc_c[28],_elc_d[4],_elc_d[12]])
-    _binlc.extend([_elc_b[5],_elc_b[13],_elc_b[21],_elc_b[29],_elc_c[5],_elc_c[13],_elc_c[21],_elc_c[29],_elc_d[5],_elc_d[13]])
-    _binlc.extend([_elc_b[6],_elc_b[14],_elc_b[22],_elc_b[30],_elc_c[6],_elc_c[14],_elc_c[22],_elc_c[30],_elc_d[6],_elc_d[14]])
+    _binlc.extend([_elc[0],_elc[8], _elc[16],_elc[24],_elc[32],_elc[40],_elc[48],_elc[56],_elc[64],_elc[72] ,_elc[80]])
+    _binlc.extend([_elc[1],_elc[9], _elc[17],_elc[25],_elc[33],_elc[41],_elc[49],_elc[57],_elc[65],_elc[73] ,_elc[81]])
+    _binlc.extend([_elc[2],_elc[10],_elc[18],_elc[26],_elc[34],_elc[42],_elc[50],_elc[58],_elc[66],_elc[74]])
+    _binlc.extend([_elc[3],_elc[11],_elc[19],_elc[27],_elc[35],_elc[43],_elc[51],_elc[59],_elc[67],_elc[75]])
+    _binlc.extend([_elc[4],_elc[12],_elc[20],_elc[28],_elc[36],_elc[44],_elc[52],_elc[60],_elc[68],_elc[76]])
+    _binlc.extend([_elc[5],_elc[13],_elc[21],_elc[29],_elc[37],_elc[45],_elc[53],_elc[61],_elc[69],_elc[77]])
+    _binlc.extend([_elc[6],_elc[14],_elc[22],_elc[30],_elc[38],_elc[46],_elc[54],_elc[62],_elc[70],_elc[78]])
     
     return(_binlc.tobytes())
 
@@ -202,6 +202,10 @@ if __name__ == '__main__':
         
     # Validation Example
     
+    voice_h = '\x2b\x60\x04\x10\x1f\x84\x2d\xd0\x0d\xf0\x7d\x41\x04\x6d\xff\x57\xd7\x5d\xf5\xde\x30\x15\x2e\x20\x70\xb2\x0f\x80\x3f\x88\xc6\x95\xe2'
+    voice_hb = bitarray(endian='big')
+    voice_hb.frombytes(voice_h)
+    voice_hb = voice_hb[0:98] + voice_hb[166:264]
     
     # Header LC -- Terminator similar
     lc = '\x00\x10\x20\x00\x0c\x30\x2f\x9b\xe5'   # \xda\xd4\x5a
@@ -213,16 +217,17 @@ if __name__ == '__main__':
     t0 = time()
     full_lc_dec = decode_full_lc(full_lc_encode)
     t1 = time()
-    lc_decode_time = t1-t0
+    decode_time = t1-t0
     
     print('VALIDATION ROUTINES:')
-    print('Original Data: {}, {} bytes'.format(h(lc), len(lc)))
+    print('Orig Data:     {}, {} bytes'.format(h(lc), len(lc)))
+    print('Orig Encoded:  {}, {} bytes'.format(h(voice_hb), len(voice_hb.tobytes())))
     print()
     print('BPTC(196,96):')
     print('Encoded data:  {}, {} bytes'.format(h(full_lc_encode.tobytes()), len(full_lc_encode.tobytes())))
     print('Encoding time: {} seconds'.format(encode_time))
-    print('Fast Decode: {}'.format(h(full_lc_dec)))
-    print('Fast Decode Time: {} seconds'.format(lc_decode_time))
+    print('Decoded data:  {}'.format(h(full_lc_dec)))
+    print('Decode Time:   {} seconds'.format(decode_time))
 
     # Embedded LC
     t0 = time()
@@ -231,15 +236,12 @@ if __name__ == '__main__':
     encode_time = t1 -t0
     
     t0 = time()
-    decemblc = decode_emblc(emblc[0], emblc[1], emblc[2], emblc[3])
+    decemblc = decode_emblc(emblc[0] + emblc[1] + emblc[2] + emblc[3])
     t1 = time()
     decode_time = t1 -t0
     
     print('\nEMBEDDED LC:')
-    print('Encoded Embedded LC: Burst B:{}, Burst C:{}, Burst D:{}, Burst E:{}'.format(h(emblc[0].tobytes()), h(emblc[1].tobytes()), h(emblc[2].tobytes()), h(emblc[3].tobytes())))
-    print('Endoder Time:', encode_time)
-    print('Decoded Embedded LC:', h(decemblc))
-    print('Decoder Time:', decode_time)
-    
-    
-    
+    print('Encoded Data:  Burst B:{} Burst C:{} Burst D:{} Burst E:{}'.format(h(emblc[0].tobytes()), h(emblc[1].tobytes()), h(emblc[2].tobytes()), h(emblc[3].tobytes())))
+    print('Endoding Time: {}'.format(encode_time))
+    print('Decoded data:  {}'.format(h(decemblc)))
+    print('Decoding Time: {}'.format(decode_time))    

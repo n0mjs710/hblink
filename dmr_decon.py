@@ -10,7 +10,7 @@ from __future__ import print_function
 
 from bitarray import bitarray
 import bptc
-import constants as const
+#import constants as const
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -42,7 +42,8 @@ def voice_sync(_string):
     ambe[0] = burst[0:72]
     ambe[1] = burst[72:108] + burst[156:192]
     ambe[2] = burst[192:264]
-    return (ambe)
+    sync = burst[108:156]
+    return (ambe, sync)
     
     
 def voice(_string):
@@ -52,11 +53,10 @@ def voice(_string):
     ambe[1] = burst[72:108] + burst[156:192]
     ambe[2] = burst[192:264]
     emb = burst[108:116] + burst[148:156]
-    embeded = burst[116:148]
-    cc = (emb[0:4])
-    # pi = (emb[4:5])
-    lcss = (emb[5:7])
-    return (ambe, cc, lcss, embeded)
+    embedded = burst[116:148]
+    cc = (to_bytes(emb[0:4]))
+    lcss = (to_bytes(emb[5:7]))
+    return (ambe, cc, lcss, embedded)
 
 
 def to_bytes(_bits):
@@ -88,59 +88,67 @@ if __name__ == '__main__':
     voice_f    = '\xee\xe7\x81\x75\x74\x61\x4d\xf2\xff\xcc\xf4\xa0\x55\x11\x10\x00\x00\x00\x0e\x24\x30\x59\xe7\xf9\xe9\x08\xa0\x75\x62\x02\xcc\xd6\x22'
     voice_term = '\x2b\x0f\x04\xc4\x1f\x34\x2d\xa8\x0d\x80\x7d\xe1\x04\xad\xff\x57\xd7\x5d\xf5\xd9\x65\x01\x2d\x18\x77\xd2\x03\xc0\x37\x88\xdf\x95\xd1'
     
+    embedded_lc = bitarray()
     
-    print('Header Validation:')
+    print('DMR PACKET DECODER VALIDATION\n')
+    print('Header:')
     t0 = time()
     lc = voice_head_term(data_head)
     t1 = time()
-    print(h(lc[0]), h(lc[1]), h(lc[2]))
-    print(t1-t0, '\n')
+    print('LC: OPT-{} SRC-{} DST-{}, SLOT TYPE: CC-{} DTYPE-{}'.format(h(lc[0][0:3]),h(lc[0][3:6]),h(lc[0][6:9]),h(lc[1]),h(lc[2])))
+    print('Decode Time: {}\n'.format(t1-t0))
     
-    print('Voice Burst A Validation:')
+    print('Voice Burst A:')
     t0 = time()
     lc = voice_sync(voice_a)
     t1 = time()
-    print(lc[0])
+    print('VOICE SYNC: {}'.format(h(lc[1])))
     print(t1-t0, '\n')
     
-    print('Voice Burst B Validation:')
+    print('Voice Burst B:')
     t0 = time()
     lc = voice(voice_b)
+    embedded_lc += lc[3]
     t1 = time()
-    print(lc[0], h(lc[1]), h(lc[2]), h(lc[3].tobytes()))
+    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
     print(t1-t0, '\n')
     
-    print('Voice Burst C Validation:')
+    print('Voice Burst C:')
     t0 = time()
     lc = voice(voice_c)
+    embedded_lc += lc[3]
     t1 = time()
-    print(lc[0], h(lc[1]), h(lc[2]), h(lc[3].tobytes()))
+    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
     print(t1-t0, '\n')
     
-    print('Voice Burst D Validation:')
+    print('Voice Burst D:')
     t0 = time()
     lc = voice(voice_d)
+    embedded_lc += lc[3]
     t1 = time()
-    print(lc[0], h(lc[1]), h(lc[2]), h(lc[3].tobytes()))
+    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
     print(t1-t0, '\n')
     
-    print('Voice Burst E Validation:')
+    print('Voice Burst E:')
     t0 = time()
     lc = voice(voice_e)
+    embedded_lc += lc[3]
+    embedded_lc = bptc.decode_emblc(embedded_lc)
     t1 = time()
-    print(lc[0], h(lc[1]), h(lc[2]), h(lc[3].tobytes()))
+    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
+    print('COMPLETE EMBEDDED LC: {}'.format(h(embedded_lc)))
     print(t1-t0, '\n')
     
-    print('Voice Burst F Validation:')
+    print('Voice Burst F:')
     t0 = time()
     lc = voice(voice_f)
     t1 = time()
-    print(lc[0], h(lc[1]), h(lc[2]), h(lc[3].tobytes()))
+    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
     print(t1-t0, '\n')
     
-    print('Terminator Validation:')
+    print('Terminator:')
     t0 = time()
     lc = voice_head_term(voice_term)
     t1 = time()
-    print(h(lc[0]), h(lc[1]), h(lc[2]))
-    print(t1-t0)
+    print('LC: OPT-{} SRC-{} DST-{} SLOT TYPE: CC-{} DTYPE-{}'.format(h(lc[0][0:3]),h(lc[0][3:6]),h(lc[0][6:9]),h(lc[1]),h(lc[2])))
+    print('Decode Time: {}\n'.format(t1-t0))
