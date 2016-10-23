@@ -30,10 +30,11 @@ def voice_head_term(_string):
     burst = to_bits(_string)
     info = burst[0:98] + burst[166:264]
     slot_type = burst[98:108] + burst[156:166]
+    sync = burst[108:156]
     lc = bptc.decode_full_lc(info).tobytes()
     cc = to_bytes(slot_type[0:4])
     dtype = to_bytes(slot_type[4:8])
-    return (lc, cc, dtype)
+    return (lc, cc, dtype, sync)
 
 
 def voice_sync(_string):

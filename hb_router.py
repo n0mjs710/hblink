@@ -23,7 +23,7 @@ from twisted.internet import task
 
 # Things we import from the main hblink module
 from hblink import CONFIG, HBMASTER, HBCLIENT, logger, systems, hex_str_3, int_id
-import dmr_decon, crc
+import dec_dmr
 
 # Import Bridging rules
 # Note: A stanza *must* exist for any MASTER or CLIENT configured in the main
@@ -72,26 +72,42 @@ class routerMASTER(HBMASTER):
     
     def __init__(self, *args, **kwargs):
         HBMASTER.__init__(self, *args, **kwargs)
-        self.embeddec_lc_rx = {'B': '', 'C': '', 'D': '', 'E': '', 'F': ''}
-        self.embeddec_lc_tx = {'B': '', 'C': '', 'D': '', 'E': '', 'F': ''}
+        self._last_stream_id
+        self.embedded_lc_rx = [0,0,0,0]
+        self.embedded_lc_tx = [0,0,0,0]
+        self.embedded_lc = ''
+        self.lc_index = 0
 
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         _bits = int_id(_data[15])
         if _call_type == 'group':
             
             if _frame_type == 'data_sync':
-                lc = dmr_decon.voice_head_term(_data[20:53])[0]
-                print(h(lc))
-                if _dtype_vseq == 1:
-                    lc_bits = bitarray()
-                    lc_bits.frombytes(lc)
-                    embedded_lc = lc_bits + crc.csum5(lc)
-                    print('SHIT IS TEH SHIT:', lc_bits)
-                    print('THIS IS THE SHIT:', embedded_lc)
-            elif _frame_type == 'voice_sync':
-                print(dmr_decon.voice_sync(_data[20:53]))
-            elif _frame_type == 'voice':
-                print(dmr_decon.voice(_data[20:53]))
+                lc = dec_dmr.voice_head_term(_data[20:53])
+                if lc[2] == '\x01':
+                    print('Voice Header:     LC: {}, CC: {}, DTYPE: {}, SYNC: {}'.format(h(lc[0]), h(lc[1]), h(lc[2]), h(lc[3])))
+                if lc[2] == '\x02':
+                    print('Voice Terminator: LC: {}, CC: {}, DTYPE: {}, SYNC: {}'.format(h(lc[0]), h(lc[1]), h(lc[2]), h(lc[3])))
+                
+            if _frame_type == 'voice_sync':
+                lc = dec_dmr.voice_sync(_data[20:53])
+                print('Voice Burst A:      SYNC: {}'.format(h(lc[1])))
+                
+            if _frame_type == 'voice':
+                lc = dec_dmr.voice(_data[20:53])
+                if lc[2] == '\x01':
+                    self.lc_index = 0
+                    self.embedded_lc_rx[self.lc_index] = lc[3]
+                elif lc[2] == '\x03':
+                    self.lc_index += 1
+                    self.embedded_lc_rx[self.lc_index] = lc[3]
+                elif lc[2] == '\x02':
+                    self.lc_index += 1
+                    if self.lc_index == 3:
+                        self.embedded_lc_rx[self.lc_index] = lc[3]
+                        self.embedded_lc = dec_dmr.bptc.decode_emblc(self.embedded_lc_rx[0] + self.embedded_lc_rx[1] + self.embedded_lc_rx[2] + self.embedded_lc_rx[3])
+                        print('Emedded LC Completed: {}'.format(h(self.embedded_lc)))
+                print('Voice Burst B-F: CC: {}, LCSS: {}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3])))
             
             _routed = False
             for rule in RULES[self._master]['GROUP_VOICE']:

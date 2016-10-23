@@ -6,10 +6,12 @@ BS_DATA_SYNC  = bitarray()
 BS_VOICE_SYNC.frombytes(b'\x75\x5F\xD7\xDF\x75\xF7')
 BS_DATA_SYNC.frombytes(b'\xDF\xF5\x7D\x75\xDF\x5D')
 
-LCSS_SINGLE_FRAG = bitarray('00')
-LCSS_FIRST_FRAG  = bitarray('01')
-LCSS_LAST_FRAG   = bitarray('10')
-LCSS_CONT_FRAG   = bitarray('11')
+# Precomputed EMB values, where CC always = 1, and PI always = 0
+BURST_B_EMB   = bitarray('0001001110010001')
+BURST_C_EMB   = bitarray('0001011101110100')
+BURST_D_EMB   = bitarray('0001011101110100')
+BURST_E_EMB   = bitarray('0001010100000111')
+BURST_F_EMB   = bitarray('0001000111100010')
 
 '''
 EMB: CC(4b), PI(1b), LCSS(2b), EMB Parity(9b - QR 16,7,5)
