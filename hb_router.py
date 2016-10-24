@@ -72,7 +72,7 @@ class routerMASTER(HBMASTER):
     
     def __init__(self, *args, **kwargs):
         HBMASTER.__init__(self, *args, **kwargs)
-        self._last_stream_id
+        self._last_stream_id = ''
         self.embedded_lc_rx = [0,0,0,0]
         self.embedded_lc_tx = [0,0,0,0]
         self.embedded_lc = ''
