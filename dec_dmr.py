@@ -34,7 +34,7 @@ def voice_head_term(_string):
     lc = bptc.decode_full_lc(info).tobytes()
     cc = to_bytes(slot_type[0:4])
     dtype = to_bytes(slot_type[4:8])
-    return (lc, cc, dtype, sync)
+    return {'LC': lc, 'CC': cc, 'DTYPE': dtype, 'SYNC': sync}
 
 
 def voice_sync(_string):
@@ -44,7 +44,7 @@ def voice_sync(_string):
     ambe[1] = burst[72:108] + burst[156:192]
     ambe[2] = burst[192:264]
     sync = burst[108:156]
-    return (ambe, sync)
+    return {'AMBE': ambe, 'SYNC': sync}
     
     
 def voice(_string):
@@ -54,10 +54,10 @@ def voice(_string):
     ambe[1] = burst[72:108] + burst[156:192]
     ambe[2] = burst[192:264]
     emb = burst[108:116] + burst[148:156]
-    embedded = burst[116:148]
+    embed = burst[116:148]
     cc = (to_bytes(emb[0:4]))
     lcss = (to_bytes(emb[5:7]))
-    return (ambe, cc, lcss, embedded)
+    return {'AMBE': ambe, 'CC': cc, 'LCSS': lcss, 'EMBED': embed}
 
 
 def to_bytes(_bits):
@@ -89,85 +89,85 @@ if __name__ == '__main__':
     voice_f    = '\xee\xe7\x81\x75\x74\x61\x4d\xf2\xff\xcc\xf4\xa0\x55\x11\x10\x00\x00\x00\x0e\x24\x30\x59\xe7\xf9\xe9\x08\xa0\x75\x62\x02\xcc\xd6\x22'
     voice_term = '\x2b\x0f\x04\xc4\x1f\x34\x2d\xa8\x0d\x80\x7d\xe1\x04\xad\xff\x57\xd7\x5d\xf5\xd9\x65\x01\x2d\x18\x77\xd2\x03\xc0\x37\x88\xdf\x95\xd1'
     
-    embedded_lc = bitarray()
+    embed_lc = bitarray()
     
     print('DMR PACKET DECODER VALIDATION\n')
     print('Header:')
     t0 = time()
     lc = voice_head_term(data_head)
     t1 = time()
-    print('LC: OPT-{} SRC-{} DST-{}, SLOT TYPE: CC-{} DTYPE-{}'.format(h(lc[0][0:3]),h(lc[0][3:6]),h(lc[0][6:9]),h(lc[1]),h(lc[2])))
+    print('LC: OPT-{} SRC-{} DST-{}, SLOT TYPE: CC-{} DTYPE-{}'.format(h(lc['LC'][0:3]),h(lc['LC'][3:6]),h(lc['LC'][6:9]),h(lc['CC']),h(lc['DTYPE'])))
     print('Decode Time: {}\n'.format(t1-t0))
     
     print('Voice Burst A:')
     t0 = time()
-    lc = voice_sync(voice_a)
+    pkt = voice_sync(voice_a)
     t1 = time()
-    print('VOICE SYNC: {}'.format(h(lc[1])))
-    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
-    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
-    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
+    print('VOICE SYNC: {}'.format(h(lc['SYNC'])))
+    print('AMBE 0: {}, {}'.format(pkt['AMBE'][0], len(pkt['AMBE'][0])))
+    print('AMBE 1: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][1])))
+    print('AMBE 2: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][2])))
     print(t1-t0, '\n')
     
     print('Voice Burst B:')
     t0 = time()
-    lc = voice(voice_b)
-    embedded_lc += lc[3]
+    pkt = voice(voice_b)
+    embed_lc += pkt['EMBED']
     t1 = time()
-    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
-    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
-    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
-    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
+    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(pkt['CC']), h(pkt['LCSS']), h(pkt['EMBED'].tobytes())))
+    print('AMBE 0: {}, {}'.format(pkt['AMBE'][0], len(pkt['AMBE'][0])))
+    print('AMBE 1: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][1])))
+    print('AMBE 2: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][2])))
     print(t1-t0, '\n')
     
     print('Voice Burst C:')
     t0 = time()
-    lc = voice(voice_c)
-    embedded_lc += lc[3]
+    pkt = voice(voice_c)
+    embed_lc += pkt['EMBED']
     t1 = time()
-    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
-    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
-    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
-    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
+    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(pkt['CC']), h(pkt['LCSS']), h(pkt['EMBED'].tobytes())))
+    print('AMBE 0: {}, {}'.format(pkt['AMBE'][0], len(pkt['AMBE'][0])))
+    print('AMBE 1: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][1])))
+    print('AMBE 2: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][2])))
     print(t1-t0, '\n')
     
     print('Voice Burst D:')
     t0 = time()
-    lc = voice(voice_d)
-    embedded_lc += lc[3]
+    pkt = voice(voice_d)
+    embed_lc += pkt['EMBED']
     t1 = time()
-    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
-    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
-    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
-    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
+    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(pkt['CC']), h(pkt['LCSS']), h(pkt['EMBED'].tobytes())))
+    print('AMBE 0: {}, {}'.format(pkt['AMBE'][0], len(pkt['AMBE'][0])))
+    print('AMBE 1: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][1])))
+    print('AMBE 2: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][2])))
     print(t1-t0, '\n')
     
     print('Voice Burst E:')
     t0 = time()
-    lc = voice(voice_e)
-    embedded_lc += lc[3]
-    embedded_lc = bptc.decode_emblc(embedded_lc)
+    pkt = voice(voice_e)
+    embed_lc += pkt['EMBED']
+    embed_lc = bptc.decode_emblc(embed_lc)
     t1 = time()
-    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
-    print('COMPLETE EMBEDDED LC: {}'.format(h(embedded_lc)))
-    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
-    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
-    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
+    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(pkt['CC']), h(pkt['LCSS']), h(pkt['EMBED'].tobytes())))
+    print('COMPLETE EMBEDDED LC: {}'.format(h(embed_lc)))
+    print('AMBE 0: {}, {}'.format(pkt['AMBE'][0], len(pkt['AMBE'][0])))
+    print('AMBE 1: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][1])))
+    print('AMBE 2: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][2])))
     print(t1-t0, '\n')
     
     print('Voice Burst F:')
     t0 = time()
-    lc = voice(voice_f)
+    pkt = voice(voice_f)
     t1 = time()
-    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(lc[1]), h(lc[2]), h(lc[3].tobytes())))
-    print('AMBE 0: {}, {}'.format(lc[0][0], len(lc[0][0])))
-    print('AMBE 1: {}, {}'.format(lc[0][1], len(lc[0][1])))
-    print('AMBE 2: {}, {}'.format(lc[0][2], len(lc[0][2])))
+    print('EMB: CC-{} LCSS-{}, EMBEDDED LC: {}'.format(h(pkt['CC']), h(pkt['LCSS']), h(pkt['EMBED'].tobytes())))
+    print('AMBE 0: {}, {}'.format(pkt['AMBE'][0], len(pkt['AMBE'][0])))
+    print('AMBE 1: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][1])))
+    print('AMBE 2: {}, {}'.format(pkt['AMBE'][1], len(pkt['AMBE'][2])))
     print(t1-t0, '\n')
     
     print('Terminator:')
     t0 = time()
     lc = voice_head_term(voice_term)
     t1 = time()
-    print('LC: OPT-{} SRC-{} DST-{} SLOT TYPE: CC-{} DTYPE-{}'.format(h(lc[0][0:3]),h(lc[0][3:6]),h(lc[0][6:9]),h(lc[1]),h(lc[2])))
+    print('LC: OPT-{} SRC-{} DST-{} SLOT TYPE: CC-{} DTYPE-{}'.format(h(lc['LC'][0:3]),h(lc['LC'][3:6]),h(lc['LC'][6:9]),h(lc['CC']),h(lc['DTYPE'])))
     print('Decode Time: {}\n'.format(t1-t0))

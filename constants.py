@@ -7,8 +7,8 @@
 # California, 94041, USA.
 
 from __future__ import print_function
-
 from bitarray import bitarray
+
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -17,6 +17,11 @@ __credits__    = ''
 __license__    = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
+
+
+# Slot Type Data types
+VOICE_HEAD = '\x01'
+VOICE_TERM = '\x02'
 
 # Sync patterns used for LC and Voice Burst A packets
 BS_VOICE_SYNC = bitarray()
