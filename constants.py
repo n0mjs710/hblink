@@ -18,10 +18,19 @@ __license__    = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unpo
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 
+# Timers
+STREAM_TO = .360
+
+# HomeBrew Protocol Frame Types
+HBPF_VOICE      = 0x0
+HBPF_VOICE_SYNC = 0x1
+HBPF_DATA_SYNC  = 0x2
+HBPF_SLT_VHEAD  = 0x1
+HBPF_SLT_VTERM  = 0x2
 
 # Slot Type Data types
-VOICE_HEAD = '\x01'
-VOICE_TERM = '\x02'
+DMR_SLT_VHEAD = '\x01'
+DMR_SLT_VTERM = '\x02'
 
 # Sync patterns used for LC and Voice Burst A packets
 BS_VOICE_SYNC = bitarray()

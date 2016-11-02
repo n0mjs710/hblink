@@ -12,6 +12,7 @@ from __future__ import print_function
 import sys
 from binascii import b2a_hex as h
 from bitarray import bitarray
+from time import time
 
 # Debugging functions
 from pprint import pprint
@@ -39,6 +40,7 @@ except ImportError:
 # Convert integer GROUP ID numbers from the config into hex strings
 # we need to send in the actual data packets.
 for _system in RULES_FILE:
+    RULES_FILE[_system]['GROUP_HANGTIME'] = RULES_FILE[_system]['GROUP_HANGTIME'] * 1000
     for _rule in RULES_FILE[_system]['GROUP_VOICE']:
         _rule['SRC_GROUP'] = hex_str_3(_rule['SRC_GROUP'])
         _rule['DST_GROUP'] = hex_str_3(_rule['DST_GROUP'])
@@ -73,34 +75,64 @@ class routerMASTER(HBMASTER):
     
     def __init__(self, *args, **kwargs):
         HBMASTER.__init__(self, *args, **kwargs)
-        self._last_stream_id = ''
-        self._last_seq_id = 0x00
-        self.lc_rx = ''
-        self.lc_tx = ''
-        self.embedded_lc_rx = [0,0,0,0]
-        self.embedded_lc_tx = [0,0,0,0]
-        self.have_lc_rx = False
-        self.have_lc_rx = False
-        self.embedded_lc_index = 0
+        
+        self.ts1_state = {
+            'LSTREAM_ID': '',
+            'LPKT_TIME': time(),
+            'LPKT_TYPE': const.HBPF_SLT_VTERM,
+            'LSEQ_ID': 0x00,
+            'LC': '',
+            'EMBLC':  [0,0,0,0,0,0]
+        }
+        
+        self.ts2_state = {
+            'LSTREAM_ID': '',
+            'LPKT_TIME': time(),
+            'LPKT_TYPE': const.HBPF_SLT_VTERM,
+            'LSEQ_ID': 0x00,
+            'LC': '',
+            'EMBLC':  [0,0,0,0,0,0]
+        }
+        
 
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
+        if _slot == 1:
+            state = self.ts1_state
+        elif _slot == 2:
+            state = self.ts2_state
+        else: 
+            logger.error('(%s) DMRD received with invalid Timeslot value: %s', self._master, h(_data))
+        pkt_time = time()
+        dmrpkt = _data[20:54]
+        
+        if (_stream_id != state['LSTREAM_ID']) and ((state['LPKT_TYPE'] != const.HBPF_SLT_VTERM) or (pkt_time < state['LPKT_TIME'] + const.STREAM_TO)):
+            logger.warning('(%s) Packet received <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._master, int_id(_radio_id), int_id(_rf_src), int_id(_dst_id), _slot)
+            return
+        
+        if (_stream_id != state['LSTREAM_ID']):
+            logger.info('(%s) New call stream stareted <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._master, int_id(_radio_id), int_id(_rf_src), int_id(_dst_id), _slot)
+            state['LSTREAM_ID'] = _stream_id
+            state['LPKT_TIME'] = pkt_time
+            state['LSEQ_ID'] = _seq
+            '''
+            if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
+                decoded = dec_dmr.voice_head_term(dmrpkt)
+                state['LC'] = decoded['LC']
+                print(h(state['LC']))
+            '''
+        if not state['LC'] and _frame_type == const.HBPF_VOICE:
+            decoded = dec_dmr.voice(dmrpkt)
+            state['EMBLC'][_dtype_vseq] = decoded['EMBED']
+            print(h(decoded['EMBED']))
+            
+        if state['EMBLC'][1] and state['EMBLC'][2] and state['EMBLC'][3] and state['EMBLC'][4]:
+            print(h(dec_dmr.bptc.decode_emblc(state['EMBLC'][1] + state['EMBLC'][2] + state['EMBLC'][3] + state['EMBLC'][4])))
+            
+                
+        print(h(state['EMBLC'][1]),h(state['EMBLC'][2]),h(state['EMBLC'][3]),h(state['EMBLC'][4]))
+            
         _bits = int_id(_data[15])
         if _call_type == 'group':
-            
-            if _frame_type == 'data_sync':
-                head = dec_dmr.voice_head_term(_data[20:53])
-                if head['DTYPE'] == const.VOICE_HEAD:
-                    print('Voice Header:     LC: {}, CC: {}, DTYPE: {}, SYNC: {}'.format(h(lc[0]), h(lc[1]), h(lc[2]), h(lc[3])))
-                if lc[2] == '\x02':
-                    print('Voice Terminator: LC: {}, CC: {}, DTYPE: {}, SYNC: {}'.format(h(lc[0]), h(lc[1]), h(lc[2]), h(lc[3])))
-                
-            if _frame_type == 'voice_sync':
-                lc = dec_dmr.voice_sync(_data[20:53])
-
-                
-            if _frame_type == 'voice':
-                lc = dec_dmr.voice(_data[20:53])
-
             
             _routed = False
             for rule in RULES[self._master]['GROUP_VOICE']:
