@@ -43,6 +43,9 @@ SYNC = {
     'BS_DATA':  BS_DATA_SYNC
 }
 
+# LC Options - Use for Group Voice
+LC_OPT = '\x00\x00\x20'
+
 # Precomputed EMB values, where CC always = 1, and PI always = 0
 EMB = {
     'BURST_B': bitarray('0001001110010001'),
@@ -102,3 +105,4 @@ if __name__ == '__main__':
     pprint(SYNC)
     pprint(EMB)
     pprint(SLOT_TYPE)
+    print(LC_OPT)

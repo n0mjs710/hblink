@@ -80,18 +80,14 @@ class routerMASTER(HBMASTER):
             'LSTREAM_ID': '',
             'LPKT_TIME': time(),
             'LPKT_TYPE': const.HBPF_SLT_VTERM,
-            'LSEQ_ID': 0x00,
             'LC': '',
-            'EMBLC':  [0,0,0,0,0,0]
         }
         
         self.ts2_state = {
             'LSTREAM_ID': '',
             'LPKT_TIME': time(),
             'LPKT_TYPE': const.HBPF_SLT_VTERM,
-            'LSEQ_ID': 0x00,
             'LC': '',
-            'EMBLC':  [0,0,0,0,0,0]
         }
         
 
@@ -104,35 +100,31 @@ class routerMASTER(HBMASTER):
             logger.error('(%s) DMRD received with invalid Timeslot value: %s', self._master, h(_data))
         pkt_time = time()
         dmrpkt = _data[20:54]
-        
-        if (_stream_id != state['LSTREAM_ID']) and ((state['LPKT_TYPE'] != const.HBPF_SLT_VTERM) or (pkt_time < state['LPKT_TIME'] + const.STREAM_TO)):
-            logger.warning('(%s) Packet received <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._master, int_id(_radio_id), int_id(_rf_src), int_id(_dst_id), _slot)
-            return
-        
-        if (_stream_id != state['LSTREAM_ID']):
-            logger.info('(%s) New call stream stareted <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._master, int_id(_radio_id), int_id(_rf_src), int_id(_dst_id), _slot)
-            state['LSTREAM_ID'] = _stream_id
-            state['LPKT_TIME'] = pkt_time
-            state['LSEQ_ID'] = _seq
-            '''
-            if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                decoded = dec_dmr.voice_head_term(dmrpkt)
-                state['LC'] = decoded['LC']
-                print(h(state['LC']))
-            '''
-        if not state['LC'] and _frame_type == const.HBPF_VOICE:
-            decoded = dec_dmr.voice(dmrpkt)
-            state['EMBLC'][_dtype_vseq] = decoded['EMBED']
-            print(h(decoded['EMBED']))
-            
-        if state['EMBLC'][1] and state['EMBLC'][2] and state['EMBLC'][3] and state['EMBLC'][4]:
-            print(h(dec_dmr.bptc.decode_emblc(state['EMBLC'][1] + state['EMBLC'][2] + state['EMBLC'][3] + state['EMBLC'][4])))
-            
-                
-        print(h(state['EMBLC'][1]),h(state['EMBLC'][2]),h(state['EMBLC'][3]),h(state['EMBLC'][4]))
-            
         _bits = int_id(_data[15])
+
         if _call_type == 'group':
+            
+            # Is this a new call stream?   
+            if (_stream_id != state['LSTREAM_ID']):
+                if ((state['LPKT_TYPE'] != const.HBPF_SLT_VTERM) or (pkt_time < state['LPKT_TIME'] + const.STREAM_TO)):
+                    logger.warning('(%s) Packet received <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._master, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
+                    return
+            
+                # This is a new call stream
+                logger.info('(%s) Call stream START <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._master, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
+                state['LSTREAM_ID'] = _stream_id
+                state['LPKT_TIME'] = pkt_time
+                
+                # If we can, use the LC from the voice header as to keep all options intact
+                if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
+                    decoded = dec_dmr.voice_head_term(dmrpkt)
+                    state['LC'] = decoded['LC']
+                
+                # If we don't have a voice header then don't wait to decode it from the Embedded LC
+                # just make a new one from the HBP header.
+                else:
+                    state['LC'] = const.LC_OPT + _dst_id + _rf_src
+        
             
             _routed = False
             for rule in RULES[self._master]['GROUP_VOICE']:
@@ -151,7 +143,14 @@ class routerMASTER(HBMASTER):
                     logger.debug('(%s) Packet routed to %s system: %s', self._master, CONFIG['SYSTEMS'][_target]['MODE'], _target)
             if not _routed:
                 logger.debug('(%s) Packet router no target TS/TGID %s/%s', self._master, _slot, int_id(_dst_id))
-
+            
+            # Final actions - Is this a voice terminator? and set the last packet type
+            if (_frame_type == const.HBPF_DATA_SYNC) and (_dtype_vseq == const.HBPF_SLT_VTERM) and (state['LPKT_TYPE'] != const.HBPF_SLT_VTERM):
+                state['LC'] = ''
+                logger.info('(%s) Call stream END   <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._master, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
+            state['LPKT_TYPE'] = _dtype_vseq
+                
+                
 class routerCLIENT(HBCLIENT):
     
     def __init__(self, *args, **kwargs):
