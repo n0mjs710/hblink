@@ -78,6 +78,7 @@ class routerMASTER(HBMASTER):
         
         self.ts1_state = {
             'LSTREAM_ID': '',
+            'LTGID': '',
             'LPKT_TIME': time(),
             'LPKT_TYPE': const.HBPF_SLT_VTERM,
             'LC': '',
@@ -85,6 +86,7 @@ class routerMASTER(HBMASTER):
         
         self.ts2_state = {
             'LSTREAM_ID': '',
+            'LTGID': '',
             'LPKT_TIME': time(),
             'LPKT_TYPE': const.HBPF_SLT_VTERM,
             'LC': '',
@@ -111,9 +113,16 @@ class routerMASTER(HBMASTER):
                     return
             
                 # This is a new call stream
+                # Check to see if we're in group hangtime before accepting it
+                if (_dst_id != state['LTGID']) and (pkt_time < state['LPKT_TIME'] + RULE[self._master]['GROUP_HANGTIME']):
+                    logger.warning('(%s) Packet received <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s whild in group hangtime for TGID %s', self._master, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot, int_id(state['LTGID']))
+                    return
+                
+                # This is actually a VALID new call stream
                 logger.info('(%s) Call stream START <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._master, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
                 state['LSTREAM_ID'] = _stream_id
                 state['LPKT_TIME'] = pkt_time
+                state['LTGID'] = _dst_id
                 
                 # If we can, use the LC from the voice header as to keep all options intact
                 if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
