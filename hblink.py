@@ -23,7 +23,7 @@ from hashlib import sha256
 from time import time
 from urllib import URLopener
 from csv import reader as csv_reader
-from bitstring import BitArray
+#from bitstring import BitArray
 import socket
 
 # Debugging functions

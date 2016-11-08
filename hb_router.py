@@ -76,30 +76,47 @@ class routerMASTER(HBMASTER):
     def __init__(self, *args, **kwargs):
         HBMASTER.__init__(self, *args, **kwargs)
         
-        self.ts1_state = {
-            'LSTREAM_ID': '',
-            'LTGID': '',
-            'LPKT_TIME': time(),
-            'LPKT_TYPE': const.HBPF_SLT_VTERM,
-            'LC': '',
-        }
-        
-        self.ts2_state = {
-            'LSTREAM_ID': '',
-            'LTGID': '',
-            'LPKT_TIME': time(),
-            'LPKT_TYPE': const.HBPF_SLT_VTERM,
-            'LC': '',
-        }
-        
+        # Status information for the system, TS1 & TS2
+        # 1 & 2 are "timeslot"
+        # In TX_EMB_LC, 2-5 are burst B-E
+        self.STATUS = {
+            1: {
+                'RX_STREAM_ID': '\x00',
+                'TX_STREAM_ID': '\x00',
+                'RX_TGID': '\x00',
+                'TX_TGID': '\x00',
+                'RX_TIME': time(),
+                'TX_TIME': time(),
+                'RX_TYPE': const.HBPF_SLT_VTERM,
+                'RX_LC': '\x00',
+                'TX_LC': '\x00',
+                'TX_EMB_LC': {
+                    2: '\x00',
+                    3: '\x00',
+                    4: '\x00',
+                    5: '\x00',
+                    }
+                },
+            2: {
+                'RX_STREAM_ID': '\x00',
+                'TX_STREAM_ID': '\x00',
+                'RX_TGID': '\x00',
+                'TX_TGID': '\x00',
+                'RX_TIME': time(),
+                'TX_TIME': time(),
+                'RX_TYPE': const.HBPF_SLT_VTERM,
+                'RX_LC': '\x00',
+                'TX_LC': '\x00',
+                'TX_EMB_LC': {
+                    2: '\x00',
+                    3: '\x00',
+                    4: '\x00',
+                    5: '\x00',
+                    }
+                }
+            }
 
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
-        if _slot == 1:
-            state = self.ts1_state
-        elif _slot == 2:
-            state = self.ts2_state
-        else: 
-            logger.error('(%s) DMRD received with invalid Timeslot value: %s', self._master, h(_data))
         pkt_time = time()
         dmrpkt = _data[20:54]
         _bits = int_id(_data[15])
@@ -107,35 +124,29 @@ class routerMASTER(HBMASTER):
         if _call_type == 'group':
             
             # Is this a new call stream?   
-            if (_stream_id != state['LSTREAM_ID']):
-                if ((state['LPKT_TYPE'] != const.HBPF_SLT_VTERM) or (pkt_time < state['LPKT_TIME'] + const.STREAM_TO)):
+            if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
+                if ((self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM) or (pkt_time < self.STATUS[_slot]['RX_TIME'] + const.STREAM_TO)):
                     logger.warning('(%s) Packet received <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._master, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
                     return
-            
-                # This is a new call stream
-                # Check to see if we're in group hangtime before accepting it
-                if (_dst_id != state['LTGID']) and (pkt_time < state['LPKT_TIME'] + RULE[self._master]['GROUP_HANGTIME']):
-                    logger.warning('(%s) Packet received <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s whild in group hangtime for TGID %s', self._master, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot, int_id(state['LTGID']))
-                    return
                 
-                # This is actually a VALID new call stream
+                # This is a new call stream
                 logger.info('(%s) Call stream START <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._master, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
-                state['LSTREAM_ID'] = _stream_id
-                state['LPKT_TIME'] = pkt_time
-                state['LTGID'] = _dst_id
+                self.STATUS[_slot]['RX_STREAM_ID'] = _stream_id
+                self.STATUS[_slot]['RX_TIME'] = pkt_time
+                self.STATUS[_slot]['RX_TGID'] = _dst_id
                 
                 # If we can, use the LC from the voice header as to keep all options intact
                 if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
                     decoded = dec_dmr.voice_head_term(dmrpkt)
-                    state['LC'] = decoded['LC']
+                    self.STATUS[_slot]['RX_LC'] = decoded['LC']
                 
                 # If we don't have a voice header then don't wait to decode it from the Embedded LC
                 # just make a new one from the HBP header.
                 else:
-                    state['LC'] = const.LC_OPT + _dst_id + _rf_src
+                    self.STATUS[_slot]['RX_LC'] = const.LC_OPT + _dst_id + _rf_src
         
             
-            _routed = False
+            
             for rule in RULES[self._master]['GROUP_VOICE']:
                 _target = rule['DST_NET']
                 if (rule['SRC_GROUP'] == _dst_id and rule['SRC_TS'] == _slot and rule['ACTIVE'] == True):
@@ -147,17 +158,15 @@ class routerMASTER(HBMASTER):
                     #print(h(_data))
                     #print(h(_tmp_data))
                     systems[_target].send_system(_tmp_data)
-                    _routed = True
-                
                     logger.debug('(%s) Packet routed to %s system: %s', self._master, CONFIG['SYSTEMS'][_target]['MODE'], _target)
-            if not _routed:
-                logger.debug('(%s) Packet router no target TS/TGID %s/%s', self._master, _slot, int_id(_dst_id))
+            
+            
             
             # Final actions - Is this a voice terminator? and set the last packet type
-            if (_frame_type == const.HBPF_DATA_SYNC) and (_dtype_vseq == const.HBPF_SLT_VTERM) and (state['LPKT_TYPE'] != const.HBPF_SLT_VTERM):
-                state['LC'] = ''
+            if (_frame_type == const.HBPF_DATA_SYNC) and (_dtype_vseq == const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM):
+                self.STATUS[_slot]['LC'] = ''
                 logger.info('(%s) Call stream END   <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._master, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
-            state['LPKT_TYPE'] = _dtype_vseq
+            self.STATE[_slot]['RX_TYPE'] = _dtype_vseq
                 
                 
 class routerCLIENT(HBCLIENT):
