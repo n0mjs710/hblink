@@ -149,22 +149,71 @@ class routerMASTER(HBMASTER):
             
             for rule in RULES[self._master]['GROUP_VOICE']:
                 _target = rule['DST_NET']
+                _target_status = systems[_target].STATUS
+                
                 if (rule['SRC_GROUP'] == _dst_id and rule['SRC_TS'] == _slot and rule['ACTIVE'] == True):
+                    
+                    # BEGIN CONTENTION HANDLING
+                    #
+                    # The rules for each of the 4 "ifs" below are listed here for readability. The Frame To Send is:
+                    #   From a different group than last RX from this HBP system, but it has been less than Group Hangtime
+                    #   From a different group than last TX to this HBP system, but it has been less than Group Hangtime
+                    #   From the same group as the last RX from this HBP system, but from a different stream ID, and it has been less than TS Clear Time
+                    #   From the same group as the last TX to this HBP system, but a different stream ID, and it has been less than TS Clear Time
+                    # The "continue" at the end of each means the next iteration of the for loop that tests for matching rules
+                    #
+                    if ((rule['DST_GROUP'] != _target_status[_slot]['RX_TGID']) and ((pkt_time - _status[_slot]['RX_TIME']) < RULES[self._master]['GROUP_HANGTIME'])):
+                        if _dtype_vseq == const.HBPF_SLT_VHEAD:
+                            logger.info('(%s) Call not bridged, target active or in group hangtime: HBP system %s, %s, TGID%s', self._master, _target,_slot, int_id(rule['DST_GROUP']))
+                        continue    
+                    if ((rule['DST_GROUP'] != _status[_slot]['TX_GROUP']) and ((pkt_time - _status[_slot]['TX_TIME']) < RULES[self._master]['GROUP_HANGTIME'])):
+                        if _dtype_vseq == const.HBPF_SLT_VHEAD:
+                            logger.info('(%s) Call not bridged to destination on TGID %s, target in group hangtime: HBP system %s, %s, TGID%s', self._master, int_id(_status[_slot]['TX_GROUP']), _target,_slot, int_id(rule['DST_GROUP']))
+                        continue
+                    if (rule['DST_GROUP'] == _status[_slot]['RX_STREAM_ID']) and ((pkt_time - _status[_slot]['RX_TIME']) < const.STREAM_TO):
+                        if _dtype_vseq == const.HBPF_SLT_VHEAD:
+                            logger.info('(%s) Call not bridged, matching call already active on target: HBP system %s, %s, TGID%s', self._master, _target,_slot, int_id(rule['DST_GROUP']))
+                        continue
+                    if (rule['DST_GROUP'] == _status[_slot]['TX_GROUP']) and (_src_sub != _status[_slot]['TX_STREAM_ID']) and ((pkt_time - _status[_slot]['TX_TIME']) < const.STREAM_TO):
+                        if _dtype_vseq == const.HBPF_SLT_VHEAD:
+                            logger.info('(%s) Call not bridged, call bridge in progress from %s, target: HBP system %s, %s, TGID%s', self._master, int_id(_src_sub), _target,_slot, int_id(rule['DST_GROUP']))
+                        continue
+                    
+                    # Set values for the contention handler to test next time there is a frame to forward
+                    target_status[_slot]['TX_GROUP'] = rule['DST_GROUP']
+                    target_status[_slot]['TX_TIME'] = pkt_time
+                    target_status[_slot]['TX_STREAM_ID'] = _stream_id
+                    
+                    
+                    # Handle any necessary re-writes for the destination
                     if rule['SRC_TS'] != rule['DST_TS']:
                         _tmp_bits = _bits ^ 1 << 7
                     else:
                         _tmp_bits = _bits
+                    
+                    
+                    # MUST TEST FOR NEW STREAM AND IF SO, RE-WRITE THE LC FOR THE TARGET
+                    # MUST RE-WRITE DESTINATION TGID IF DIFFERENT
+                    
+                    
+                    # Assemble transmit packet
                     _tmp_data = _data[:8] + rule['DST_GROUP'] + _data[11:15] + chr(_tmp_bits) + _data[16:]
+                    
+                    # Transmit the packet to the destination system
                     systems[_target].send_system(_tmp_data)
                     logger.debug('(%s) Packet routed to %s system: %s', self._master, CONFIG['SYSTEMS'][_target]['MODE'], _target)
             
             
             
-            # Final actions - Is this a voice terminator? and set the last packet type
+            # Final actions - Is this a voice terminator?
             if (_frame_type == const.HBPF_DATA_SYNC) and (_dtype_vseq == const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM):
                 self.STATUS[_slot]['LC'] = ''
                 logger.info('(%s) Call stream END   with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._master, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
-            self.STATUS[_slot]['RX_TYPE'] = _dtype_vseq
+            
+            # Mark status variables for use later
+            self.STATUS[_slot]['RX_TYPE']  = _dtype_vseq
+            self.STATUS[_slot]['RX_GROUP'] = _dst_group
+            self.STATUS[_slot]['RX_TIME']  = pkt_time
                 
                 
 class routerCLIENT(HBCLIENT):
