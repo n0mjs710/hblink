@@ -23,7 +23,7 @@ from twisted.internet import reactor
 from twisted.internet import task
 
 # Things we import from the main hblink module
-from hblink import CONFIG, HBMASTER, HBCLIENT, logger, systems, hex_str_3, int_id
+from hblink import CONFIG, HBSYSTEM, logger, systems, hex_str_3, int_id
 import dec_dmr
 import bptc
 import constants as const
@@ -71,10 +71,10 @@ __email__      = 'n0mjs@me.com'
 __status__     = 'pre-alpha'
 
 
-class routerMASTER(HBMASTER):
+class routerSYSTEM(HBSYSTEM):
     
     def __init__(self, *args, **kwargs):
-        HBMASTER.__init__(self, *args, **kwargs)
+        HBSYSTEM.__init__(self, *args, **kwargs)
         
         # Status information for the system, TS1 & TS2
         # 1 & 2 are "timeslot"
@@ -126,11 +126,11 @@ class routerMASTER(HBMASTER):
             # Is this a new call stream?   
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
                 if ((self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM) or (pkt_time < self.STATUS[_slot]['RX_TIME'] + const.STREAM_TO)):
-                    logger.warning('(%s) Packet received with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._master, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
+                    logger.warning('(%s) Packet received with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
                     return
                 
                 # This is a new call stream
-                logger.info('(%s) Call stream START with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._master, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
+                logger.info('(%s) Call stream START with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
                 
                 # If we can, use the LC from the voice header as to keep all options intact
                 if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
@@ -144,7 +144,7 @@ class routerMASTER(HBMASTER):
         
             
             
-            for rule in RULES[self._master]['GROUP_VOICE']:
+            for rule in RULES[self._system]['GROUP_VOICE']:
                 _target = rule['DST_NET']
                 _target_status = systems[_target].STATUS
                 
@@ -157,13 +157,13 @@ class routerMASTER(HBMASTER):
                     #   From the same group as the last TX to the target HBP system, but stream ID is different, and it is less than stream timout
                     # The "continue" at the end of each means the next iteration of the for loop that tests for matching rules
                     #
-                    if ((rule['DST_GROUP'] != _target_status[_slot]['TX_TGID']) and ((pkt_time - self.STATUS[_slot]['RX_TIME']) < RULES[self._master]['GROUP_HANGTIME'])):
+                    if ((rule['DST_GROUP'] != _target_status[_slot]['TX_TGID']) and ((pkt_time - self.STATUS[_slot]['RX_TIME']) < RULES[self._system]['GROUP_HANGTIME'])):
                         if const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed, target active or in group hangtime: HBP system %s, TS%s, TGID%s', self._master, _target, _slot, int_id(rule['DST_GROUP']))
+                            logger.info('(%s) Call not routed, target active or in group hangtime: HBP system %s, TS%s, TGID%s', self._system, _target, _slot, int_id(rule['DST_GROUP']))
                         continue    
                     if (rule['DST_GROUP'] == self.STATUS[_slot]['TX_TGID']) and (_stream_id != self.STATUS[_slot]['TX_STREAM_ID']) and ((pkt_time - _status[_slot]['TX_TIME']) < const.STREAM_TO):
                         if const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed, call bridge in progress from %s, target: HBP system %s, TS%s, TGID%s', self._master, int_id(_src_sub), _target, _slot, int_id(rule['DST_GROUP']))
+                            logger.info('(%s) Call not routed, call bridge in progress from %s, target: HBP system %s, TS%s, TGID%s', self._system, int_id(_src_sub), _target, _slot, int_id(rule['DST_GROUP']))
                         continue
                     
                     # Set values for the contention handler to test next time there is a frame to forward
@@ -173,7 +173,7 @@ class routerMASTER(HBMASTER):
                         _target_status[_slot]['TX_TGID'] = rule['DST_GROUP']
                         _target_status[_slot]['TX_STREAM_ID'] = _stream_id
                         _target_status[_slot]['TX_LC'] = bptc.encode_header_lc(self.STATUS[_slot]['RX_LC'][0:3] + rule['DST_GROUP'] + _rf_src)
-                        print('new stream id, calcuate/store stuff', h(bptc.decode_full_lc(_target_status[_slot]['TX_LC']).tobytes()))
+                        #make EMB LC fragments next
                     
                     # Handle any necessary re-writes for the destination
                     if rule['SRC_TS'] != rule['DST_TS']:
@@ -191,14 +191,14 @@ class routerMASTER(HBMASTER):
                     
                     # Transmit the packet to the destination system
                     systems[_target].send_system(_tmp_data)
-                    logger.debug('(%s) Packet routed to %s system: %s', self._master, CONFIG['SYSTEMS'][_target]['MODE'], _target)
+                    logger.debug('(%s) Packet routed by rule: %s to %s system: %s', self._system, rule['NAME'], CONFIG['SYSTEMS'][_target]['MODE'], _target)
             
             
             
             # Final actions - Is this a voice terminator?
             if (_frame_type == const.HBPF_DATA_SYNC) and (_dtype_vseq == const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM):
                 self.STATUS[_slot]['LC'] = ''
-                logger.info('(%s) Call stream END   with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._master, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
+                logger.info('(%s) Call stream END   with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
             
             # Mark status variables for use later
             self.STATUS[_slot]['RX_TYPE']      = _dtype_vseq
@@ -206,54 +206,6 @@ class routerMASTER(HBMASTER):
             self.STATUS[_slot]['RX_TIME']      = pkt_time
             self.STATUS[_slot]['RX_STREAM_ID'] = _stream_id
                 
-                
-class routerCLIENT(HBCLIENT):
-    
-    def __init__(self, *args, **kwargs):
-        HBCLIENT.__init__(self, *args, **kwargs)
-        
-        # Status information for the system, TS1 & TS2
-        # 1 & 2 are "timeslot"
-        # In TX_EMB_LC, 2-5 are burst B-E
-        self.STATUS = {
-            1: {
-                'RX_STREAM_ID': '\x00',
-                'TX_STREAM_ID': '\x00',
-                'RX_TGID': '\x00',
-                'TX_TGID': '\x00',
-                'RX_TIME': time(),
-                'TX_TIME': time(),
-                'RX_TYPE': const.HBPF_SLT_VTERM,
-                'RX_LC': '\x00',
-                'TX_LC': '\x00',
-                'TX_EMB_LC': {
-                    2: '\x00',
-                    3: '\x00',
-                    4: '\x00',
-                    5: '\x00',
-                    }
-                },
-            2: {
-                'RX_STREAM_ID': '\x00',
-                'TX_STREAM_ID': '\x00',
-                'RX_TGID': '\x00',
-                'TX_TGID': '\x00',
-                'RX_TIME': time(),
-                'TX_TIME': time(),
-                'RX_TYPE': const.HBPF_SLT_VTERM,
-                'RX_LC': '\x00',
-                'TX_LC': '\x00',
-                'TX_EMB_LC': {
-                    2: '\x00',
-                    3: '\x00',
-                    4: '\x00',
-                    5: '\x00',
-                    }
-                }
-            }
-    
-    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
-        return
 
 #************************************************
 #      MAIN PROGRAM LOOP STARTS HERE
@@ -263,12 +215,10 @@ if __name__ == '__main__':
     logger.info('HBlink \'hb_router.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     
     # HBlink instance creation
+    # HBlink instance creation
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
-            if CONFIG['SYSTEMS'][system]['MODE'] == 'MASTER':
-                systems[system] = routerMASTER(system)
-            elif CONFIG['SYSTEMS'][system]['MODE'] == 'CLIENT':
-                systems[system] = routerCLIENT(system)     
+            systems[system] = routerSYSTEM(system)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
