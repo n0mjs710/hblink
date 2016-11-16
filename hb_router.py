@@ -23,7 +23,7 @@ from twisted.internet import reactor
 from twisted.internet import task
 
 # Things we import from the main hblink module
-from hblink import CONFIG, HBSYSTEM, logger, systems, hex_str_3, int_id
+from hblink import CONFIG, HBSYSTEM, logger, systems, hex_str_3, int_id, sub_alias, peer_alias, tg_alias
 import dec_dmr
 import bptc
 import constants as const
@@ -132,7 +132,7 @@ class routerSYSTEM(HBSYSTEM):
                     return
                 
                 # This is a new call stream
-                logger.info('(%s) Call stream START with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
+                logger.info('(%s) Call stream START with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._system, int_id(_stream_id), sub_alias(_rf_src), peer_alias(_radio_id), tg_alias(_dst_id), _slot)
                 
                 # If we can, use the LC from the voice header as to keep all options intact
                 if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
@@ -217,10 +217,8 @@ class routerSYSTEM(HBSYSTEM):
             
             # Final actions - Is this a voice terminator?
             if (_frame_type == const.HBPF_DATA_SYNC) and (_dtype_vseq == const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM):
-                #self.STATUS[_slot]['LC'] = '\x00\x00\x00'
-                #self.STATUS[_slot]['EMB_LC'] = {2: '\x00', 3: '\x00', 4: '\x00', 5: '\x00'}
-                logger.info('(%s) Call stream END   with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
-            
+                logger.info('(%s) Call stream END   with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._system, int_id(_stream_id), sub_alias(_rf_src), peer_alias(_radio_id), tg_alias(_dst_id), _slot)
+                
             # Mark status variables for use later
             self.STATUS[_slot]['RX_TYPE']      = _dtype_vseq
             self.STATUS[_slot]['RX_TGID']      = _dst_id
