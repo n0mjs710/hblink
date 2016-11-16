@@ -193,7 +193,7 @@ def encode_emblc(_lc):
     emblc_e.extend([_binlc[14],_binlc[30],_binlc[46],_binlc[62],_binlc[78],_binlc[94],_binlc[110],_binlc[126]])
     emblc_e.extend([_binlc[15],_binlc[31],_binlc[47],_binlc[63],_binlc[79],_binlc[95],_binlc[111],_binlc[127]])
     
-    return({2: emblc_b, 3: emblc_c, 4: emblc_d, 5: emblc_e})
+    return({1: emblc_b, 2: emblc_c, 3: emblc_d, 4: emblc_e})
 
 #------------------------------------------------------------------------------
 # Used to execute the module directly to run built-in tests
