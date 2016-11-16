@@ -174,9 +174,11 @@ class routerSYSTEM(HBSYSTEM):
                         _target_status[_slot]['TX_TGID'] = rule['DST_GROUP']
                         _target_status[_slot]['TX_STREAM_ID'] = _stream_id
                         # Generate LCs (full and EMB) for the TX stream
-                        dst_lc = self.STATUS[_slot]['RX_LC'][0:3] + rule['DST_GROUP'] + _rf_src
-                        _target_status[_slot]['TX_LC'] = bptc.encode_header_lc(dst_lc)
-                        _target_status[_slot]['TX_EMB_LC'] = bptc.encode_emblc(dst_lc)
+                        if _dst_id != rule['DST_GROUP']:
+                            dst_lc = self.STATUS[_slot]['RX_LC'][0:3] + rule['DST_GROUP'] + _rf_src
+                            _target_status[_slot]['TX_LC'] = bptc.encode_header_lc(dst_lc)
+                            _target_status[_slot]['TX_EMB_LC'] = bptc.encode_emblc(dst_lc)
+                            logger.debug('(%s) Packet DST TGID (%s) does not match SRC TGID(%s) - Generating FULL and EMB LCs', self._system, int_id(rule['DST_GROUP']), int_id(_dst_id))
                     
                     # Handle any necessary re-writes for the destination
                     if rule['SRC_TS'] != rule['DST_TS']:
@@ -189,12 +191,13 @@ class routerSYSTEM(HBSYSTEM):
                     
                     # MUST TEST FOR NEW STREAM AND IF SO, RE-WRITE THE LC FOR THE TARGET
                     # MUST RE-WRITE DESTINATION TGID IF DIFFERENT
-                    if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                        pass # build a new DMR voice header packet with the TX Full LC
-                    elif _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VTERM:
-                        pass # build a new DMR voice terminator packet with the TX Full LC
-                    elif _dtype_vseq in [2,3,4,5]:
-                        pass # build a new DMR voice packet for burst B,C,D,E based on EMB LC
+                    if _dst_id != rule['DST_GROUP']: 
+                        if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
+                            pass # build a new DMR voice header packet with the TX Full LC
+                        elif _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VTERM:
+                            pass # build a new DMR voice terminator packet with the TX Full LC
+                        elif _dtype_vseq in [2,3,4,5]:
+                            pass # build a new DMR voice packet for burst B,C,D,E based on EMB LC
                     
                     _tmp_data = _tmp_data + dmrpkt
                     
