@@ -114,7 +114,10 @@ def encode_header_lc(_lc):
     return full_lc
     
 def encode_terminator_lc(_lc):
-    lc_rs = _lc + rs129.lc_terminator_encode(_lc)
+    full_lc = _lc + rs129.lc_terminator_encode(_lc)
+    full_lc = encode_19696(full_lc)
+    full_lc = interleave_19696(full_lc)
+    return full_lc
     
 #------------------------------------------------------------------------------
 # BPTC Embedded LC Decoding Routines
@@ -190,7 +193,7 @@ def encode_emblc(_lc):
     emblc_e.extend([_binlc[14],_binlc[30],_binlc[46],_binlc[62],_binlc[78],_binlc[94],_binlc[110],_binlc[126]])
     emblc_e.extend([_binlc[15],_binlc[31],_binlc[47],_binlc[63],_binlc[79],_binlc[95],_binlc[111],_binlc[127]])
     
-    return([emblc_b, emblc_c, emblc_d, emblc_e])
+    return({2: emblc_b, 3: emblc_c, 4: emblc_d, 5: emblc_e})
 
 #------------------------------------------------------------------------------
 # Used to execute the module directly to run built-in tests

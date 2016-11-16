@@ -158,11 +158,11 @@ class routerSYSTEM(HBSYSTEM):
                     # The "continue" at the end of each means the next iteration of the for loop that tests for matching rules
                     #
                     if ((rule['DST_GROUP'] != _target_status[_slot]['TX_TGID']) and ((pkt_time - self.STATUS[_slot]['RX_TIME']) < RULES[self._system]['GROUP_HANGTIME'])):
-                        if const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
+                        if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
                             logger.info('(%s) Call not routed, target active or in group hangtime: HBP system %s, TS%s, TGID%s', self._system, _target, _slot, int_id(rule['DST_GROUP']))
                         continue    
                     if (rule['DST_GROUP'] == self.STATUS[_slot]['TX_TGID']) and (_stream_id != self.STATUS[_slot]['TX_STREAM_ID']) and ((pkt_time - _status[_slot]['TX_TIME']) < const.STREAM_TO):
-                        if const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
+                        if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
                             logger.info('(%s) Call not routed, call bridge in progress from %s, target: HBP system %s, TS%s, TGID%s', self._system, int_id(_src_sub), _target, _slot, int_id(rule['DST_GROUP']))
                         continue
                     
@@ -170,10 +170,13 @@ class routerSYSTEM(HBSYSTEM):
                     _target_status[_slot]['TX_TIME'] = pkt_time
                     
                     if _stream_id != self.STATUS[_slot]['RX_STREAM_ID']:
+                        # Record the DST TGID and Stream ID
                         _target_status[_slot]['TX_TGID'] = rule['DST_GROUP']
                         _target_status[_slot]['TX_STREAM_ID'] = _stream_id
-                        _target_status[_slot]['TX_LC'] = bptc.encode_header_lc(self.STATUS[_slot]['RX_LC'][0:3] + rule['DST_GROUP'] + _rf_src)
-                        #make EMB LC fragments next
+                        # Generate LCs (full and EMB) for the TX stream
+                        dst_lc = self.STATUS[_slot]['RX_LC'][0:3] + rule['DST_GROUP'] + _rf_src
+                        _target_status[_slot]['TX_LC'] = bptc.encode_header_lc(dst_lc)
+                        _target_status[_slot]['TX_EMB_LC'] = bptc.encode_emblc(dst_lc)
                     
                     # Handle any necessary re-writes for the destination
                     if rule['SRC_TS'] != rule['DST_TS']:
@@ -181,13 +184,19 @@ class routerSYSTEM(HBSYSTEM):
                     else:
                         _tmp_bits = _bits
                     
+                    # Assemble transmit HBP packet header
+                    _tmp_data = _data[:8] + rule['DST_GROUP'] + _data[11:15] + chr(_tmp_bits) + _data[16:20]
                     
                     # MUST TEST FOR NEW STREAM AND IF SO, RE-WRITE THE LC FOR THE TARGET
                     # MUST RE-WRITE DESTINATION TGID IF DIFFERENT
+                    if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
+                        pass # build a new DMR voice header packet with the TX Full LC
+                    elif _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VTERM:
+                        pass # build a new DMR voice terminator packet with the TX Full LC
+                    elif _dtype_vseq in [2,3,4,5]:
+                        pass # build a new DMR voice packet for burst B,C,D,E based on EMB LC
                     
-                    
-                    # Assemble transmit packet
-                    _tmp_data = _data[:8] + rule['DST_GROUP'] + _data[11:15] + chr(_tmp_bits) + _data[16:]
+                    _tmp_data = _tmp_data + dmrpkt
                     
                     # Transmit the packet to the destination system
                     systems[_target].send_system(_tmp_data)
@@ -197,7 +206,8 @@ class routerSYSTEM(HBSYSTEM):
             
             # Final actions - Is this a voice terminator?
             if (_frame_type == const.HBPF_DATA_SYNC) and (_dtype_vseq == const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM):
-                self.STATUS[_slot]['LC'] = ''
+                #self.STATUS[_slot]['LC'] = '\x00\x00\x00'
+                #self.STATUS[_slot]['EMB_LC'] = {2: '\x00', 3: '\x00', 4: '\x00', 5: '\x00'}
                 logger.info('(%s) Call stream END   with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
             
             # Mark status variables for use later
