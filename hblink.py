@@ -149,7 +149,7 @@ def handler(_signal, _frame):
     reactor.stop()
 
 # Set signal handers so that we can gracefully exit if need be
-for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGQUIT]:
+for sig in [signal.SIGTERM, signal.SIGINT]:
     signal.signal(sig, handler)
 
 
@@ -167,7 +167,8 @@ def hex_str_3(_int_id):
 # Create a 4 byte hex string from an integer
 def hex_str_4(_int_id):
     try:
-        return hex(_int_id)[2:].rjust(8,'0').decode('hex')
+        #return hex(_int_id)[2:].rjust(8,'0').decode('hex')
+        format(_int_id,'x').rjust(8,'0').decode('hex')
     except TypeError:
         logger.error('hex_str_4: invalid integer length')
 

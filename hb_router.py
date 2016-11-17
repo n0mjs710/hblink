@@ -109,16 +109,18 @@ class routerSYSTEM(HBSYSTEM):
         # In TX_EMB_LC, 2-5 are burst B-E
         self.STATUS = {
             1: {
+                'RX_RFS':       '\x00',
+                'TX_RFS':       '\x00',
                 'RX_STREAM_ID': '\x00',
                 'TX_STREAM_ID': '\x00',
-                'RX_TGID': '\x00\x00\x00',
-                'TX_TGID': '\x00\x00\x00',
-                'RX_TIME': time(),
-                'TX_TIME': time(),
-                'RX_TYPE': const.HBPF_SLT_VTERM,
-                'RX_LC':   '\x00',
-                'TX_H_LC': '\x00',
-                'TX_T_LC': '\x00',
+                'RX_TGID':      '\x00\x00\x00',
+                'TX_TGID':      '\x00\x00\x00',
+                'RX_TIME':      time(),
+                'TX_TIME':      time(),
+                'RX_TYPE':      const.HBPF_SLT_VTERM,
+                'RX_LC':        '\x00',
+                'TX_H_LC':      '\x00',
+                'TX_T_LC':      '\x00',
                 'TX_EMB_LC': {
                     1: '\x00',
                     2: '\x00',
@@ -127,16 +129,18 @@ class routerSYSTEM(HBSYSTEM):
                     }
                 },
             2: {
+                'RX_RFS':       '\x00',
+                'TX_RFS':       '\x00',
                 'RX_STREAM_ID': '\x00',
                 'TX_STREAM_ID': '\x00',
-                'RX_TGID': '\x00\x00\x00',
-                'TX_TGID': '\x00\x00\x00',
-                'RX_TIME': time(),
-                'TX_TIME': time(),
-                'RX_TYPE': const.HBPF_SLT_VTERM,
-                'RX_LC':   '\x00',
-                'TX_H_LC': '\x00',
-                'TX_T_LC': '\x00',
+                'RX_TGID':      '\x00\x00\x00',
+                'TX_TGID':      '\x00\x00\x00',
+                'RX_TIME':      time(),
+                'TX_TIME':      time(),
+                'RX_TYPE':      const.HBPF_SLT_VTERM,
+                'RX_LC':        '\x00',
+                'TX_H_LC':      '\x00',
+                'TX_T_LC':      '\x00',
                 'TX_EMB_LC': {
                     1: '\x00',
                     2: '\x00',
@@ -148,6 +152,7 @@ class routerSYSTEM(HBSYSTEM):
 
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pkt_time = time()
+        new_stream = False
         dmrpkt = _data[20:53]
         _bits = int_id(_data[15])
 
@@ -155,11 +160,12 @@ class routerSYSTEM(HBSYSTEM):
             
             # Is this a new call stream?   
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                if ((self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM) or (pkt_time < self.STATUS[_slot]['RX_TIME'] + const.STREAM_TO)):
+                if (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM) or ((pkt_time < self.STATUS[_slot]['RX_TIME'] + const.STREAM_TO) and (_rf_src != self.STATUS[_slot]['RX_SRC'])):
                     logger.warning('(%s) Packet received with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
                     return
                 
                 # This is a new call stream
+                new_stream = True
                 logger.info('(%s) Call stream START with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._system, int_id(_stream_id), sub_alias(_rf_src), peer_alias(_radio_id), tg_alias(_dst_id), _slot)
                 
                 # If we can, use the LC from the voice header as to keep all options intact
@@ -190,9 +196,9 @@ class routerSYSTEM(HBSYSTEM):
                         if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
                             logger.info('(%s) Call not routed, target active or in group hangtime: HBP system %s, TS%s, TGID%s', self._system, _target, _slot, int_id(rule['DST_GROUP']))
                         continue    
-                    if (rule['DST_GROUP'] == self.STATUS[_slot]['TX_TGID']) and (_stream_id != self.STATUS[_slot]['TX_STREAM_ID']) and ((pkt_time - self.STATUS[_slot]['TX_TIME']) < const.STREAM_TO):
+                    if (rule['DST_GROUP'] == self.STATUS[_slot]['TX_TGID']) and (_stream_id != self.STATUS[_slot]['TX_STREAM_ID']) and (((pkt_time - self.STATUS[_slot]['TX_TIME']) < const.STREAM_TO) and (_rf_src != self.STATUS[_slot]['TX_RFS'])):
                         if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed, call bridge in progress from %s, target: HBP system %s, TS%s, TGID%s', self._system, int_id(_src_sub), _target, _slot, int_id(rule['DST_GROUP']))
+                            logger.info('(%s) Call not routed, call in progress: %s, target: HBP system %s, TS%s, TGID%s', self._system, int_id(_src_sub), _target, _slot, int_id(rule['DST_GROUP']))
                         continue
                     
                     # Set values for the contention handler to test next time there is a frame to forward
@@ -202,6 +208,7 @@ class routerSYSTEM(HBSYSTEM):
                         # Record the DST TGID and Stream ID
                         _target_status[_slot]['TX_TGID'] = rule['DST_GROUP']
                         _target_status[_slot]['TX_STREAM_ID'] = _stream_id
+                        _target_status[_slot]['TX_RFS'] = _rf_src
                         # Generate LCs (full and EMB) for the TX stream
                         if True: #_dst_id != rule['DST_GROUP']:
                             dst_lc = self.STATUS[_slot]['RX_LC'][0:3] + rule['DST_GROUP'] + _rf_src
@@ -247,6 +254,7 @@ class routerSYSTEM(HBSYSTEM):
                 logger.info('(%s) Call stream END   with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._system, int_id(_stream_id), sub_alias(_rf_src), peer_alias(_radio_id), tg_alias(_dst_id), _slot)
                 
             # Mark status variables for use later
+            self.STATUS[_slot]['RX_RFS']       = _rf_src
             self.STATUS[_slot]['RX_TYPE']      = _dtype_vseq
             self.STATUS[_slot]['RX_TGID']      = _dst_id
             self.STATUS[_slot]['RX_TIME']      = pkt_time
