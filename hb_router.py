@@ -50,6 +50,8 @@ for _system in RULES_FILE:
             _rule['ON'][i] = hex_str_3(_rule['ON'][i])
         for i, e in enumerate(_rule['OFF']):
             _rule['OFF'][i] = hex_str_3(_rule['OFF'][i])
+        _rule['TIMEOUT']= _rule['TIMEOUT']*60
+        _rule['TIMER']      = time() + _rule['TIMEOUT']
     if _system not in CONFIG['SYSTEMS']:
         sys.exit('ERROR: Routing rules found for system not configured main configuration')
 for _system in CONFIG['SYSTEMS']:
@@ -69,6 +71,32 @@ __license__    = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unpo
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 __status__     = 'pre-alpha'
+
+
+# Run this every minute for rule timer updates
+def rule_timer_loop():
+    logger.debug('(ALL HBSYSTEMS) Rule timer loop started')
+    _now = time()
+    for _system in RULES:
+        for _rule in RULES[_system]['GROUP_VOICE']:
+            if _rule['TO_TYPE'] == 'ON':
+                if _rule['ACTIVE'] == True:
+                    if _rule['TIMER'] < _now:
+                        _rule['ACTIVE'] = False
+                        logger.info('(%s) Rule timout DEACTIVATE: Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+                    else:
+                        timeout_in = _rule['TIMER'] - _now
+                        logger.info('(%s) Rule ACTIVE with ON timer running: Timeout eligible in: %ds, Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, timeout_in, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+            elif _rule['TO_TYPE'] == 'OFF':
+                if _rule['ACTIVE'] == False:
+                    if _rule['TIMER'] < _now:
+                        _rule['ACTIVE'] = True
+                        logger.info('(%s) Rule timout ACTIVATE: Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+                    else:
+                        timeout_in = _rule['TIMER'] - _now
+                        logger.info('(%s) Rule DEACTIVE with OFF timer running: Timeout eligible in: %ds, Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, timeout_in, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+            else:
+                logger.debug('Rule timer loop made no rule changes')
 
 
 class routerSYSTEM(HBSYSTEM):
@@ -143,9 +171,8 @@ class routerSYSTEM(HBSYSTEM):
                 # just make a new one from the HBP header. This is good enough, and it saves lots of time
                 else:
                     self.STATUS[_slot]['RX_LC'] = const.LC_OPT + _dst_id + _rf_src
-        
-            
-            
+
+
             for rule in RULES[self._system]['GROUP_VOICE']:
                 _target = rule['DST_NET']
                 _target_status = systems[_target].STATUS
@@ -240,5 +267,9 @@ if __name__ == '__main__':
             systems[system] = routerSYSTEM(system)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
+            
+    # Initialize the rule timer -- this if for user activated stuff
+    rule_timer = task.LoopingCall(rule_timer_loop)
+    rule_timer.start(60)
 
     reactor.run()
