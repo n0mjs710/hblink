@@ -168,7 +168,7 @@ def hex_str_3(_int_id):
 def hex_str_4(_int_id):
     try:
         #return hex(_int_id)[2:].rjust(8,'0').decode('hex')
-        format(_int_id,'x').rjust(8,'0').decode('hex')
+        return format(_int_id,'x').rjust(8,'0').decode('hex')
     except TypeError:
         logger.error('hex_str_4: invalid integer length')
 
