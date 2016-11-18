@@ -400,6 +400,7 @@ class HBSYSTEM(DatagramProtocol):
                     logger.info('(%s) Client is closing down: %s (%s)', self._system, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id))
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
                     del self._clients[_radio_id]
+
             else:
                 _radio_id = _data[4:8]      # Configure Command
                 if _radio_id in self._clients \
@@ -414,15 +415,15 @@ class HBSYSTEM(DatagramProtocol):
                     _this_client['TX_FREQ'] =  _data[25:34]
                     _this_client['TX_POWER'] = _data[34:36]
                     _this_client['COLORCODE'] = _data[36:38]
-                    _this_client['LATITUDE'] = _data[38:47]
-                    _this_client['LONGITUDE'] = _data[47:57]
-                    _this_client['HEIGHT'] = _data[57:60]
-                    _this_client['LOCATION'] = _data[60:80]
-                    _this_client['DESCRIPTION'] = _data[80:99]
-                    _this_client['SLOTS'] = _data[99:100]
-                    _this_client['URL'] = _data[100:224]
-                    _this_client['SOFTWARE_ID'] = _data[224:264]
-                    _this_client['PACKAGE_ID'] = _data[264:304]
+                    _this_client['LATITUDE'] = _data[38:46]
+                    _this_client['LONGITUDE'] = _data[46:55]
+                    _this_client['HEIGHT'] = _data[55:58]
+                    _this_client['LOCATION'] = _data[58:78]
+                    _this_client['DESCRIPTION'] = _data[78:97]
+                    _this_client['SLOTS'] = _data[97:98]
+                    _this_client['URL'] = _data[98:222]
+                    _this_client['SOFTWARE_ID'] = _data[222:262]
+                    _this_client['PACKAGE_ID'] = _data[262:302]
 
                     self.send_client(_radio_id, 'RPTACK'+_radio_id)
                     logger.info('(%s) Client %s (%s) has sent repeater configuration', self._system, _this_client['CALLSIGN'], _this_client['RADIO_ID'])
