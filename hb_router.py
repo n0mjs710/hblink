@@ -75,7 +75,7 @@ __status__     = 'pre-alpha'
 
 # Run this every minute for rule timer updates
 def rule_timer_loop():
-    logger.debug('(ALL HBSYSTEMS) Rule timer loop started')
+    logger.info('(ALL HBSYSTEMS) Rule timer loop started')
     _now = time()
     for _system in RULES:
         for _rule in RULES[_system]['GROUP_VOICE']:
@@ -160,7 +160,7 @@ class routerSYSTEM(HBSYSTEM):
             
             # Is this a new call stream?   
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                if (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM) or ((pkt_time < self.STATUS[_slot]['RX_TIME'] + const.STREAM_TO) and (_rf_src != self.STATUS[_slot]['RX_RFS'])):
+                if (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM) and (pkt_time < (self.STATUS[_slot]['RX_TIME'] + const.STREAM_TO)) and (_rf_src != self.STATUS[_slot]['RX_RFS']):
                     logger.warning('(%s) Packet received with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
                     return
                 
@@ -196,7 +196,7 @@ class routerSYSTEM(HBSYSTEM):
                         if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
                             logger.info('(%s) Call not routed, target active or in group hangtime: HBP system %s, TS%s, TGID%s', self._system, _target, _slot, int_id(rule['DST_GROUP']))
                         continue    
-                    if (rule['DST_GROUP'] == self.STATUS[_slot]['TX_TGID']) and (_stream_id != self.STATUS[_slot]['TX_STREAM_ID']) and (((pkt_time - self.STATUS[_slot]['TX_TIME']) < const.STREAM_TO) and (_rf_src != self.STATUS[_slot]['TX_RFS'])):
+                    if (rule['DST_GROUP'] == self.STATUS[_slot]['TX_TGID']) and (_stream_id != self.STATUS[_slot]['TX_STREAM_ID']) and ((pkt_time - self.STATUS[_slot]['TX_TIME']) < const.STREAM_TO) and (_rf_src != self.STATUS[_slot]['TX_RFS']):
                         if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
                             logger.info('(%s) Call not routed, call in progress: %s, target: HBP system %s, TS%s, TGID%s', self._system, int_id(_src_sub), _target, _slot, int_id(rule['DST_GROUP']))
                         continue
