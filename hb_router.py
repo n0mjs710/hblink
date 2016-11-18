@@ -160,7 +160,7 @@ class routerSYSTEM(HBSYSTEM):
             
             # Is this a new call stream?   
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                if (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM) or ((pkt_time < self.STATUS[_slot]['RX_TIME'] + const.STREAM_TO) and (_rf_src != self.STATUS[_slot]['RX_SRC'])):
+                if (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM) or ((pkt_time < self.STATUS[_slot]['RX_TIME'] + const.STREAM_TO) and (_rf_src != self.STATUS[_slot]['RX_RFS'])):
                     logger.warning('(%s) Packet received with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
                     return
                 
