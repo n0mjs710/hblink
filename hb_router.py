@@ -166,7 +166,7 @@ class routerSYSTEM(HBSYSTEM):
                 
                 # This is a new call stream
                 new_stream = True
-                logger.info('(%s) Call stream START with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._system, int_id(_stream_id), sub_alias(_rf_src), peer_alias(_radio_id), tg_alias(_dst_id), _slot)
+                logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', self._system, int_id(_stream_id), sub_alias(_rf_src), int_id(_rf_src), peer_alias(_radio_id), int_id(_radio_id), tg_alias(_dst_id), int_id(_dst_id), _slot)
                 
                 # If we can, use the LC from the voice header as to keep all options intact
                 if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
@@ -251,7 +251,7 @@ class routerSYSTEM(HBSYSTEM):
             
             # Final actions - Is this a voice terminator?
             if (_frame_type == const.HBPF_DATA_SYNC) and (_dtype_vseq == const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM):
-                logger.info('(%s) Call stream END   with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s', self._system, int_id(_stream_id), sub_alias(_rf_src), peer_alias(_radio_id), tg_alias(_dst_id), _slot)
+                logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', self._system, int_id(_stream_id), sub_alias(_rf_src), int_id(_rf_src), peer_alias(_radio_id), int_id(_radio_id), tg_alias(_dst_id), int_id(_dst_id), _slot)
                 
             # Mark status variables for use later
             self.STATUS[_slot]['RX_RFS']       = _rf_src
