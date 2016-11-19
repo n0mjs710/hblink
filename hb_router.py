@@ -197,22 +197,22 @@ class routerSYSTEM(HBSYSTEM):
                     #   From the same group as the last TX to this HBSystem, but from a different subscriber, and it has been less than stream timeout
                     # The "continue" at the end of each means the next iteration of the for loop that tests for matching rules
                     #
-                    if ((rule['DST_GROUP'] != _target_status[_slot]['RX_TGID']) and ((pkt_time - _target_status[_slot]['RX_TIME']) < RULES[_target]['GROUP_HANGTIME'])):
+                    if ((rule['DST_GROUP'] != _target_status[rule['DST_TS']]['RX_TGID']) and ((pkt_time - _target_status[rule['DST_TS']]['RX_TIME']) < RULES[_target]['GROUP_HANGTIME'])):
                         if True: #if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed to TGID%s, target active or in group hangtime: HBSystem %s, %s, TGID%s', self._system, int_id(_target_status[_slot]['TX_TGID']), _target, _slot, int_id(rule['DST_GROUP']))
+                            logger.info('(%s) Call not routed to TGID%s, target active or in group hangtime: HBSystem %s, %s, TGID%s', self._system, int_id(_target_status[rule['DST_TS']]['TX_TGID']), _target, _slot, int_id(rule['DST_GROUP']))
                         continue    
-                    if ((rule['DST_GROUP'] != _target_status[_slot]['TX_TGID']) and ((pkt_time - _target_status[_slot]['TX_TIME']) < RULES[_target]['GROUP_HANGTIME'])):
+                    if ((rule['DST_GROUP'] != _target_status[rule['DST_TS']]['TX_TGID']) and ((pkt_time - _target_status[rule['DST_TS']]['TX_TIME']) < RULES[_target]['GROUP_HANGTIME'])):
                         if True: #if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed to TGID%s, target in group hangtime: HBSystem %s, %s, TGID%s', self._system, int_id(_target_status[_slot]['TX_TGID']), _target, _slot, int_id(rule['DST_GROUP']))
+                            logger.info('(%s) Call not routed to TGID%s, target in group hangtime: HBSystem %s, %s, TGID%s', self._system, int_id(_target_status[rule['DST_TS']]['TX_TGID']), _target, _slot, int_id(rule['DST_GROUP']))
                         continue
-                    if (rule['DST_GROUP'] == _target_status[_slot]['RX_TGID']) and ((pkt_time - self.STATUS[_slot]['RX_TIME']) < const.STREAM_TO):
+                    if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['RX_TGID']) and ((pkt_time - self.STATUS[_slot]['RX_TIME']) < const.STREAM_TO):
                         if True: #if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
                             print(repr(rule['DST_GROUP']), repr(self.STATUS[_slot]['RX_TGID']), pkt_time, self.STATUS[_slot]['RX_TIME'], const.STREAM_TO)
                             logger.info('(%s) Call not routed, matching call already active on target: HBSystem %s, %s, TGID%s', self._system, _target, _slot, int_id(rule['DST_GROUP']))
                         continue
-                    if (rule['DST_GROUP'] == _target_status[_slot]['TX_TGID']) and (_rf_src != _target_status[_slot]['TX_RFS']) and ((pkt_time - self.STATUS[_slot]['TX_TIME']) < const.STREAM_TO):
+                    if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['TX_TGID']) and (_rf_src != _target_status[rule['DST_TS']]['TX_RFS']) and ((pkt_time - self.STATUS[_slot]['TX_TIME']) < const.STREAM_TO):
                         if True: #if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed, call route in progress from %s, target: HBSystem %s, %s, TGID%s', self._system, _target_status[_slot]['TX_RFS'], _target, _slot, int_id(rule['DST_GROUP']))
+                            logger.info('(%s) Call not routed, call route in progress from %s, target: HBSystem %s, %s, TGID%s', self._system, _target_status[rule['DST_TS']]['TX_RFS'], _target, _slot, int_id(rule['DST_GROUP']))
                         continue
                         
                     '''
@@ -226,19 +226,19 @@ class routerSYSTEM(HBSYSTEM):
                         continue
                     '''
                     # Set values for the contention handler to test next time there is a frame to forward
-                    _target_status[_slot]['TX_TIME'] = pkt_time
+                    _target_status[rule['DST_TS']]['TX_TIME'] = pkt_time
                     
                     if _stream_id != self.STATUS[_slot]['RX_STREAM_ID']:
                         # Record the DST TGID and Stream ID
-                        _target_status[_slot]['TX_TGID'] = rule['DST_GROUP']
-                        _target_status[_slot]['TX_STREAM_ID'] = _stream_id
-                        _target_status[_slot]['TX_RFS'] = _rf_src
+                        _target_status[rule['DST_TS']]['TX_TGID'] = rule['DST_GROUP']
+                        _target_status[rule['DST_TS']]['TX_STREAM_ID'] = _stream_id
+                        _target_status[rule['DST_TS']]['TX_RFS'] = _rf_src
                         # Generate LCs (full and EMB) for the TX stream
                         # if _dst_id != rule['DST_GROUP']:
                         dst_lc = self.STATUS[_slot]['RX_LC'][0:3] + rule['DST_GROUP'] + _rf_src
-                        _target_status[_slot]['TX_H_LC'] = bptc.encode_header_lc(dst_lc)
-                        _target_status[_slot]['TX_T_LC'] = bptc.encode_terminator_lc(dst_lc)
-                        _target_status[_slot]['TX_EMB_LC'] = bptc.encode_emblc(dst_lc)
+                        _target_status[rule['DST_TS']]['TX_H_LC'] = bptc.encode_header_lc(dst_lc)
+                        _target_status[rule['DST_TS']]['TX_T_LC'] = bptc.encode_terminator_lc(dst_lc)
+                        _target_status[rule['DST_TS']]['TX_EMB_LC'] = bptc.encode_emblc(dst_lc)
                         logger.debug('(%s) Packet DST TGID (%s) does not match SRC TGID(%s) - Generating FULL and EMB LCs', self._system, int_id(rule['DST_GROUP']), int_id(_dst_id))
                     
                     # Handle any necessary re-writes for the destination
@@ -257,13 +257,13 @@ class routerSYSTEM(HBSYSTEM):
                     dmrbits.frombytes(dmrpkt)
                     # Create a voice header packet (FULL LC)
                     if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                        dmrbits = _target_status[_slot]['TX_H_LC'][0:98] + dmrbits[98:166] + _target_status[_slot]['TX_H_LC'][98:197]
+                        dmrbits = _target_status[rule['DST_TS']]['TX_H_LC'][0:98] + dmrbits[98:166] + _target_status[rule['DST_TS']]['TX_H_LC'][98:197]
                     # Create a voice terminator packet (FULL LC)
                     elif _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VTERM:
-                        dmrbits = _target_status[_slot]['TX_T_LC'][0:98] + dmrbits[98:166] + _target_status[_slot]['TX_T_LC'][98:197]
+                        dmrbits = _target_status[rule['DST_TS']]['TX_T_LC'][0:98] + dmrbits[98:166] + _target_status[rule['DST_TS']]['TX_T_LC'][98:197]
                     # Create a Burst B-E packet (Embedded LC)
                     elif _dtype_vseq in [1,2,3,4]:
-                        dmrbits = dmrbits[0:116] + _target_status[_slot]['TX_EMB_LC'][_dtype_vseq] + dmrbits[148:264]
+                        dmrbits = dmrbits[0:116] + _target_status[rule['DST_TS']]['TX_EMB_LC'][_dtype_vseq] + dmrbits[148:264]
                     dmrpkt = dmrbits.tobytes()
                     _tmp_data = _tmp_data + dmrpkt + _data[53:55]
                     
