@@ -14,9 +14,6 @@ from binascii import b2a_hex as h
 from bitarray import bitarray
 from time import time
 
-# Debugging functions
-from pprint import pprint
-
 # Twisted is pretty important, so I keep it separate
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
@@ -60,8 +57,37 @@ for _system in CONFIG['SYSTEMS']:
 
 RULES = RULES_FILE
 
-# TEMPORARY DEBUGGING LINE -- TO BE REMOVED LATER
-#pprint(RULES)
+# Import subscriber ACL
+# ACL may be a single list of subscriber IDs
+# Global action is to allow or deny them. Multiple lists with different actions and ranges
+# are not yet implemented.
+try:
+    from sub_acl import ACL_ACTION, ACL
+    # uses more memory to build hex strings, but processes MUCH faster when checking for matches
+    for i, e in enumerate(ACL):
+        ACL[i] = hex_str_3(ACL[i])
+    logger.info('Subscriber access control file found, subscriber ACL imported')
+except ImportError:
+    logger.critical('\'sub_acl.py\' not found - all subscriber IDs are valid')
+    ACL_ACTION = 'NONE'
+
+# Depending on which type of ACL is used (PERMIT, DENY... or there isn't one)
+# define a differnet function to be used to check the ACL
+if ACL_ACTION == 'PERMIT':
+    def allow_sub(_sub):
+        if _sub in ACL:
+            return True
+        else:
+            return False
+elif ACL_ACTION == 'DENY':
+    def allow_sub(_sub):
+        if _sub not in ACL:
+            return True
+        else:
+            return False
+else:
+    def allow_sub(_sub):
+        return True
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -160,6 +186,11 @@ class routerSYSTEM(HBSYSTEM):
         _bits = int_id(_data[15])
 
         if _call_type == 'group':
+            
+            # Check for ACL match, and return if the subscriber is not allowed
+            if allow_sub(_rf_src) == False:
+                logger.warning('(%s) Group Voice Packet ***REJECTED BY ACL*** From: %s, HBP Peer %s, Destination TGID %s', self._system, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id))
+                return
             
             # Is this a new call stream?   
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
