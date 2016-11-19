@@ -92,3 +92,19 @@ if __name__ == '__main__':
     
     from binascii import b2a_hex as h
     from time import time
+    
+    EMB_bits = [0,0,0,0]
+    EMB_bits[0] = bitarray('0001000') # 111100010
+    EMB_bits[1] = bitarray('0001001') # 110010001
+    EMB_bits[2] = bitarray('0001010') # 100000111
+    EMB_bits[3] = bitarray('0001011') # 101110100
+    print(EMB_bits)
+
+    
+    for seq in xrange(4):
+        out = 0
+        for bit in EMB_bits[seq]:
+            out = (out << 1) | bit
+        print(out)
+        emb = ENCODE_1676[out]
+        print(bin(emb))
