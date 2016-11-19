@@ -230,20 +230,20 @@ class routerSYSTEM(HBSYSTEM):
                     #
                     if ((rule['DST_GROUP'] != _target_status[rule['DST_TS']]['RX_TGID']) and ((pkt_time - _target_status[rule['DST_TS']]['RX_TIME']) < RULES[_target]['GROUP_HANGTIME'])):
                         if True: #if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed to TGID%s, target active or in group hangtime: HBSystem %s, %s, TGID%s', self._system, int_id(_target_status[rule['DST_TS']]['TX_TGID']), _target, _slot, int_id(rule['DST_GROUP']))
+                            logger.info('(%s) Call not routed to TGID%s, target active or in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(rule['DST_GROUP']), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['RX_TGID']))
                         continue    
                     if ((rule['DST_GROUP'] != _target_status[rule['DST_TS']]['TX_TGID']) and ((pkt_time - _target_status[rule['DST_TS']]['TX_TIME']) < RULES[_target]['GROUP_HANGTIME'])):
                         if True: #if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed to TGID%s, target in group hangtime: HBSystem %s, %s, TGID%s', self._system, int_id(_target_status[rule['DST_TS']]['TX_TGID']), _target, _slot, int_id(rule['DST_GROUP']))
+                            logger.info('(%s) Call not routed to TGID%s, target in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(rule['DST_GROUP']), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['TX_TGID']))
                         continue
                     if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['RX_TGID']) and ((pkt_time - _target_status[rule['DST_TS']]['RX_TIME']) < const.STREAM_TO):
                         if True: #if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
                             print(repr(rule['DST_GROUP']), repr(_target_status[rule['DST_TS']]['RX_TGID']), pkt_time, _target_status[rule['DST_TS']]['RX_TIME'], const.STREAM_TO)
-                            logger.info('(%s) Call not routed, matching call already active on target: HBSystem %s, %s, TGID%s', self._system, _target, _slot, int_id(rule['DST_GROUP']))
+                            logger.info('(%s) Call not routed to TGID%s, matching call already active on target: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(rule['DST_GROUP']), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['RX_TGID']))
                         continue
                     if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['TX_TGID']) and (_rf_src != _target_status[rule['DST_TS']]['TX_RFS']) and ((pkt_time - _target_status[rule['DST_TS']]['TX_TIME']) < const.STREAM_TO):
                         if True: #if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed, call route in progress from %s, target: HBSystem %s, %s, TGID%s', self._system, _target_status[rule['DST_TS']]['TX_RFS'], _target, _slot, int_id(rule['DST_GROUP']))
+                            logger.info('(%s) Call not routed for subscriber %s, call route in progress on target: HBSystem: %s, TS: %s, TGID: %s, SUB: %s', self._system, int_id(_rf_src), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['TX_TGID']), _target_status[rule['DST_TS']]['TX_RFS'])
                         continue
 
                     # Set values for the contention handler to test next time there is a frame to forward
