@@ -66,7 +66,7 @@ RULES = RULES_FILE
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
 __copyright__  = 'Copyright (c) 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
-__credits__    = 'Colin Durbridge, G4EML, Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
+__credits__    = 'Colin Durrouting, G4EML, Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
 __license__    = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
@@ -205,26 +205,16 @@ class routerSYSTEM(HBSYSTEM):
                         if True: #if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
                             logger.info('(%s) Call not routed to TGID%s, target in group hangtime: HBSystem %s, %s, TGID%s', self._system, int_id(_target_status[rule['DST_TS']]['TX_TGID']), _target, _slot, int_id(rule['DST_GROUP']))
                         continue
-                    if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['RX_TGID']) and ((pkt_time - self.STATUS[_slot]['RX_TIME']) < const.STREAM_TO):
+                    if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['RX_TGID']) and ((pkt_time - _target_status[rule['DST_TS']]['RX_TIME']) < const.STREAM_TO):
                         if True: #if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            print(repr(rule['DST_GROUP']), repr(self.STATUS[_slot]['RX_TGID']), pkt_time, self.STATUS[_slot]['RX_TIME'], const.STREAM_TO)
+                            print(repr(rule['DST_GROUP']), repr(_target_status[rule['DST_TS']]['RX_TGID']), pkt_time, _target_status[rule['DST_TS']]['RX_TIME'], const.STREAM_TO)
                             logger.info('(%s) Call not routed, matching call already active on target: HBSystem %s, %s, TGID%s', self._system, _target, _slot, int_id(rule['DST_GROUP']))
                         continue
-                    if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['TX_TGID']) and (_rf_src != _target_status[rule['DST_TS']]['TX_RFS']) and ((pkt_time - self.STATUS[_slot]['TX_TIME']) < const.STREAM_TO):
+                    if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['TX_TGID']) and (_rf_src != _target_status[rule['DST_TS']]['TX_RFS']) and ((pkt_time - _target_status[rule['DST_TS']]['TX_TIME']) < const.STREAM_TO):
                         if True: #if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
                             logger.info('(%s) Call not routed, call route in progress from %s, target: HBSystem %s, %s, TGID%s', self._system, _target_status[rule['DST_TS']]['TX_RFS'], _target, _slot, int_id(rule['DST_GROUP']))
                         continue
-                        
-                    '''
-                    if ((rule['DST_GROUP'] != _target_status[_slot]['TX_TGID']) and ((pkt_time - self.STATUS[_slot]['RX_TIME']) < RULES[self._system]['GROUP_HANGTIME'])):
-                        if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed, target active or in group hangtime: HBP system %s, TS%s, TGID%s', self._system, _target, _slot, int_id(rule['DST_GROUP']))
-                        continue    
-                    if (rule['DST_GROUP'] == self.STATUS[_slot]['TX_TGID']) and (_stream_id != self.STATUS[_slot]['TX_STREAM_ID']) and ((pkt_time - self.STATUS[_slot]['TX_TIME']) < const.STREAM_TO) and (_rf_src != self.STATUS[_slot]['TX_RFS']):
-                        if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed, call in progress: %s, target: HBP system %s, TS%s, TGID%s', self._system, int_id(_src_sub), _target, _slot, int_id(rule['DST_GROUP']))
-                        continue
-                    '''
+
                     # Set values for the contention handler to test next time there is a frame to forward
                     _target_status[rule['DST_TS']]['TX_TIME'] = pkt_time
                     
@@ -277,6 +267,56 @@ class routerSYSTEM(HBSYSTEM):
             if (_frame_type == const.HBPF_DATA_SYNC) and (_dtype_vseq == const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM):
                 call_duration = pkt_time - self.STATUS['RX_START']
                 logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', self._system, int_id(_stream_id), sub_alias(_rf_src), int_id(_rf_src), peer_alias(_radio_id), int_id(_radio_id), tg_alias(_dst_id), int_id(_dst_id), _slot, call_duration)
+                
+                #
+                # Begin in-band signalling for call end. This has nothign to do with routing traffic directly.
+                #
+                
+                # Iterate the rules dictionary
+                for rule in RULES[self._system]['GROUP_VOICE']:
+                    _target = rule['DST_NET']
+            
+                    # TGID matches a rule source, reset its timer
+                    if _slot == rule['SRC_TS'] and _dst_id == rule['SRC_GROUP'] and ((rule['TO_TYPE'] == 'ON' and (rule['ACTIVE'] == True)) or (rule['TO_TYPE'] == 'OFF' and rule['ACTIVE'] == False)):
+                        rule['TIMER'] = pkt_time + rule['TIMEOUT']
+                        logger.info('(%s) Source group transmission match for rule \"%s\". Reset timeout to %s', self._system, rule['NAME'], rule['TIMER'])
+                
+                        # Scan for reciprocal rules and reset their timers as well.
+                        for target_rule in RULES[_target]['GROUP_VOICE']:
+                            if target_rule['NAME'] == rule['NAME']:
+                                target_rule['TIMER'] = pkt_time + target_rule['TIMEOUT']
+                                logger.info('(%s) Reciprocal group transmission match for rule \"%s\" on IPSC \"%s\". Reset timeout to %s', self._system, target_rule['NAME'], _target, rule['TIMER'])
+            
+                    # TGID matches an ACTIVATION trigger
+                    if _dst_id in rule['ON']:
+                        # Set the matching rule as ACTIVE
+                        rule['ACTIVE'] = True
+                        rule['TIMER'] = pkt_time + rule['TIMEOUT']
+                        logger.info('(%s) Primary routing Rule \"%s\" changed to state: %s', self._system, rule['NAME'], rule['ACTIVE'])
+                
+                        # Set reciprocal rules for other IPSCs as ACTIVE
+                        for target_rule in RULES[_target]['GROUP_VOICE']:
+                            if target_rule['NAME'] == rule['NAME']:
+                                target_rule['ACTIVE'] = True
+                                target_rule['TIMER'] = pkt_time + target_rule['TIMEOUT']
+                                logger.info('(%s) Reciprocal routing Rule \"%s\" in IPSC \"%s\" changed to state: %s', self._system, target_rule['NAME'], _target, rule['ACTIVE'])
+                        
+                    # TGID matches an DE-ACTIVATION trigger
+                    if _dst_id in rule['OFF']:
+                        # Set the matching rule as ACTIVE
+                        rule['ACTIVE'] = False
+                        logger.info('(%s) Routing Rule \"%s\" changed to state: %s', self._system, rule['NAME'], rule['ACTIVE'])
+                
+                        # Set reciprocal rules for other IPSCs as ACTIVE
+                        _target = rule['DST_NET']
+                        for target_rule in RULES[_target]['GROUP_VOICE']:
+                            if target_rule['NAME'] == rule['NAME']:
+                                target_rule['ACTIVE'] = False
+                                logger.info('(%s) Reciprocal routing Rule \"%s\" in IPSC \"%s\" changed to state: %s', self._system, target_rule['NAME'], _target, rule['ACTIVE'])
+            #                    
+            # END IN-BAND SIGNALLING
+            #
+                
                 
             # Mark status variables for use later
             self.STATUS[_slot]['RX_RFS']       = _rf_src
