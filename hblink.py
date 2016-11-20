@@ -160,7 +160,8 @@ for sig in [signal.SIGTERM, signal.SIGINT]:
 # Create a 3 byte hex string from an integer
 def hex_str_3(_int_id):
     try:
-        return hex(_int_id)[2:].rjust(6,'0').decode('hex')
+        #return hex(_int_id)[2:].rjust(6,'0').decode('hex')
+        return format(_int_id,'x').rjust(6,'0').decode('hex')
     except TypeError:
         logger.error('hex_str_3: invalid integer length')
 
