@@ -140,8 +140,8 @@ def rule_timer_loop():
 
 class routerSYSTEM(HBSYSTEM):
     
-    def __init__(self, *args, **kwargs):
-        HBSYSTEM.__init__(self, *args, **kwargs)
+    def __init__(self, _name, _config):
+        HBSYSTEM.__init__(self, _name, _config)
         
         # Status information for the system, TS1 & TS2
         # 1 & 2 are "timeslot"
@@ -302,7 +302,7 @@ class routerSYSTEM(HBSYSTEM):
                     
                     # Transmit the packet to the destination system
                     systems[_target].send_system(_tmp_data)
-                    logger.debug('(%s) Packet routed by rule: %s to %s system: %s', self._system, rule['NAME'], CONFIG['SYSTEMS'][_target]['MODE'], _target)
+                    logger.debug('(%s) Packet routed by rule: %s to %s system: %s', self._system, rule['NAME'], self.CONFIG['SYSTEMS'][_target]['MODE'], _target)
             
             
             
@@ -377,10 +377,9 @@ if __name__ == '__main__':
     logger.info('HBlink \'hb_router.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     
     # HBlink instance creation
-    # HBlink instance creation
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
-            systems[system] = routerSYSTEM(system)
+            systems[system] = routerSYSTEM(system, CONFIG)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
             
