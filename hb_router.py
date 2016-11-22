@@ -302,7 +302,7 @@ class routerSYSTEM(HBSYSTEM):
                     
                     # Transmit the packet to the destination system
                     systems[_target].send_system(_tmp_data)
-                    logger.debug('(%s) Packet routed by rule: %s to %s system: %s', self._system, rule['NAME'], self.CONFIG['SYSTEMS'][_target]['MODE'], _target)
+                    logger.debug('(%s) Packet routed by rule: %s to %s system: %s', self._system, rule['NAME'], self._CONFIG['SYSTEMS'][_target]['MODE'], _target)
             
             
             

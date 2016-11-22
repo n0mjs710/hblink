@@ -195,9 +195,12 @@ def int_id(_hex_string):
 #************************************************
 
 class AMBE:
-    _sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-    _exp_ip = CONFIG['AMBE']['EXPORT_IP']
-    _exp_port = CONFIG['AMBE']['EXPORT_PORT']
+    def __init__(self, _config):
+        self._CONFIG = _config
+         
+        self._sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        self._exp_ip = self._CONFIG['AMBE']['EXPORT_IP']
+        self._exp_port = self._CONFIG['AMBE']['EXPORT_PORT']
 
     def parseAMBE(self, _client, _data):
         _seq = int_id(_data[4:5])
@@ -230,13 +233,13 @@ class AMBE:
 class HBSYSTEM(DatagramProtocol):
     def __init__(self, _name, _config):
         # Define a few shortcuts to make the rest of the class more readable
-        self.CONFIG = _config
-        self.system = _name
-        self._config = self.CONFIG['SYSTEMS'][self.system]
+        self._CONFIG = _config
+        self._system = _name
+        self._config = self._CONFIG['SYSTEMS'][self._system]
         
         # Define shortcuts and generic function names based on the type of system we are
         if self._config['MODE'] == 'MASTER':
-            self._clients = self.CONFIG['SYSTEMS'][self.system]['CLIENTS']
+            self._clients = self._CONFIG['SYSTEMS'][self._system]['CLIENTS']
             self.send_system = self.send_clients
             self.maintenance_loop = self.master_maintenance_loop
             self.datagramReceived = self.master_datagramReceived
@@ -253,40 +256,40 @@ class HBSYSTEM(DatagramProtocol):
 
     def startProtocol(self):
         # Set up periodic loop for tracking pings from clients. Run every 'PING_TIME' seconds
-        self.system_maintenance = task.LoopingCall(self.maintenance_loop)
-        self.system_maintenance_loop = self.system_maintenance.start(self.CONFIG['GLOBAL']['PING_TIME'])
+        self._system_maintenance = task.LoopingCall(self.maintenance_loop)
+        self._system_maintenance_loop = self._system_maintenance.start(self._CONFIG['GLOBAL']['PING_TIME'])
     
     # Aliased in __init__ to maintenance_loop if system is a master
     def master_maintenance_loop(self):
-        logger.debug('(%s) Master maintenance loop started', self.system)
+        logger.debug('(%s) Master maintenance loop started', self._system)
         for client in self._clients:
             _this_client = self._clients[client]
             # Check to see if any of the clients have been quiet (no ping) longer than allowed
-            if _this_client['LAST_PING']+self.CONFIG['GLOBAL']['PING_TIME']*self.CONFIG['GLOBAL']['MAX_MISSED'] < time():
-                logger.info('(%s) Client %s (%s) has timed out', self.system, _this_client['CALLSIGN'], _this_client['RADIO_ID'])
+            if _this_client['LAST_PING']+self._CONFIG['GLOBAL']['PING_TIME']*self._CONFIG['GLOBAL']['MAX_MISSED'] < time():
+                logger.info('(%s) Client %s (%s) has timed out', self._system, _this_client['CALLSIGN'], _this_client['RADIO_ID'])
                 # Remove any timed out clients from the configuration
-                del self.CONFIG['SYSTEMS'][self.system]['CLIENTS'][client]
+                del self._CONFIG['SYSTEMS'][self._system]['CLIENTS'][client]
     
     # Aliased in __init__ to maintenance_loop if system is a client           
     def client_maintenance_loop(self):
-        logger.debug('(%s) Client maintenance loop started', self.system)
+        logger.debug('(%s) Client maintenance loop started', self._system)
         # If we're not connected, zero out the stats and send a login request RPTL
         if self._stats['CONNECTION'] == 'NO' or self._stats['CONNECTION'] == 'RTPL_SENT':
             self._stats['PINGS_SENT'] = 0
             self._stats['PINGS_ACKD'] = 0
             self._stats['CONNECTION'] = 'RTPL_SENT'
             self.send_master('RPTL'+self._config['RADIO_ID'])
-            logger.info('(%s) Sending login request to master %s:%s', self.system, self._config['MASTER_IP'], self._config['MASTER_PORT'])
+            logger.info('(%s) Sending login request to master %s:%s', self._system, self._config['MASTER_IP'], self._config['MASTER_PORT'])
         # If we are connected, sent a ping to the master and increment the counter
         if self._stats['CONNECTION'] == 'YES':
             self.send_master('RPTPING'+self._config['RADIO_ID'])
             self._stats['PINGS_SENT'] += 1
-            logger.debug('(%s) RPTPING Sent to Master. Pings Since Connected: %s', self.system, self._stats['PINGS_SENT'])
+            logger.debug('(%s) RPTPING Sent to Master. Pings Since Connected: %s', self._system, self._stats['PINGS_SENT'])
 
     def send_clients(self, _packet):
         for _client in self._clients:
             self.send_client(_client, _packet)
-            #logger.debug('(%s) Packet sent to client %s', self.system, self._clients[_client]['RADIO_ID'])
+            #logger.debug('(%s) Packet sent to client %s', self._system, self._clients[_client]['RADIO_ID'])
 
     def send_client(self, _client, _packet):
         _ip = self._clients[_client]['IP']
@@ -298,7 +301,7 @@ class HBSYSTEM(DatagramProtocol):
     def send_master(self, _packet):
         self.transport.write(_packet, (self._config['MASTER_IP'], self._config['MASTER_PORT']))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
-        #logger.debug('(%s) TX Packet to %s:%s -- %s', self.system, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
+        #logger.debug('(%s) TX Packet to %s:%s -- %s', self._system, self._config['MASTER_IP'], self._config['MASTER_PORT'], h(_packet))
 
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pass
@@ -306,7 +309,7 @@ class HBSYSTEM(DatagramProtocol):
     # Aliased in __init__ to datagramReceived if system is a master
     def master_datagramReceived(self, _data, (_host, _port)):
         # Keep This Line Commented Unless HEAVILY Debugging!
-        #logger.debug('(%s) RX packet from %s:%s -- %s', self.system, _host, _port, h(_data))
+        #logger.debug('(%s) RX packet from %s:%s -- %s', self._system, _host, _port, h(_data))
 
         # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
         _command = _data[:4]
@@ -326,18 +329,18 @@ class HBSYSTEM(DatagramProtocol):
                 _frame_type = (_bits & 0x30) >> 4
                 _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                 _stream_id = _data[16:20]
-                #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self.system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
+                #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
 
                 # If AMBE audio exporting is configured...
                 if self._config['EXPORT_AMBE']:
-                    self._ambe.parseAMBE(self.system, _data)
+                    self._ambe.parseAMBE(self._system, _data)
 
                 # The basic purpose of a master is to repeat to the clients
                 if self._config['REPEAT'] == True:
                     for _client in self._clients:
                         if _client != _radio_id:
                             self.send_client(_client, _data)
-                            logger.debug('(%s) Packet on TS%s from %s (%s) for destination ID %s repeated to client: %s (%s) [Stream ID: %s]', self.system, _slot, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id), int_id(_dst_id), self._clients[_client]['CALLSIGN'], int_id(_client), int_id(_stream_id))
+                            logger.debug('(%s) Packet on TS%s from %s (%s) for destination ID %s repeated to client: %s (%s) [Stream ID: %s]', self._system, _slot, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id), int_id(_dst_id), self._clients[_client]['CALLSIGN'], int_id(_client), int_id(_stream_id))
 
                 # Userland actions -- typically this is the function you subclass for an application
                 self.dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
@@ -368,14 +371,14 @@ class HBSYSTEM(DatagramProtocol):
                     'SOFTWARE_ID': '',
                     'PACKAGE_ID': '',
                 }})
-                logger.info('(%s) Repeater Logging in with Radio ID: %s, %s:%s', self.system, int_id(_radio_id), _host, _port)
+                logger.info('(%s) Repeater Logging in with Radio ID: %s, %s:%s', self._system, int_id(_radio_id), _host, _port)
                 _salt_str = hex_str_4(self._clients[_radio_id]['SALT'])
                 self.send_client(_radio_id, 'RPTACK'+_salt_str)
                 self._clients[_radio_id]['CONNECTION'] = 'CHALLENGE_SENT'
-                logger.info('(%s) Sent Challenge Response to %s for login: %s', self.system, int_id(_radio_id), self._clients[_radio_id]['SALT'])
+                logger.info('(%s) Sent Challenge Response to %s for login: %s', self._system, int_id(_radio_id), self._clients[_radio_id]['SALT'])
             else:
                 self.transport.write('MSTNAK'+_radio_id, (_host, _port))
-                logger.warning('(%s) Invalid Login from Radio ID: %s', self.system, int_id(_radio_id))
+                logger.warning('(%s) Invalid Login from Radio ID: %s', self._system, int_id(_radio_id))
 
         elif _command == 'RPTK':    # Repeater has answered our login challenge
             _radio_id = _data[4:8]
@@ -391,14 +394,14 @@ class HBSYSTEM(DatagramProtocol):
                 if _sent_hash == _calc_hash:
                     _this_client['CONNECTION'] = 'WAITING_CONFIG'
                     self.send_client(_radio_id, 'RPTACK'+_radio_id)
-                    logger.info('(%s) Client %s has completed the login exchange successfully', self.system, _this_client['RADIO_ID'])
+                    logger.info('(%s) Client %s has completed the login exchange successfully', self._system, _this_client['RADIO_ID'])
                 else:
-                    logger.info('(%s) Client %s has FAILED the login exchange successfully', self.system, _this_client['RADIO_ID'])
+                    logger.info('(%s) Client %s has FAILED the login exchange successfully', self._system, _this_client['RADIO_ID'])
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
                     del self._clients[_radio_id]
             else:
                 self.transport.write('MSTNAK'+_radio_id, (_host, _port))
-                logger.warning('(%s) Login challenge from Radio ID that has not logged in: %s', self.system, int_id(_radio_id))
+                logger.warning('(%s) Login challenge from Radio ID that has not logged in: %s', self._system, int_id(_radio_id))
 
         elif _command == 'RPTC':    # Repeater is sending it's configuraiton OR disconnecting
             if _data[:5] == 'RPTCL':    # Disconnect command
@@ -407,7 +410,7 @@ class HBSYSTEM(DatagramProtocol):
                             and self._clients[_radio_id]['CONNECTION'] == 'YES' \
                             and self._clients[_radio_id]['IP'] == _host \
                             and self._clients[_radio_id]['PORT'] == _port:
-                    logger.info('(%s) Client is closing down: %s (%s)', self.system, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id))
+                    logger.info('(%s) Client is closing down: %s (%s)', self._system, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id))
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
                     del self._clients[_radio_id]
 
@@ -436,10 +439,10 @@ class HBSYSTEM(DatagramProtocol):
                     _this_client['PACKAGE_ID'] = _data[262:302]
 
                     self.send_client(_radio_id, 'RPTACK'+_radio_id)
-                    logger.info('(%s) Client %s (%s) has sent repeater configuration', self.system, _this_client['CALLSIGN'], _this_client['RADIO_ID'])
+                    logger.info('(%s) Client %s (%s) has sent repeater configuration', self._system, _this_client['CALLSIGN'], _this_client['RADIO_ID'])
                 else:
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
-                    logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self.system, int_id(_radio_id))
+                    logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self._system, int_id(_radio_id))
 
         elif _command == 'RPTP':    # RPTPing -- client is pinging us
                 _radio_id = _data[7:11]
@@ -449,18 +452,18 @@ class HBSYSTEM(DatagramProtocol):
                             and self._clients[_radio_id]['PORT'] == _port:
                     self._clients[_radio_id]['LAST_PING'] = time()
                     self.send_client(_radio_id, 'MSTPONG'+_radio_id)
-                    logger.debug('(%s) Received and answered RPTPING from client %s (%s)', self.system, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id))
+                    logger.debug('(%s) Received and answered RPTPING from client %s (%s)', self._system, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id))
                 else:
                     self.transport.write('MSTNAK'+_radio_id, (_host, _port))
-                    logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self.system, int_id(_radio_id))
+                    logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self._system, int_id(_radio_id))
 
         else:
-            logger.error('(%s) Unrecognized command from: %s. Packet: %s', self.system, int_id(_radio_id), h(_data))
+            logger.error('(%s) Unrecognized command from: %s. Packet: %s', self._system, int_id(_radio_id), h(_data))
         
     # Aliased in __init__ to datagramReceived if system is a client
     def client_datagramReceived(self, _data, (_host, _port)):
         # Keep This Line Commented Unless HEAVILY Debugging!
-        # logger.debug('(%s) RX packet from %s:%s -- %s', self.system, _host, _port, h(_data))
+        # logger.debug('(%s) RX packet from %s:%s -- %s', self._system, _host, _port, h(_data))
 
         # Validate that we receveived this packet from the master - security check!
         if self._config['MASTER_IP'] == _host and self._config['MASTER_PORT'] == _port:
@@ -478,11 +481,11 @@ class HBSYSTEM(DatagramProtocol):
                     _frame_type = (_bits & 0x30) >> 4
                     _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                     _stream_id = _data[16:20]
-                    #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self.system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
+                    #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
 
                     # If AMBE audio exporting is configured...
                     if self._config['EXPORT_AMBE']:
-                        self._ambe.parseAMBE(self.system, _data)
+                        self._ambe.parseAMBE(self._system, _data)
 
                     # Userland actions -- typically this is the function you subclass for an application
                     self.dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
@@ -490,14 +493,14 @@ class HBSYSTEM(DatagramProtocol):
             elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
                 _radio_id = _data[4:8]
                 if _radio_id == self._config['RADIO_ID']: # Validate the source and intended target
-                    logger.warning('(%s) MSTNAK Received', self.system)
+                    logger.warning('(%s) MSTNAK Received', self._system)
                     self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
 
             elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
                 # Depending on the state, an RPTACK means different things, in each clause, we check and/or set the state
                 if self._stats['CONNECTION'] == 'RTPL_SENT': # If we've sent a login request...
                     _login_int32 = _data[6:10]
-                    logger.info('(%s) Repeater Login ACK Received with 32bit ID: %s', self.system, int_id(_login_int32))
+                    logger.info('(%s) Repeater Login ACK Received with 32bit ID: %s', self._system, int_id(_login_int32))
                     _pass_hash = sha256(_login_int32+self._config['PASSPHRASE']).hexdigest()
                     _pass_hash = a(_pass_hash)
                     self.send_master('RPTK'+self._config['RADIO_ID']+_pass_hash)
@@ -505,7 +508,7 @@ class HBSYSTEM(DatagramProtocol):
 
                 elif self._stats['CONNECTION'] == 'AUTHENTICATED': # If we've sent the login challenge...
                     if _data[6:10] == self._config['RADIO_ID']:
-                        logger.info('(%s) Repeater Authentication Accepted', self.system)
+                        logger.info('(%s) Repeater Authentication Accepted', self._system)
                         _config_packet =  self._config['RADIO_ID']+\
                                           self._config['CALLSIGN']+\
                                           self._config['RX_FREQ']+\
@@ -524,32 +527,32 @@ class HBSYSTEM(DatagramProtocol):
 
                         self.send_master('RPTC'+_config_packet)
                         self._stats['CONNECTION'] = 'CONFIG-SENT'
-                        logger.info('(%s) Repeater Configuration Sent', self.system)
+                        logger.info('(%s) Repeater Configuration Sent', self._system)
                     else:
                         self._stats['CONNECTION'] = 'NO'
-                        logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self.system)
+                        logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self._system)
 
                 elif self._stats['CONNECTION'] == 'CONFIG-SENT': # If we've sent out configuration to the master
                     if _data[6:10] == self._config['RADIO_ID']:
-                        logger.info('(%s) Repeater Configuration Accepted', self.system)
+                        logger.info('(%s) Repeater Configuration Accepted', self._system)
                         self._stats['CONNECTION'] = 'YES'
-                        logger.info('(%s) Connection to Master Completed', self.system)
+                        logger.info('(%s) Connection to Master Completed', self._system)
                     else:
                         self._stats['CONNECTION'] = 'NO'
-                        logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self.system)
+                        logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self._system)
 
             elif _command == 'MSTP':    # Actually MSTPONG -- a reply to RPTPING (send by client)
                 if _data [7:11] == self._config['RADIO_ID']:
                     self._stats['PINGS_ACKD'] += 1
-                    logger.debug('(%s) MSTPONG Received. Pongs Since Connected: %s', self.system, self._stats['PINGS_ACKD'])
+                    logger.debug('(%s) MSTPONG Received. Pongs Since Connected: %s', self._system, self._stats['PINGS_ACKD'])
 
             elif _command == 'MSTC':    # Actually MSTCL -- notify us the master is closing down
                 if _data[5:9] == self._config['RADIO_ID']:
                     self._stats['CONNECTION'] = 'NO'
-                    logger.info('(%s) MSTCL Recieved', self.system)
+                    logger.info('(%s) MSTCL Recieved', self._system)
 
             else:
-                logger.error('(%s) Received an invalid command in packet: %s', self.system, h(_data))
+                logger.error('(%s) Received an invalid command in packet: %s', self._system, h(_data))
 
 
 #************************************************
