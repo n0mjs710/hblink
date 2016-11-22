@@ -1,10 +1,23 @@
 #!/usr/bin/env python
 #
-# This work is licensed under the Creative Attribution-NonCommercial-ShareAlike
-# 3.0 Unported License.To view a copy of this license, visit
-# http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to
-# Creative Commons, 444 Castro Street, Suite 900, Mountain View,
-# California, 94041, USA.
+###############################################################################
+# hb_router.py -- a call routing applicaiton for hblink.py
+#   Copyright (C) 2016  Cortney T. Buffington, N0MJS <n0mjs@me.com>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software Foundation,
+#   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+###############################################################################
 
 import ConfigParser
 import sys
