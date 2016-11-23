@@ -24,6 +24,7 @@ from __future__ import print_function
 import sys
 from bitarray import bitarray
 from time import time
+from importlib import import_module
 
 # Twisted is pretty important, so I keep it separate
 from twisted.internet.protocol import DatagramProtocol
@@ -56,17 +57,17 @@ __status__     = 'pre-alpha'
 # Note: A stanza *must* exist for any MASTER or CLIENT configured in the main
 # configuration file and listed as "active". It can be empty, 
 # but it has to exist.
-def make_rules():
+def make_rules(_hb_routing_rules):
     try:
-        from hb_routing_rules import RULES as RULES_FILE
+        rule_file = import_module(_hb_routing_rules)
         logger.info('Routing rules file found and rules imported')
     except ImportError:
         sys.exit('Routing rules file not found or invalid')
     
     # Convert integer GROUP ID numbers from the config into hex strings
     # we need to send in the actual data packets.
-    for _system in RULES_FILE:
-        for _rule in RULES_FILE[_system]['GROUP_VOICE']:
+    for _system in rule_file.RULES:
+        for _rule in rule_file.RULES[_system]['GROUP_VOICE']:
             _rule['SRC_GROUP'] = hex_str_3(_rule['SRC_GROUP'])
             _rule['DST_GROUP'] = hex_str_3(_rule['DST_GROUP'])
             _rule['SRC_TS']    = _rule['SRC_TS']
@@ -80,9 +81,9 @@ def make_rules():
         if _system not in CONFIG['SYSTEMS']:
             sys.exit('ERROR: Routing rules found for system not configured main configuration')
     for _system in CONFIG['SYSTEMS']:
-        if _system not in RULES_FILE:
+        if _system not in rule_file.RULES:
             sys.exit('ERROR: Routing rules not found for all systems configured')
-    return RULES_FILE
+    return rule_file.RULES
 
 
 # Import subscriber ACL
@@ -472,7 +473,7 @@ if __name__ == '__main__':
     #
     
     # Build the routing rules file
-    RULES = make_rules()
+    RULES = make_rules('hb_routing_rules')
     
     # Build the Access Control List
     build_acl()
