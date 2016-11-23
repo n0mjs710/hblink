@@ -27,7 +27,7 @@ from bitarray import bitarray
 __author__     = 'Cortney T. Buffington, N0MJS'
 __copyright__  = 'Copyright (c) 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
 __credits__    = ''
-__license__    = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
+__license__    = 'GNU GPLv3'
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 
