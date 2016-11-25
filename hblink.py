@@ -181,7 +181,7 @@ class HBSYSTEM(DatagramProtocol):
     def master_dereg(self):
         for _client in self._clients:
             self.send_client(_client, 'MSTCL'+_client)
-            self._logger.info('(%s) De-Registration sent to Client: %s (%s)', self._system, self._clients[_client]['CALLSIGN'], self._clients[_client][client]['RADIO_ID'])
+            self._logger.info('(%s) De-Registration sent to Client: %s (%s)', self._system, self._clients[_client]['CALLSIGN'], self._clients[_client]['RADIO_ID'])
             
     def client_dereg(self):
         self.send_master('RPTCL'+self._config['RADIO_ID'])
@@ -271,7 +271,7 @@ class HBSYSTEM(DatagramProtocol):
                 _this_client['LAST_PING'] = time()
                 _sent_hash = _data[8:]
                 _salt_str = hex_str_4(_this_client['SALT'])
-                _calc_hash = a(sha256(_salt_str+self._config['PASSPHRASE']).hexdigest())
+                _calc_hash = bhex(sha256(_salt_str+self._config['PASSPHRASE']).hexdigest())
                 if _sent_hash == _calc_hash:
                     _this_client['CONNECTION'] = 'WAITING_CONFIG'
                     self.send_client(_radio_id, 'RPTACK'+_radio_id)

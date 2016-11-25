@@ -103,6 +103,7 @@ def build_acl():
 
     # Depending on which type of ACL is used (PERMIT, DENY... or there isn't one)
     # define a differnet function to be used to check the ACL
+    global allow_sub
     if ACL_ACTION == 'PERMIT':
         def allow_sub(_sub):
             if _sub in ACL:
@@ -387,7 +388,7 @@ if __name__ == '__main__':
     import sys
     import os
     import signal
-    from dmrutils import try_download, mk_id_dict
+    from dmr_utils import try_download, mk_id_dict
     
     
     #
