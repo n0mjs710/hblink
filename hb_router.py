@@ -468,7 +468,7 @@ if __name__ == '__main__':
     if talkgroup_ids:
         logger.info('ID ALIAS MAPPER: talkgroup_ids dictionary is available')
     
-    # These are the functions you should use to look up IDs in the dictionaries  
+    # These are the functions to look up IDs in the dictionaries  
     def sub_alias(_sub_id):
         return get_info(int_id(_sub_id), subscriber_ids)
     

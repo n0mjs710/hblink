@@ -110,6 +110,7 @@ def get_info(_id, _dict):
 # These are the functions you should use to look up IDs in the dictionaries
 # But they don't work here because they reference dictionraries not avaialbe
 # in this scope
+'''
 def sub_alias(_sub_id):
     return get_info(int_id(_sub_id), subscriber_ids)
     
@@ -118,3 +119,4 @@ def peer_alias(_peer_id):
 
 def tg_alias(_tgid):
     return get_info(int_id(_tgid), talkgroup_ids)
+'''
