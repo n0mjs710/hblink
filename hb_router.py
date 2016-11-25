@@ -33,7 +33,7 @@ from twisted.internet import task
 
 # Things we import from the main hblink module
 from hblink import HBSYSTEM, systems, int_id, hblink_handler
-from dmr_utils import hex_str_3, int_id, sub_alias, peer_alias, tg_alias
+from dmr_utils import hex_str_3, int_id, get_info
 import dec_dmr
 import bptc
 import hb_config
@@ -462,12 +462,21 @@ if __name__ == '__main__':
         
     subscriber_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['SUBSCRIBER_FILE'])
     if subscriber_ids:
-        logger.info('ID ALIAS MAPPER: peer_ids dictionary is available')
+        logger.info('ID ALIAS MAPPER: subscriber_ids dictionary is available')
     
     talkgroup_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['TGID_FILE'])
     if talkgroup_ids:
-        logger.info('ID ALIAS MAPPER: peer_ids dictionary is available')
+        logger.info('ID ALIAS MAPPER: talkgroup_ids dictionary is available')
     
+    # These are the functions you should use to look up IDs in the dictionaries  
+    def sub_alias(_sub_id):
+        return get_info(int_id(_sub_id), subscriber_ids)
+    
+    def peer_alias(_peer_id):
+        return get_info(int_id(_peer_id), peer_ids)
+
+    def tg_alias(_tgid):
+        return get_info(int_id(_tgid), talkgroup_ids)
     
     #
     # START HB_ROUTER

@@ -107,7 +107,9 @@ def get_info(_id, _dict):
         return _dict[_id]
     return _id
 
-# These are the functions you should use to look up IDs in the dictionaries  
+# These are the functions you should use to look up IDs in the dictionaries
+# But they don't work here because they reference dictionraries not avaialbe
+# in this scope
 def sub_alias(_sub_id):
     return get_info(int_id(_sub_id), subscriber_ids)
     
