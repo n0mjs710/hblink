@@ -33,7 +33,7 @@ from twisted.internet import task
 
 # Things we import from the main hblink module
 from hblink import HBSYSTEM, systems, int_id, hblink_handler
-from dmr_utils import hex_str_3, int_id, get_info
+from dmr_utils import hex_str_3, int_id, get_alias
 import dec_dmr
 import bptc
 import hb_config
@@ -90,27 +90,26 @@ def make_rules(_hb_routing_rules):
 # ACL may be a single list of subscriber IDs
 # Global action is to allow or deny them. Multiple lists with different actions and ranges
 # are not yet implemented.
-def build_acl():
+def build_acl(_sub_acl):
     try:
-        from sub_acl import ACL_ACTION, ACL
-        # uses more memory to build hex strings, but processes MUCH faster when checking for matches
-        for i, e in enumerate(ACL):
-            ACL[i] = hex_str_3(ACL[i])
-        logger.info('Subscriber access control file found, subscriber ACL imported')
+        acl_file = import_module(_sub_acl)
+        for i, e in enumerate(acl_file.ACL):
+            acl_file.ACL[i] = hex_str_3(acl_file.ACL[i])
+        logger.info('ACL file found and ACL entries imported')
     except ImportError:
-        logger.critical('\'sub_acl.py\' not found - all subscriber IDs are valid')
+        logger.info('ACL file not found or invalid - all subscriber IDs are valid')
         ACL_ACTION = 'NONE'
 
     # Depending on which type of ACL is used (PERMIT, DENY... or there isn't one)
     # define a differnet function to be used to check the ACL
     global allow_sub
-    if ACL_ACTION == 'PERMIT':
+    if acl_file.ACL_ACTION == 'PERMIT':
         def allow_sub(_sub):
             if _sub in ACL:
                 return True
             else:
                 return False
-    elif ACL_ACTION == 'DENY':
+    elif acl_file.ACL_ACTION == 'DENY':
         def allow_sub(_sub):
             if _sub not in ACL:
                 return True
@@ -119,6 +118,8 @@ def build_acl():
     else:
         def allow_sub(_sub):
             return True
+    
+    return acl_file.ACL
 
 
 # Run this every minute for rule timer updates
@@ -131,18 +132,18 @@ def rule_timer_loop():
                 if _rule['ACTIVE'] == True:
                     if _rule['TIMER'] < _now:
                         _rule['ACTIVE'] = False
-                        logger.info('(%s) Rule timout DEACTIVATE: Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+                        logger.info('(%s) Rule timout DEACTIVATE: Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS'], int_id(_rule['DST_GROUP']))
                     else:
                         timeout_in = _rule['TIMER'] - _now
-                        logger.info('(%s) Rule ACTIVE with ON timer running: Timeout eligible in: %ds, Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, timeout_in, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+                        logger.info('(%s) Rule ACTIVE with ON timer running: Timeout eligible in: %ds, Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, timeout_in, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS'], int_id(_rule['DST_GROUP']))
             elif _rule['TO_TYPE'] == 'OFF':
                 if _rule['ACTIVE'] == False:
                     if _rule['TIMER'] < _now:
                         _rule['ACTIVE'] = True
-                        logger.info('(%s) Rule timout ACTIVATE: Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+                        logger.info('(%s) Rule timout ACTIVATE: Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS'], int_id(_rule['DST_GROUP']))
                     else:
                         timeout_in = _rule['TIMER'] - _now
-                        logger.info('(%s) Rule DEACTIVE with OFF timer running: Timeout eligible in: %ds, Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, timeout_in, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+                        logger.info('(%s) Rule DEACTIVE with OFF timer running: Timeout eligible in: %ds, Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, timeout_in, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS'], int_id(_rule['DST_GROUP']))
             else:
                 logger.debug('Rule timer loop made no rule changes')
 
@@ -222,7 +223,8 @@ class routerSYSTEM(HBSYSTEM):
                 
                 # This is a new call stream
                 self.STATUS['RX_START'] = pkt_time
-                logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', self._system, int_id(_stream_id), sub_alias(_rf_src), int_id(_rf_src), peer_alias(_radio_id), int_id(_radio_id), tg_alias(_dst_id), int_id(_dst_id), _slot)
+                logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', \
+                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
                 
                 # If we can, use the LC from the voice header as to keep all options intact
                 if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
@@ -318,7 +320,8 @@ class routerSYSTEM(HBSYSTEM):
             # Final actions - Is this a voice terminator?
             if (_frame_type == hb_const.HBPF_DATA_SYNC) and (_dtype_vseq == hb_const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != hb_const.HBPF_SLT_VTERM):
                 call_duration = pkt_time - self.STATUS['RX_START']
-                logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', self._system, int_id(_stream_id), sub_alias(_rf_src), int_id(_rf_src), peer_alias(_radio_id), int_id(_radio_id), tg_alias(_dst_id), int_id(_dst_id), _slot, call_duration)
+                logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
+                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
                 
                 #
                 # Begin in-band signalling for call end. This has nothign to do with routing traffic directly.
@@ -468,16 +471,6 @@ if __name__ == '__main__':
     if talkgroup_ids:
         logger.info('ID ALIAS MAPPER: talkgroup_ids dictionary is available')
     
-    # These are the functions to look up IDs in the dictionaries  
-    def sub_alias(_sub_id):
-        return get_info(int_id(_sub_id), subscriber_ids)
-    
-    def peer_alias(_peer_id):
-        return get_info(int_id(_peer_id), peer_ids)
-
-    def tg_alias(_tgid):
-        return get_info(int_id(_tgid), talkgroup_ids)
-    
     #
     # START HB_ROUTER
     #
@@ -486,7 +479,7 @@ if __name__ == '__main__':
     RULES = make_rules('hb_routing_rules')
     
     # Build the Access Control List
-    build_acl()
+    ACL = build_acl('sub_acl')
     
     # HBlink instance creation
     logger.info('HBlink \'hb_router.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
