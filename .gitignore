@@ -8,6 +8,7 @@ Icon
 *.conf
 hblink.cfg
 hb_routing_rules.py
+hb_confbridge_rules.py
 *.config
 *.json
 *.pickle
