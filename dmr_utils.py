@@ -107,6 +107,12 @@ def get_info(_id, _dict):
         return _dict[_id]
     return _id
 
+def get_alias(_id, _dict):
+    _int_id = int_id(_id)
+    if _int_id in _dict:
+        return _dict[_int_id]
+    return _int_id
+
 # These are the functions you should use to look up IDs in the dictionaries
 # But they don't work here because they reference dictionraries not avaialbe
 # in this scope

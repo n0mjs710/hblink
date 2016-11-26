@@ -12,8 +12,8 @@ NOTES:
         period. If you don't want to use timers, set it to anything else, but 'NONE' might be
         a good value for documentation!
     * TIMOUT is a value in minutes for the timout timer. No, I won't make it 'seconds', so don't
-
         ask. Timers are performance "expense".
+
 DO YOU THINK THIS FILE IS TOO COMPLICATED?
     Because you guys all want more and more features, this file is getting complicated. I have
     dabbled with using a parser to make it easier to build. I'm torn. There is a HUGE benefit
