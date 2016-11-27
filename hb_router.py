@@ -284,6 +284,7 @@ class routerSYSTEM(HBSYSTEM):
                         _target_status[rule['DST_TS']]['TX_T_LC'] = bptc.encode_terminator_lc(dst_lc)
                         _target_status[rule['DST_TS']]['TX_EMB_LC'] = bptc.encode_emblc(dst_lc)
                         logger.debug('(%s) Packet DST TGID (%s) does not match SRC TGID(%s) - Generating FULL and EMB LCs', self._system, int_id(rule['DST_GROUP']), int_id(_dst_id))
+                        logger.info('(%s) Call routed to: System: %s TS: %s, TGID: %s', self._system, _target, rule['DST_TS'], int_id(rule['DST_GROUP']))
                     
                     # Handle any necessary re-writes for the destination
                     if rule['SRC_TS'] != rule['DST_TS']:
