@@ -32,8 +32,8 @@ from twisted.internet import reactor
 from twisted.internet import task
 
 # Things we import from the main hblink module
-from hblink import HBSYSTEM, systems, int_id, hblink_handler
-from dmr_utils import hex_str_3, int_id, get_alias
+from hblink import HBSYSTEM, systems, hblink_handler
+from dmr_utils import hex_str_3, int_id, get_alias, int_id
 import dec_dmr
 import bptc
 import hb_config
