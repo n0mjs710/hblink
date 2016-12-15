@@ -32,13 +32,11 @@ from twisted.internet import reactor
 from twisted.internet import task
 
 # Things we import from the main hblink module
-from hblink import HBSYSTEM, systems, int_id, hblink_handler
-from dmr_utils import hex_str_3, int_id, get_alias
-import dec_dmr
-import bptc
+from hblink import HBSYSTEM, systems, hblink_handler
+from dmr_utils.utils import hex_str_3, int_id, get_alias
+from dmr_utils import decode, bptc, const
 import hb_config
 import hb_log
-import dmr_const
 import hb_const
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
@@ -378,7 +376,7 @@ if __name__ == '__main__':
     import sys
     import os
     import signal
-    from dmr_utils import try_download, mk_id_dict
+    from dmr_utils.utils import try_download, mk_id_dict
     
     
     #

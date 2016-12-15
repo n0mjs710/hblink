@@ -37,7 +37,7 @@ from twisted.internet import task
 # Other files we pull from -- this is mostly for readability and segmentation
 import hb_log
 import hb_config
-from dmr_utils import int_id, hex_str_4
+from dmr_utils.utils import int_id, hex_str_4
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
