@@ -470,10 +470,6 @@ if __name__ == '__main__':
     if talkgroup_ids:
         logger.info('ID ALIAS MAPPER: talkgroup_ids dictionary is available')
     
-    #
-    # START HB_ROUTER
-    #
-    
     # Build the routing rules file
     RULES = make_rules('hb_routing_rules')
     
