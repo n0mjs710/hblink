@@ -63,7 +63,7 @@ def hblink_handler(_signal, _frame, _logger):
 #************************************************
 
 class AMBE:
-    def __init__(self, _config):
+    def __init__(self, _config, _logger):
         self._CONFIG = _config
          
         self._sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
@@ -448,10 +448,6 @@ if __name__ == '__main__':
     import signal
     
     
-    #
-    # Parse the command line and make adjustments
-    #
-    
     # Change the current directory to the location of the application
     os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
 
@@ -465,18 +461,8 @@ if __name__ == '__main__':
     if not cli_args.CONFIG_FILE:
         cli_args.CONFIG_FILE = os.path.dirname(os.path.abspath(__file__))+'/hblink.cfg'
 
-
-    #
-    # Build the configuration file
-    #
-
     # Call the external routine to build the configuration dictionary
     CONFIG = hb_config.build_config(cli_args.CONFIG_FILE)
-
-
-    #
-    # Start the system logger
-    #
     
     # Call the external routing to start the system logger
     if cli_args.LOG_LEVEL:
@@ -484,11 +470,7 @@ if __name__ == '__main__':
     logger = hb_log.config_logging(CONFIG['LOGGER'])
     logger.debug('Logging system started, anything from here on gets logged')
 
-    
-    #
     # Set up the signal handler
-    #
-    
     def sig_handler(_signal, _frame):
         logger.info('SHUTDOWN: HBLINK IS TERMINATING WITH SIGNAL %s', str(_signal))
         hblink_handler(_signal, _frame, logger)
@@ -498,11 +480,6 @@ if __name__ == '__main__':
     # Set signal handers so that we can gracefully exit if need be
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
-
-
-    #
-    # START HB_ROUTER
-    #
 
     # HBlink instance creation
     logger.info('HBlink \'HBlink.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')

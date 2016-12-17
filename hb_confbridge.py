@@ -210,29 +210,29 @@ class routerSYSTEM(HBSYSTEM):
             
             # Check for ACL match, and return if the subscriber is not allowed
             if allow_sub(_rf_src) == False:
-                logger.warning('(%s) Group Voice Packet ***REJECTED BY ACL*** From: %s, HBP Peer %s, Destination TGID %s', self._system, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id))
+                self._logger.warning('(%s) Group Voice Packet ***REJECTED BY ACL*** From: %s, HBP Peer %s, Destination TGID %s', self._system, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id))
                 return
             
             # Is this a new call stream?   
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
                 if (self.STATUS[_slot]['RX_TYPE'] != hb_const.HBPF_SLT_VTERM) and (pkt_time < (self.STATUS[_slot]['RX_TIME'] + hb_const.STREAM_TO)) and (_rf_src != self.STATUS[_slot]['RX_RFS']):
-                    logger.warning('(%s) Packet received with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
+                    self._logger.warning('(%s) Packet received with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
                     return
                 
                 # This is a new call stream
                 self.STATUS['RX_START'] = pkt_time
-                logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', \
+                self._logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', \
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
                 
                 # If we can, use the LC from the voice header as to keep all options intact
                 if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
-                    decoded = dec_dmr.voice_head_term(dmrpkt)
+                    decoded = decode.voice_head_term(dmrpkt)
                     self.STATUS[_slot]['RX_LC'] = decoded['LC']
                 
                 # If we don't have a voice header then don't wait to decode it from the Embedded LC
                 # just make a new one from the HBP header. This is good enough, and it saves lots of time
                 else:
-                    self.STATUS[_slot]['RX_LC'] = dmr_const.LC_OPT + _dst_id + _rf_src
+                    self.STATUS[_slot]['RX_LC'] = const.LC_OPT + _dst_id + _rf_src
 
 
             for _bridge in BRIDGES:
@@ -255,19 +255,19 @@ class routerSYSTEM(HBSYSTEM):
                                 #
                                 if ((_target['TGID'] != _target_status[_target['TS']]['RX_TGID']) and ((pkt_time - _target_status[_target['TS']]['RX_TIME']) < self._config['GROUP_HANGTIME'])):
                                     if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD and self.STATUS[_slot]['RX_STREAM_ID'] != _seq:
-                                        logger.info('(%s) Call not routed to TGID %s, target active or in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(_target['TGID']), _target['SYSTEM'], _target['TS'], int_id(_target_status[_target['TS']]['RX_TGID']))
+                                        self._logger.info('(%s) Call not routed to TGID %s, target active or in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(_target['TGID']), _target['SYSTEM'], _target['TS'], int_id(_target_status[_target['TS']]['RX_TGID']))
                                     continue
                                 if ((_target['TGID'] != _target_status[_target['TS']]['TX_TGID']) and ((pkt_time - _target_status[_target['TS']]['TX_TIME']) < self._config['GROUP_HANGTIME'])):
                                     if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD and self.STATUS[_slot]['RX_STREAM_ID'] != _seq:
-                                        logger.info('(%s) Call not routed to TGID%s, target in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(_target['TGID']), _target['SYSTEM'], _target['TS'], int_id(_target_status[_target['TS']]['TX_TGID']))
+                                        self._logger.info('(%s) Call not routed to TGID%s, target in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(_target['TGID']), _target['SYSTEM'], _target['TS'], int_id(_target_status[_target['TS']]['TX_TGID']))
                                     continue
                                 if (_target['TGID'] == _target_status[_target['TS']]['RX_TGID']) and ((pkt_time - _target_status[_target['TS']]['RX_TIME']) < hb_const.STREAM_TO):
                                     if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD and self.STATUS[_slot]['RX_STREAM_ID'] != _seq:
-                                        logger.info('(%s) Call not routed to TGID%s, matching call already active on target: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(_target['TGID']), _target['SYSTEM'], _target['TS'], int_id(_target_status[_target['TS']]['RX_TGID']))
+                                        self._logger.info('(%s) Call not routed to TGID%s, matching call already active on target: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(_target['TGID']), _target['SYSTEM'], _target['TS'], int_id(_target_status[_target['TS']]['RX_TGID']))
                                     continue
                                 if (_target['TGID'] == _target_status[_target['TS']]['TX_TGID']) and (_rf_src != _target_status[_target['TS']]['TX_RFS']) and ((pkt_time - _target_status[_target['TS']]['TX_TIME']) < hb_const.STREAM_TO):
                                     if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD and self.STATUS[_slot]['RX_STREAM_ID'] != _seq:
-                                        logger.info('(%s) Call not routed for subscriber %s, call route in progress on target: HBSystem: %s, TS: %s, TGID: %s, SUB: %s', self._system, int_id(_rf_src), _target['SYSTEM'], _target['TS'], int_id(_target_status[_target['TS']]['TX_TGID']), _target_status[_target['TS']]['TX_RFS'])
+                                        self._logger.info('(%s) Call not routed for subscriber %s, call route in progress on target: HBSystem: %s, TS: %s, TGID: %s, SUB: %s', self._system, int_id(_rf_src), _target['SYSTEM'], _target['TS'], int_id(_target_status[_target['TS']]['TX_TGID']), _target_status[_target['TS']]['TX_RFS'])
                                     continue
                                 
                                 # Set values for the contention handler to test next time there is a frame to forward
@@ -283,8 +283,8 @@ class routerSYSTEM(HBSYSTEM):
                                     _target_status[_target['TS']]['TX_H_LC'] = bptc.encode_header_lc(dst_lc)
                                     _target_status[_target['TS']]['TX_T_LC'] = bptc.encode_terminator_lc(dst_lc)
                                     _target_status[_target['TS']]['TX_EMB_LC'] = bptc.encode_emblc(dst_lc)
-                                    logger.debug('(%s) Generating TX FULL and EMB LCs for destination: System: %s, TS: %s, TGID: %s', self._system, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
-                                    logger.info('(%s) Conference Bridge: %s, Call Bridged to: System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
+                                    self._logger.debug('(%s) Generating TX FULL and EMB LCs for destination: System: %s, TS: %s, TGID: %s', self._system, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
+                                    self._logger.info('(%s) Conference Bridge: %s, Call Bridged to: System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
                     
                                 # Handle any necessary re-writes for the destination
                                 if _system['TS'] != _target['TS']:
@@ -314,14 +314,14 @@ class routerSYSTEM(HBSYSTEM):
                     
                                 # Transmit the packet to the destination system
                                 systems[_target['SYSTEM']].send_system(_tmp_data)
-                                #logger.debug('(%s) Packet routed by bridge: %s to system: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
+                                #self._logger.debug('(%s) Packet routed by bridge: %s to system: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
             
             
             
             # Final actions - Is this a voice terminator?
             if (_frame_type == hb_const.HBPF_DATA_SYNC) and (_dtype_vseq == hb_const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != hb_const.HBPF_SLT_VTERM):
                 call_duration = pkt_time - self.STATUS['RX_START']
-                logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
+                self._logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
                 
                 #
@@ -337,20 +337,20 @@ class routerSYSTEM(HBSYSTEM):
                             # TGID matches a rule source, reset its timer
                             if _slot == _system['TS'] and _dst_id == _system['TGID'] and ((_system['TO_TYPE'] == 'ON' and (_system['ACTIVE'] == True)) or (_system['TO_TYPE'] == 'OFF' and _system['ACTIVE'] == False)):
                                 _system['TIMER'] = pkt_time + _system['TIMEOUT']
-                                logger.info('(%s) Transmission match for Bridge: %s. Reset timeout to %s', self._system, _bridge, _system['TIMER'])
+                                self._logger.info('(%s) Transmission match for Bridge: %s. Reset timeout to %s', self._system, _bridge, _system['TIMER'])
             
                             # TGID matches an ACTIVATION trigger
                             if _dst_id in _system['ON']:
                                 # Set the matching rule as ACTIVE
                                 _system['ACTIVE'] = True
                                 _system['TIMER'] = pkt_time + _system['TIMEOUT']
-                                logger.info('(%s) Bridge: %s, connection changed to state: %s', self._system, _bridge, _system['ACTIVE'])
+                                self._logger.info('(%s) Bridge: %s, connection changed to state: %s', self._system, _bridge, _system['ACTIVE'])
                         
                             # TGID matches an DE-ACTIVATION trigger
                             if _dst_id in _system['OFF']:
                                 # Set the matching rule as ACTIVE
                                 _system['ACTIVE'] = False
-                                logger.info('(%s) Bridge: %s, connection changed to state: %s', self._system, _bridge, _system['ACTIVE'])
+                                self._logger.info('(%s) Bridge: %s, connection changed to state: %s', self._system, _bridge, _system['ACTIVE'])
 
             #                    
             # END IN-BAND SIGNALLING
@@ -378,11 +378,6 @@ if __name__ == '__main__':
     import signal
     from dmr_utils.utils import try_download, mk_id_dict
     
-    
-    #
-    # Parse the command line and make adjustments
-    #
-    
     # Change the current directory to the location of the application
     os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
 
@@ -396,29 +391,16 @@ if __name__ == '__main__':
     if not cli_args.CONFIG_FILE:
         cli_args.CONFIG_FILE = os.path.dirname(os.path.abspath(__file__))+'/hblink.cfg'
 
-
-    #
-    # Build the configuration file
-    #
-
     # Call the external routine to build the configuration dictionary
     CONFIG = hb_config.build_config(cli_args.CONFIG_FILE)
     
-
-    #
     # Start the system logger
-    #
-    
     if cli_args.LOG_LEVEL:
         CONFIG['LOGGER']['LOG_LEVEL'] = cli_args.LOG_LEVEL
     logger = hb_log.config_logging(CONFIG['LOGGER'])
     logger.debug('Logging system started, anything from here on gets logged')
     
-    
-    #
     # Set up the signal handler
-    #
-    
     def sig_handler(_signal, _frame):
         logger.info('SHUTDOWN: HBROUTER IS TERMINATING WITH SIGNAL %s', str(_signal))
         hblink_handler(_signal, _frame, logger)
@@ -429,11 +411,7 @@ if __name__ == '__main__':
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
     
-    
-    #
     # ID ALIAS CREATION
-    #
-    
     # Download
     if CONFIG['ALIASES']['TRY_DOWNLOAD'] == True:
         # Try updating peer aliases file
@@ -455,11 +433,6 @@ if __name__ == '__main__':
     talkgroup_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['TGID_FILE'])
     if talkgroup_ids:
         logger.info('ID ALIAS MAPPER: talkgroup_ids dictionary is available')
-
-    
-    #
-    # START HB_ROUTER
-    #
     
     # Build the routing rules file
     BRIDGES = make_bridges('hb_confbridge_rules')
