@@ -18,6 +18,17 @@
 #   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 ###############################################################################
 
+'''
+This is a call/packet router for Homebrew Repeater Protocol and is based on
+hblink.py. This is a very, very powerful program, but contains a complex
+rule file. It can provide end-to-end activation of routing rules, and as
+such, is very different from the "reflector" style of call "bridging" that
+most hams are used to. Please see the rules file "hb_routing_rules-SAMPLE.py"
+for a more complete explanation of how rules work.
+
+This program currently only works with group voice calls.
+'''
+
 from __future__ import print_function
 
 # Python modules we need

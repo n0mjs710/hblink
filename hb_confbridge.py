@@ -18,6 +18,19 @@
 #   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 ###############################################################################
 
+'''
+This application, in conjuction with it's rule file (hb_confbridge_rules.py) will
+work like a "conference bridge". This is similar to what most hams think of as a
+reflector. You define conference bridges and any system joined to that conference
+bridge will both receive traffic from, and send traffic to any other system
+joined to the same conference bridge. It does not provide end-to-end connectivity
+as each end system must individually be joined to a conference bridge (a name
+you create in the configuraiton file) to pass traffic.
+
+This program currently only works with group voice calls.
+'''
+
+
 from __future__ import print_function
 
 # Python modules we need

@@ -18,6 +18,14 @@
 #   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 ###############################################################################
 
+'''
+This module generates the configuration data structure for hblink.py and
+assoicated programs that use it. It has been seaparated into a different
+module so as to keep hblink.py easeier to navigate. This file only needs
+updated if the items in the main configuraiton file (usually hblink.cfg)
+change.
+'''
+
 import ConfigParser
 import sys
 

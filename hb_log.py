@@ -18,6 +18,12 @@
 #   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 ###############################################################################
 
+'''
+This is the logging configuration for hblink.py. It changes very infrequently,
+so keeping in a separate module keeps hblink.py more concise. this file is
+likely to never change.
+'''
+
 import logging
 from logging.config import dictConfig
 

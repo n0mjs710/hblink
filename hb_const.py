@@ -18,6 +18,12 @@
 #   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 ###############################################################################
 
+'''
+These are contants used by HBlink. Rather than stuff them into the main program
+file, any new constants should be placed here. It makes them easier to keep track
+of and keeps hblink.py shorter.
+'''
+
 from __future__ import print_function
 
 __author__     = 'Cortney T. Buffington, N0MJS'

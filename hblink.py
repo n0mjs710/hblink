@@ -18,6 +18,15 @@
 #   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 ###############################################################################
 
+'''
+This program does very little on it's own. It is intended to be used as a module
+to build applcaitons on top of the HomeBrew Repeater Protocol. By itself, it
+will only act as a client or master for the systems specified in its configuration
+file (usually hblink.cfg). It is ALWAYS best practice to ensure that this program
+works stand-alone before troubleshooting any applicaitons that use it. It has
+sufficient logging to be used standalone as a troubeshooting application.
+'''
+
 from __future__ import print_function
 
 # Specifig functions from modules we need
