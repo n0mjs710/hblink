@@ -22,11 +22,7 @@ from __future__ import print_function
 
 __author__     = 'Cortney T. Buffington, N0MJS'
 __copyright__  = 'Copyright (c) 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
-<<<<<<< HEAD:enc_dmr.py
-__credits__    = 'Jonathan Naylor, G4KLX'
-=======
 __credits__    = ''
->>>>>>> modularization:hb_const.py
 __license__    = 'GNU GPLv3'
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'

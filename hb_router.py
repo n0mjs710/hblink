@@ -116,25 +116,8 @@ def build_acl(_sub_acl):
     else:
         def allow_sub(_sub):
             return True
-<<<<<<< HEAD
-        else:
-            return False
-else:
-    def allow_sub(_sub):
-        return True
-
-# Does anybody read this stuff? There's a PEP somewhere that says I should do this.
-__author__     = 'Cortney T. Buffington, N0MJS'
-__copyright__  = 'Copyright (c) 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
-__credits__    = 'Colin Durbridge, G4EML, Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
-__license__    = 'GNU GPLv3'
-__maintainer__ = 'Cort Buffington, N0MJS'
-__email__      = 'n0mjs@me.com'
-__status__     = 'pre-alpha'
-=======
     
     return acl_file.ACL
->>>>>>> modularization
 
 
 # Run this every minute for rule timer updates
