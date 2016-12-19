@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 #
 ###############################################################################
-# hb_router.py -- a call routing applicaiton for hblink.py
 #   Copyright (C) 2016  Cortney T. Buffington, N0MJS <n0mjs@me.com>
 #
 #   This program is free software; you can redistribute it and/or modify
@@ -23,9 +22,9 @@ from __future__ import print_function
 
 # Python modules we need
 import sys
-from binascii import b2a_hex as h
 from bitarray import bitarray
 from time import time
+from importlib import import_module
 
 # Twisted is pretty important, so I keep it separate
 from twisted.internet.protocol import DatagramProtocol
@@ -33,69 +32,91 @@ from twisted.internet import reactor
 from twisted.internet import task
 
 # Things we import from the main hblink module
-from hblink import CONFIG, HBSYSTEM, logger, systems, hex_str_3, int_id, sub_alias, peer_alias, tg_alias
-import dec_dmr
-import bptc
-import constants as const
+from hblink import HBSYSTEM, systems, int_id, hblink_handler
+from dmr_utils.utils import hex_str_3, int_id, get_alias
+from dmr_utils import decode, bptc, const
+import hb_config
+import hb_log
+import hb_const
+
+# Does anybody read this stuff? There's a PEP somewhere that says I should do this.
+__author__     = 'Cortney T. Buffington, N0MJS'
+__copyright__  = 'Copyright (c) 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
+__credits__    = 'Colin Durbridge, G4EML, Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
+__license__    = 'GNU GPLv3'
+__maintainer__ = 'Cort Buffington, N0MJS'
+__email__      = 'n0mjs@me.com'
+__status__     = 'pre-alpha'
+
+# Module gobal varaibles
+
 
 # Import Bridging rules
 # Note: A stanza *must* exist for any MASTER or CLIENT configured in the main
 # configuration file and listed as "active". It can be empty, 
 # but it has to exist.
-try:
-    from hb_routing_rules import RULES as RULES_FILE
-    logger.info('Routing rules file found and rules imported')
-except ImportError:
-    sys.exit('Routing rules file not found or invalid')
+def make_rules(_hb_routing_rules):
+    try:
+        rule_file = import_module(_hb_routing_rules)
+        logger.info('Routing rules file found and rules imported')
+    except ImportError:
+        sys.exit('Routing rules file not found or invalid')
     
-# Convert integer GROUP ID numbers from the config into hex strings
-# we need to send in the actual data packets.
-for _system in RULES_FILE:
-    for _rule in RULES_FILE[_system]['GROUP_VOICE']:
-        _rule['SRC_GROUP'] = hex_str_3(_rule['SRC_GROUP'])
-        _rule['DST_GROUP'] = hex_str_3(_rule['DST_GROUP'])
-        _rule['SRC_TS']    = _rule['SRC_TS']
-        _rule['DST_TS']    = _rule['DST_TS']
-        for i, e in enumerate(_rule['ON']):
-            _rule['ON'][i] = hex_str_3(_rule['ON'][i])
-        for i, e in enumerate(_rule['OFF']):
-            _rule['OFF'][i] = hex_str_3(_rule['OFF'][i])
-        _rule['TIMEOUT']= _rule['TIMEOUT']*60
-        _rule['TIMER']      = time() + _rule['TIMEOUT']
-    if _system not in CONFIG['SYSTEMS']:
-        sys.exit('ERROR: Routing rules found for system not configured main configuration')
-for _system in CONFIG['SYSTEMS']:
-    if _system not in RULES_FILE:
-        sys.exit('ERROR: Routing rules not found for all systems configured')
+    # Convert integer GROUP ID numbers from the config into hex strings
+    # we need to send in the actual data packets.
+    for _system in rule_file.RULES:
+        for _rule in rule_file.RULES[_system]['GROUP_VOICE']:
+            _rule['SRC_GROUP'] = hex_str_3(_rule['SRC_GROUP'])
+            _rule['DST_GROUP'] = hex_str_3(_rule['DST_GROUP'])
+            _rule['SRC_TS']    = _rule['SRC_TS']
+            _rule['DST_TS']    = _rule['DST_TS']
+            for i, e in enumerate(_rule['ON']):
+                _rule['ON'][i] = hex_str_3(_rule['ON'][i])
+            for i, e in enumerate(_rule['OFF']):
+                _rule['OFF'][i] = hex_str_3(_rule['OFF'][i])
+            _rule['TIMEOUT']= _rule['TIMEOUT']*60
+            _rule['TIMER']      = time() + _rule['TIMEOUT']
+        if _system not in CONFIG['SYSTEMS']:
+            sys.exit('ERROR: Routing rules found for system not configured main configuration')
+    for _system in CONFIG['SYSTEMS']:
+        if _system not in rule_file.RULES:
+            sys.exit('ERROR: Routing rules not found for all systems configured')
+    return rule_file.RULES
 
-RULES = RULES_FILE
 
 # Import subscriber ACL
 # ACL may be a single list of subscriber IDs
 # Global action is to allow or deny them. Multiple lists with different actions and ranges
 # are not yet implemented.
-try:
-    from sub_acl import ACL_ACTION, ACL
-    # uses more memory to build hex strings, but processes MUCH faster when checking for matches
-    for i, e in enumerate(ACL):
-        ACL[i] = hex_str_3(ACL[i])
-    logger.info('Subscriber access control file found, subscriber ACL imported')
-except ImportError:
-    logger.critical('\'sub_acl.py\' not found - all subscriber IDs are valid')
-    ACL_ACTION = 'NONE'
+def build_acl(_sub_acl):
+    try:
+        acl_file = import_module(_sub_acl)
+        for i, e in enumerate(acl_file.ACL):
+            acl_file.ACL[i] = hex_str_3(acl_file.ACL[i])
+        logger.info('ACL file found and ACL entries imported')
+    except ImportError:
+        logger.info('ACL file not found or invalid - all subscriber IDs are valid')
+        ACL_ACTION = 'NONE'
 
-# Depending on which type of ACL is used (PERMIT, DENY... or there isn't one)
-# define a differnet function to be used to check the ACL
-if ACL_ACTION == 'PERMIT':
-    def allow_sub(_sub):
-        if _sub in ACL:
+    # Depending on which type of ACL is used (PERMIT, DENY... or there isn't one)
+    # define a differnet function to be used to check the ACL
+    global allow_sub
+    if acl_file.ACL_ACTION == 'PERMIT':
+        def allow_sub(_sub):
+            if _sub in ACL:
+                return True
+            else:
+                return False
+    elif acl_file.ACL_ACTION == 'DENY':
+        def allow_sub(_sub):
+            if _sub not in ACL:
+                return True
+            else:
+                return False
+    else:
+        def allow_sub(_sub):
             return True
-        else:
-            return False
-elif ACL_ACTION == 'DENY':
-    def allow_sub(_sub):
-        if _sub not in ACL:
-            return True
+<<<<<<< HEAD
         else:
             return False
 else:
@@ -110,6 +131,10 @@ __license__    = 'GNU GPLv3'
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 __status__     = 'pre-alpha'
+=======
+    
+    return acl_file.ACL
+>>>>>>> modularization
 
 
 # Run this every minute for rule timer updates
@@ -122,26 +147,26 @@ def rule_timer_loop():
                 if _rule['ACTIVE'] == True:
                     if _rule['TIMER'] < _now:
                         _rule['ACTIVE'] = False
-                        logger.info('(%s) Rule timout DEACTIVATE: Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+                        logger.info('(%s) Rule timout DEACTIVATE: Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS'], int_id(_rule['DST_GROUP']))
                     else:
                         timeout_in = _rule['TIMER'] - _now
-                        logger.info('(%s) Rule ACTIVE with ON timer running: Timeout eligible in: %ds, Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, timeout_in, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+                        logger.info('(%s) Rule ACTIVE with ON timer running: Timeout eligible in: %ds, Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, timeout_in, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS'], int_id(_rule['DST_GROUP']))
             elif _rule['TO_TYPE'] == 'OFF':
                 if _rule['ACTIVE'] == False:
                     if _rule['TIMER'] < _now:
                         _rule['ACTIVE'] = True
-                        logger.info('(%s) Rule timout ACTIVATE: Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+                        logger.info('(%s) Rule timout ACTIVATE: Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS'], int_id(_rule['DST_GROUP']))
                     else:
                         timeout_in = _rule['TIMER'] - _now
-                        logger.info('(%s) Rule DEACTIVE with OFF timer running: Timeout eligible in: %ds, Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, timeout_in, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS']+1, int_id(_rule['DST_GROUP']))
+                        logger.info('(%s) Rule DEACTIVE with OFF timer running: Timeout eligible in: %ds, Rule name: %s, Target HBSystem: %s, TS: %s, TGID: %s', _system, timeout_in, _rule['NAME'], _rule['DST_NET'], _rule['DST_TS'], int_id(_rule['DST_GROUP']))
             else:
                 logger.debug('Rule timer loop made no rule changes')
 
 
 class routerSYSTEM(HBSYSTEM):
     
-    def __init__(self, *args, **kwargs):
-        HBSYSTEM.__init__(self, *args, **kwargs)
+    def __init__(self, _name, _config, _logger):
+        HBSYSTEM.__init__(self, _name, _config, _logger)
         
         # Status information for the system, TS1 & TS2
         # 1 & 2 are "timeslot"
@@ -158,7 +183,7 @@ class routerSYSTEM(HBSYSTEM):
                 'TX_TGID':      '\x00\x00\x00',
                 'RX_TIME':      time(),
                 'TX_TIME':      time(),
-                'RX_TYPE':      const.HBPF_SLT_VTERM,
+                'RX_TYPE':      hb_const.HBPF_SLT_VTERM,
                 'RX_LC':        '\x00',
                 'TX_H_LC':      '\x00',
                 'TX_T_LC':      '\x00',
@@ -180,7 +205,7 @@ class routerSYSTEM(HBSYSTEM):
                 'TX_TGID':      '\x00\x00\x00',
                 'RX_TIME':      time(),
                 'TX_TIME':      time(),
-                'RX_TYPE':      const.HBPF_SLT_VTERM,
+                'RX_TYPE':      hb_const.HBPF_SLT_VTERM,
                 'RX_LC':        '\x00',
                 'TX_H_LC':      '\x00',
                 'TX_T_LC':      '\x00',
@@ -202,22 +227,23 @@ class routerSYSTEM(HBSYSTEM):
             
             # Check for ACL match, and return if the subscriber is not allowed
             if allow_sub(_rf_src) == False:
-                logger.warning('(%s) Group Voice Packet ***REJECTED BY ACL*** From: %s, HBP Peer %s, Destination TGID %s', self._system, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id))
+                self._logger.warning('(%s) Group Voice Packet ***REJECTED BY ACL*** From: %s, HBP Peer %s, Destination TGID %s', self._system, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id))
                 return
             
             # Is this a new call stream?   
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                if (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM) and (pkt_time < (self.STATUS[_slot]['RX_TIME'] + const.STREAM_TO)) and (_rf_src != self.STATUS[_slot]['RX_RFS']):
-                    logger.warning('(%s) Packet received with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
+                if (self.STATUS[_slot]['RX_TYPE'] != hb_const.HBPF_SLT_VTERM) and (pkt_time < (self.STATUS[_slot]['RX_TIME'] + hb_const.STREAM_TO)) and (_rf_src != self.STATUS[_slot]['RX_RFS']):
+                    self._logger.warning('(%s) Packet received with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
                     return
                 
                 # This is a new call stream
                 self.STATUS['RX_START'] = pkt_time
-                logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', self._system, int_id(_stream_id), sub_alias(_rf_src), int_id(_rf_src), peer_alias(_radio_id), int_id(_radio_id), tg_alias(_dst_id), int_id(_dst_id), _slot)
+                self._logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', \
+                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
                 
                 # If we can, use the LC from the voice header as to keep all options intact
-                if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                    decoded = dec_dmr.voice_head_term(dmrpkt)
+                if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
+                    decoded = decode.voice_head_term(dmrpkt)
                     self.STATUS[_slot]['RX_LC'] = decoded['LC']
                 
                 # If we don't have a voice header then don't wait to decode it from the Embedded LC
@@ -242,20 +268,20 @@ class routerSYSTEM(HBSYSTEM):
                     # The "continue" at the end of each means the next iteration of the for loop that tests for matching rules
                     #
                     if ((rule['DST_GROUP'] != _target_status[rule['DST_TS']]['RX_TGID']) and ((pkt_time - _target_status[rule['DST_TS']]['RX_TIME']) < RULES[_target]['GROUP_HANGTIME'])):
-                        if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed to TGID%s, target active or in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(rule['DST_GROUP']), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['RX_TGID']))
+                        if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
+                            self._logger.info('(%s) Call not routed to TGID%s, target active or in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(rule['DST_GROUP']), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['RX_TGID']))
                         continue    
                     if ((rule['DST_GROUP'] != _target_status[rule['DST_TS']]['TX_TGID']) and ((pkt_time - _target_status[rule['DST_TS']]['TX_TIME']) < RULES[_target]['GROUP_HANGTIME'])):
-                        if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed to TGID%s, target in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(rule['DST_GROUP']), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['TX_TGID']))
+                        if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
+                            self._logger.info('(%s) Call not routed to TGID%s, target in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(rule['DST_GROUP']), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['TX_TGID']))
                         continue
-                    if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['RX_TGID']) and ((pkt_time - _target_status[rule['DST_TS']]['RX_TIME']) < const.STREAM_TO):
-                        if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed to TGID%s, matching call already active on target: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(rule['DST_GROUP']), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['RX_TGID']))
+                    if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['RX_TGID']) and ((pkt_time - _target_status[rule['DST_TS']]['RX_TIME']) < hb_const.STREAM_TO):
+                        if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
+                            self._logger.info('(%s) Call not routed to TGID%s, matching call already active on target: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(rule['DST_GROUP']), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['RX_TGID']))
                         continue
-                    if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['TX_TGID']) and (_rf_src != _target_status[rule['DST_TS']]['TX_RFS']) and ((pkt_time - _target_status[rule['DST_TS']]['TX_TIME']) < const.STREAM_TO):
-                        if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
-                            logger.info('(%s) Call not routed for subscriber %s, call route in progress on target: HBSystem: %s, TS: %s, TGID: %s, SUB: %s', self._system, int_id(_rf_src), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['TX_TGID']), _target_status[rule['DST_TS']]['TX_RFS'])
+                    if (rule['DST_GROUP'] == _target_status[rule['DST_TS']]['TX_TGID']) and (_rf_src != _target_status[rule['DST_TS']]['TX_RFS']) and ((pkt_time - _target_status[rule['DST_TS']]['TX_TIME']) < hb_const.STREAM_TO):
+                        if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
+                            self._logger.info('(%s) Call not routed for subscriber %s, call route in progress on target: HBSystem: %s, TS: %s, TGID: %s, SUB: %s', self._system, int_id(_rf_src), _target, rule['DST_TS'], int_id(_target_status[rule['DST_TS']]['TX_TGID']), _target_status[rule['DST_TS']]['TX_RFS'])
                         continue
 
                     # Set values for the contention handler to test next time there is a frame to forward
@@ -272,7 +298,8 @@ class routerSYSTEM(HBSYSTEM):
                         _target_status[rule['DST_TS']]['TX_H_LC'] = bptc.encode_header_lc(dst_lc)
                         _target_status[rule['DST_TS']]['TX_T_LC'] = bptc.encode_terminator_lc(dst_lc)
                         _target_status[rule['DST_TS']]['TX_EMB_LC'] = bptc.encode_emblc(dst_lc)
-                        logger.debug('(%s) Packet DST TGID (%s) does not match SRC TGID(%s) - Generating FULL and EMB LCs', self._system, int_id(rule['DST_GROUP']), int_id(_dst_id))
+                        self._logger.debug('(%s) Packet DST TGID (%s) does not match SRC TGID(%s) - Generating FULL and EMB LCs', self._system, int_id(rule['DST_GROUP']), int_id(_dst_id))
+                        self._logger.info('(%s) Call routed to: System: %s TS: %s, TGID: %s', self._system, _target, rule['DST_TS'], int_id(rule['DST_GROUP']))
                     
                     # Handle any necessary re-writes for the destination
                     if rule['SRC_TS'] != rule['DST_TS']:
@@ -289,10 +316,10 @@ class routerSYSTEM(HBSYSTEM):
                     dmrbits = bitarray(endian='big')
                     dmrbits.frombytes(dmrpkt)
                     # Create a voice header packet (FULL LC)
-                    if _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VHEAD:
+                    if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
                         dmrbits = _target_status[rule['DST_TS']]['TX_H_LC'][0:98] + dmrbits[98:166] + _target_status[rule['DST_TS']]['TX_H_LC'][98:197]
                     # Create a voice terminator packet (FULL LC)
-                    elif _frame_type == const.HBPF_DATA_SYNC and _dtype_vseq == const.HBPF_SLT_VTERM:
+                    elif _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VTERM:
                         dmrbits = _target_status[rule['DST_TS']]['TX_T_LC'][0:98] + dmrbits[98:166] + _target_status[rule['DST_TS']]['TX_T_LC'][98:197]
                     # Create a Burst B-E packet (Embedded LC)
                     elif _dtype_vseq in [1,2,3,4]:
@@ -302,14 +329,15 @@ class routerSYSTEM(HBSYSTEM):
                     
                     # Transmit the packet to the destination system
                     systems[_target].send_system(_tmp_data)
-                    logger.debug('(%s) Packet routed by rule: %s to %s system: %s', self._system, rule['NAME'], CONFIG['SYSTEMS'][_target]['MODE'], _target)
+                    self._logger.debug('(%s) Packet routed by rule: %s to %s system: %s', self._system, rule['NAME'], self._CONFIG['SYSTEMS'][_target]['MODE'], _target)
             
             
             
             # Final actions - Is this a voice terminator?
-            if (_frame_type == const.HBPF_DATA_SYNC) and (_dtype_vseq == const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != const.HBPF_SLT_VTERM):
+            if (_frame_type == hb_const.HBPF_DATA_SYNC) and (_dtype_vseq == hb_const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != hb_const.HBPF_SLT_VTERM):
                 call_duration = pkt_time - self.STATUS['RX_START']
-                logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', self._system, int_id(_stream_id), sub_alias(_rf_src), int_id(_rf_src), peer_alias(_radio_id), int_id(_radio_id), tg_alias(_dst_id), int_id(_dst_id), _slot, call_duration)
+                self._logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
+                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
                 
                 #
                 # Begin in-band signalling for call end. This has nothign to do with routing traffic directly.
@@ -322,40 +350,40 @@ class routerSYSTEM(HBSYSTEM):
                     # TGID matches a rule source, reset its timer
                     if _slot == rule['SRC_TS'] and _dst_id == rule['SRC_GROUP'] and ((rule['TO_TYPE'] == 'ON' and (rule['ACTIVE'] == True)) or (rule['TO_TYPE'] == 'OFF' and rule['ACTIVE'] == False)):
                         rule['TIMER'] = pkt_time + rule['TIMEOUT']
-                        logger.info('(%s) Source group transmission match for rule \"%s\". Reset timeout to %s', self._system, rule['NAME'], rule['TIMER'])
+                        self._logger.info('(%s) Source group transmission match for rule \"%s\". Reset timeout to %s', self._system, rule['NAME'], rule['TIMER'])
                 
                         # Scan for reciprocal rules and reset their timers as well.
                         for target_rule in RULES[_target]['GROUP_VOICE']:
                             if target_rule['NAME'] == rule['NAME']:
                                 target_rule['TIMER'] = pkt_time + target_rule['TIMEOUT']
-                                logger.info('(%s) Reciprocal group transmission match for rule \"%s\" on IPSC \"%s\". Reset timeout to %s', self._system, target_rule['NAME'], _target, rule['TIMER'])
+                                self._logger.info('(%s) Reciprocal group transmission match for rule \"%s\" on IPSC \"%s\". Reset timeout to %s', self._system, target_rule['NAME'], _target, rule['TIMER'])
             
                     # TGID matches an ACTIVATION trigger
                     if _dst_id in rule['ON']:
                         # Set the matching rule as ACTIVE
                         rule['ACTIVE'] = True
                         rule['TIMER'] = pkt_time + rule['TIMEOUT']
-                        logger.info('(%s) Primary routing Rule \"%s\" changed to state: %s', self._system, rule['NAME'], rule['ACTIVE'])
+                        self._logger.info('(%s) Primary routing Rule \"%s\" changed to state: %s', self._system, rule['NAME'], rule['ACTIVE'])
                 
                         # Set reciprocal rules for other IPSCs as ACTIVE
                         for target_rule in RULES[_target]['GROUP_VOICE']:
                             if target_rule['NAME'] == rule['NAME']:
                                 target_rule['ACTIVE'] = True
                                 target_rule['TIMER'] = pkt_time + target_rule['TIMEOUT']
-                                logger.info('(%s) Reciprocal routing Rule \"%s\" in IPSC \"%s\" changed to state: %s', self._system, target_rule['NAME'], _target, rule['ACTIVE'])
+                                self._logger.info('(%s) Reciprocal routing Rule \"%s\" in IPSC \"%s\" changed to state: %s', self._system, target_rule['NAME'], _target, rule['ACTIVE'])
                         
                     # TGID matches an DE-ACTIVATION trigger
                     if _dst_id in rule['OFF']:
                         # Set the matching rule as ACTIVE
                         rule['ACTIVE'] = False
-                        logger.info('(%s) Routing Rule \"%s\" changed to state: %s', self._system, rule['NAME'], rule['ACTIVE'])
+                        self._logger.info('(%s) Routing Rule \"%s\" changed to state: %s', self._system, rule['NAME'], rule['ACTIVE'])
                 
                         # Set reciprocal rules for other IPSCs as ACTIVE
                         _target = rule['DST_NET']
                         for target_rule in RULES[_target]['GROUP_VOICE']:
                             if target_rule['NAME'] == rule['NAME']:
                                 target_rule['ACTIVE'] = False
-                                logger.info('(%s) Reciprocal routing Rule \"%s\" in IPSC \"%s\" changed to state: %s', self._system, target_rule['NAME'], _target, rule['ACTIVE'])
+                                self._logger.info('(%s) Reciprocal routing Rule \"%s\" in IPSC \"%s\" changed to state: %s', self._system, target_rule['NAME'], _target, rule['ACTIVE'])
             #                    
             # END IN-BAND SIGNALLING
             #
@@ -374,13 +402,80 @@ class routerSYSTEM(HBSYSTEM):
 #************************************************
 
 if __name__ == '__main__':
-    logger.info('HBlink \'hb_router.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
+    
+    import argparse
+    import sys
+    import os
+    import signal
+    from dmr_utils.utils import try_download, mk_id_dict
+    
+    # Change the current directory to the location of the application
+    os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
+
+    # CLI argument parser - handles picking up the config file from the command line, and sending a "help" message
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', action='store', dest='CONFIG_FILE', help='/full/path/to/config.file (usually hblink.cfg)')
+    parser.add_argument('-l', '--logging', action='store', dest='LOG_LEVEL', help='Override config file logging level.')
+    cli_args = parser.parse_args()
+
+    # Ensure we have a path for the config file, if one wasn't specified, then use the default (top of file)
+    if not cli_args.CONFIG_FILE:
+        cli_args.CONFIG_FILE = os.path.dirname(os.path.abspath(__file__))+'/hblink.cfg'
+
+    # Call the external routine to build the configuration dictionary
+    CONFIG = hb_config.build_config(cli_args.CONFIG_FILE)
+    
+    # Start the system logger
+    if cli_args.LOG_LEVEL:
+        CONFIG['LOGGER']['LOG_LEVEL'] = cli_args.LOG_LEVEL
+    logger = hb_log.config_logging(CONFIG['LOGGER'])
+    logger.debug('Logging system started, anything from here on gets logged')
+    
+    # Set up the signal handler
+    def sig_handler(_signal, _frame):
+        logger.info('SHUTDOWN: HBROUTER IS TERMINATING WITH SIGNAL %s', str(_signal))
+        hblink_handler(_signal, _frame, logger)
+        logger.info('SHUTDOWN: ALL SYSTEM HANDLERS EXECUTED - STOPPING REACTOR')
+        reactor.stop()
+        
+    # Set signal handers so that we can gracefully exit if need be
+    for sig in [signal.SIGTERM, signal.SIGINT]:
+        signal.signal(sig, sig_handler)
+    
+    # ID ALIAS CREATION
+    # Download
+    if CONFIG['ALIASES']['TRY_DOWNLOAD'] == True:
+        # Try updating peer aliases file
+        result = try_download(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['PEER_FILE'], CONFIG['ALIASES']['PEER_URL'], CONFIG['ALIASES']['STALE_TIME'])
+        logger.info(result)
+        # Try updating subscriber aliases file
+        result = try_download(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['SUBSCRIBER_FILE'], CONFIG['ALIASES']['SUBSCRIBER_URL'], CONFIG['ALIASES']['STALE_TIME'])
+        logger.info(result)
+        
+    # Make Dictionaries
+    peer_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['PEER_FILE'])
+    if peer_ids:
+        logger.info('ID ALIAS MAPPER: peer_ids dictionary is available')
+        
+    subscriber_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['SUBSCRIBER_FILE'])
+    if subscriber_ids:
+        logger.info('ID ALIAS MAPPER: subscriber_ids dictionary is available')
+    
+    talkgroup_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['TGID_FILE'])
+    if talkgroup_ids:
+        logger.info('ID ALIAS MAPPER: talkgroup_ids dictionary is available')
+    
+    # Build the routing rules file
+    RULES = make_rules('hb_routing_rules')
+    
+    # Build the Access Control List
+    ACL = build_acl('sub_acl')
     
     # HBlink instance creation
-    # HBlink instance creation
+    logger.info('HBlink \'hb_router.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
-            systems[system] = routerSYSTEM(system)
+            systems[system] = routerSYSTEM(system, CONFIG, logger)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
             
