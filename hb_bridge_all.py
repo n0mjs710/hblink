@@ -63,7 +63,7 @@ __status__     = 'pre-alpha'
 # Module gobal varaibles
 
 
-class routerSYSTEM(HBSYSTEM):
+class bridgeallSYSTEM(HBSYSTEM):
     
     def __init__(self, _name, _config, _logger):
         HBSYSTEM.__init__(self, _name, _config, _logger)
@@ -224,7 +224,7 @@ if __name__ == '__main__':
     logger.info('HBlink \'hb_bridge_all.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
-            systems[system] = routerSYSTEM(system, CONFIG, logger)
+            systems[system] = bridgeallSYSTEM(system, CONFIG, logger)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
