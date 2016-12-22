@@ -256,6 +256,7 @@ class routerSYSTEM(HBSYSTEM):
                         for _target in BRIDGES[_bridge]:
                             if _target['SYSTEM'] != self._system:                                
                                 _target_status = systems[_target['SYSTEM']].STATUS
+                                _target_system = self._CONFIG['SYSTEMS'][_target['SYSTEM']]
                                 
                                 # BEGIN CONTENTION HANDLING
                                 #
@@ -266,11 +267,11 @@ class routerSYSTEM(HBSYSTEM):
                                 #   From the same group as the last TX to this HBSystem, but from a different subscriber, and it has been less than stream timeout
                                 # The "continue" at the end of each means the next iteration of the for loop that tests for matching rules
                                 #
-                                if ((_target['TGID'] != _target_status[_target['TS']]['RX_TGID']) and ((pkt_time - _target_status[_target['TS']]['RX_TIME']) < self._config['GROUP_HANGTIME'])):
+                                if ((_target['TGID'] != _target_status[_target['TS']]['RX_TGID']) and ((pkt_time - _target_status[_target['TS']]['RX_TIME']) < _target_system['GROUP_HANGTIME'])):
                                     if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD and self.STATUS[_slot]['RX_STREAM_ID'] != _seq:
                                         self._logger.info('(%s) Call not routed to TGID %s, target active or in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(_target['TGID']), _target['SYSTEM'], _target['TS'], int_id(_target_status[_target['TS']]['RX_TGID']))
                                     continue
-                                if ((_target['TGID'] != _target_status[_target['TS']]['TX_TGID']) and ((pkt_time - _target_status[_target['TS']]['TX_TIME']) < self._config['GROUP_HANGTIME'])):
+                                if ((_target['TGID'] != _target_status[_target['TS']]['TX_TGID']) and ((pkt_time - _target_status[_target['TS']]['TX_TIME']) < _target_system['GROUP_HANGTIME'])):
                                     if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD and self.STATUS[_slot]['RX_STREAM_ID'] != _seq:
                                         self._logger.info('(%s) Call not routed to TGID%s, target in group hangtime: HBSystem: %s, TS: %s, TGID: %s', self._system, int_id(_target['TGID']), _target['SYSTEM'], _target['TS'], int_id(_target_status[_target['TS']]['TX_TGID']))
                                     continue
