@@ -114,7 +114,8 @@ def build_config(_config_file):
                         'URL': config.get(section, 'URL').ljust(124)[:124],
                         'SOFTWARE_ID': config.get(section, 'SOFTWARE_ID').ljust(40)[:40],
                         'PACKAGE_ID': config.get(section, 'PACKAGE_ID').ljust(40)[:40],
-                        'GROUP_HANGTIME': config.getint(section, 'GROUP_HANGTIME')
+                        'GROUP_HANGTIME': config.getint(section, 'GROUP_HANGTIME'),
+                        'OPTIONS': config.get(section, 'OPTIONS')
                     }})
                     CONFIG['SYSTEMS'][section].update({'STATS': {
                         'CONNECTION': 'NO',             # NO, RTPL_SENT, AUTHENTICATED, CONFIG-SENT, YES 
