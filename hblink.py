@@ -425,10 +425,10 @@ class HBSYSTEM(DatagramProtocol):
                 elif self._stats['CONNECTION'] == 'CONFIG-SENT': # If we've sent out configuration to the master
                     if _data[6:10] == self._config['RADIO_ID']:
                         self._logger.info('(%s) Repeater Configuration Accepted', self._system)
-                        if self._config['OPTIONS'] != "":
+                        if self._config['OPTIONS']:
                             self.send_master('RPTO'+self._config['RADIO_ID']+self._config['OPTIONS'])
                             self._stats['CONNECTION'] = 'OPTIONS-SENT'
-                            self._logger.info('(%s) Sent options: '+self._config['OPTIONS'], self._system)
+                            self._logger.info('(%s) Sent options: (%s)', self._system, self._config['OPTIONS'])
                         else:
                             self._stats['CONNECTION'] = 'YES'
                             self._logger.info('(%s) Connection to Master Completed', self._system)
