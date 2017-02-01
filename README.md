@@ -16,37 +16,14 @@ None. The owners of this work make absolutley no warranty, express or implied. U
 **PRE-REQUISITE KNOWLEDGE:**  
 This document assumes the reader is familiar with the Python programming language and DMR.  
 
-
 **MORE DOCUMENTATION TO COME**
 
+***0x49 DE N0MJS***
 
-**PREFERRED ATTRIBUTION**
+Copyright (C) 2016-2017 Cortney T. Buffington, N0MJS n0mjs@me.com
 
-Attribution is requested to be given with the following information:
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
 
-    Title: "HBlink"
-    Source: "http://github.com/n0mjs710/HBlink"
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-    Author: "K0USY Group"
-    Link: "http://k0usy.strikingly.com"
-
-    License: "CC BY-NC-SA 3.0"
-    Link: "http://creativecommons.org/licenses/by-nc-sa/3.0/"
-
-An example where Title, Author and License are hyperlinked:
-  ["HBlink"](http://github.com/n0mjs710/HBlink) by [K0USY Group](http://k0usy.strikingly.com is licensed under [CC BY-NC-SA 3.0](http://creativecommons.org/licenses/by-nc-sa/3.0/)
-    
-An example where hyperlinks are not possible:
-  "HBlink" (http://github.com/n0mjs710/HBlink) by K0USY Group (http://k0usy.strikingly.com) is licensed under CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
-    
-Attribution is requested to be made in any official public or private documentation about the use or derivative use of HBlink in conjunction with whatever function(s), operation(s) or feature(s) employ HBlink in whole or in part. Attribution need only be made once per any such "official" documentation and may be placed wherever deemed appropriate by the author of such documentation.
-
-***73 DE N0MJS***
-
-Copyright (c) 2016 Cortney T. Buffington, N0MJS and the K0USY Group. n0mjs@me.com
-
-This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike
-3.0 Unported License.To view a copy of this license, visit
-http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to
-Creative Commons, 444 Castro Street, Suite 900, Mountain View,
-California, 94041, USA.
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
