@@ -220,7 +220,7 @@ if __name__ == '__main__':
         
     
     # HBlink instance creation
-    logger.info('HBlink \'hb_bridge_all.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
+    logger.info('HBlink \'hb_parrot.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
             systems[system] = parrot(system, CONFIG, logger)
