@@ -1,8 +1,15 @@
-##PROJECT: Open Source HomeBrew Repeater Proctol Client/Master.
+---
+### FOR SUPPORT, DISCUSSION, GETTING INVOLVED ###
+
+Please join the DVSwitch group at groups.io for online forum support, discussion, and to become part of the development team.
+
+DVSwitch@groups.io 
+
+---
+
+## PROJECT: Open Source HomeBrew Repeater Proctol Client/Master. ##
 
 **UPDATES:**
-~~Discussion Group at: https://groups.yahoo.com/neo/groups/k0usylink/info~~
-No more active development here. Since HB protocol is at least semi-public, with the enormous proliferation of tools that implement it (and souce code availaility), and the desire for centralized "networks" rather than tools to build distributed networks with; I'm no longer actively working on HBlink.
 
 **PURPOSE:** Thanks to the work of Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT we have an open protocol for internetworking DMR repeaters. Unfortunately, there's no generic client and/or master stacks. This project is to build an open-source, python-based implementation. This is a non-commercial license. Atribution is *required* if you use it.
 
