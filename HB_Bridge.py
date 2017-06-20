@@ -60,7 +60,7 @@ __license__    = 'GNU GPLv3'
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 __status__     = 'pre-alpha'
-__version__    = '20170609'
+__version__    = '20170620'
 
 mutex = Lock()  # Used to synchronize Peer I/O in different threads
 
