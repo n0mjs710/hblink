@@ -49,8 +49,8 @@ from dmr_utils import decode, bptc, const, golay, qr
 import hb_config
 import hb_log
 import hb_const
-import ambe_utils
-from ambe_bridge import AMBE_HB
+from dmr_utils import ambe_utils
+from dmr_utils.ambe_bridge import AMBE_HB
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Mike Zingman, N4IRR and Cortney T. Buffington, N0MJS'
