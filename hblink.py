@@ -383,7 +383,7 @@ class HBSYSTEM(DatagramProtocol):
                     # Userland actions -- typically this is the function you subclass for an application
                     self.dmrd_received(_radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
                 else:
-                    if (_data[15] & 0x2F) == 0x21: # call initiator flag?
+                    if (ord(_data[15]) & 0x2F) == 0x21: # call initiator flag?
                         self._logger.warning('(%s) Packet received for wrong RADIO_ID.  Got %d should be %d', self._system, int_id(_radio_id), int_id(self._config['RADIO_ID']))
 
             elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
