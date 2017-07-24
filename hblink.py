@@ -37,6 +37,7 @@ from hashlib import sha256
 from time import time
 from bitstring import BitArray
 import socket
+import sys
 
 # Twisted is pretty important, so I keep it separate
 from twisted.internet.protocol import DatagramProtocol
@@ -115,6 +116,7 @@ class HBSYSTEM(DatagramProtocol):
         self._system = _name
         self._logger = _logger
         self._config = self._CONFIG['SYSTEMS'][self._system]
+        sys.excepthook = self.handle_exception
         
         # Define shortcuts and generic function names based on the type of system we are
         if self._config['MODE'] == 'MASTER':
@@ -134,6 +136,12 @@ class HBSYSTEM(DatagramProtocol):
         # Configure for AMBE audio export if enabled
         if self._config['EXPORT_AMBE']:
             self._ambe = AMBE()
+
+    def handle_exception(self, exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        self._logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
     def startProtocol(self):
         # Set up periodic loop for tracking pings from clients. Run every 'PING_TIME' seconds
