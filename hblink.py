@@ -348,7 +348,7 @@ class HBSYSTEM(DatagramProtocol):
                     self._logger.warning('(%s) Client info from Radio ID that has not logged in: %s', self._system, int_id(_radio_id))
 
         else:
-            self._logger.error('(%s) Unrecognized command from: %s. Packet: %s', self._system, int_id(_radio_id), ahex(_data))
+            self._logger.error('(%s) Unrecognized command. Raw HBP PDU: %s', self._system, ahex(_data))
         
     # Aliased in __init__ to datagramReceived if system is a client
     def client_datagramReceived(self, _data, (_host, _port)):
