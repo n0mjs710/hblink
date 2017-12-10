@@ -145,6 +145,8 @@ class HB_BRIDGE(HBSYSTEM):
             _dmr_frame = BitArray('0x'+ahex(_data[20:]))
             _ambe = _dmr_frame[0:108] + _dmr_frame[156:264]
             self.hb_ambe.export_voice(_tx_slot, _seq, _ambe.tobytes())
+        else:
+            _tx_slot.lastSeq = _seq
 
     # The methods below are overridden becuse the launchUDP thread can also wite to a master or client async and confuse the master
     # A lock is used to synchronize the two threads so that the resource is protected
