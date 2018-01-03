@@ -96,7 +96,7 @@ class HB_BRIDGE(HBSYSTEM):
         self._gateway = "127.0.0.1"     # IP address of Analog_Bridge app
         self._gateway_port = 31000      # Port Analog_Bridge is listening on for AMBE frames to decode
 
-        self.load_configuration('HB_Bridge.cfg')
+        self.load_configuration(cli_args.BRIDGE_CONFIG_FILE)
 
         self.hb_ambe = AMBE_HB(self, _name, _config, _logger, self._ambeRxPort)
         self._sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
@@ -176,14 +176,20 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
 
     # CLI argument parser - handles picking up the config file from the command line, and sending a "help" message
+    # Added the capability to define a custom bridge config file, multiple bridges are needed when doing things like Analog_Bridge
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', action='store', dest='CONFIG_FILE', help='/full/path/to/config.file (usually hblink.cfg)')
+    parser.add_argument('-c', '--config', action='store', dest='CONFIG_FILE', help='/full/path/to/config.file (default hblink.cfg)')
     parser.add_argument('-l', '--logging', action='store', dest='LOG_LEVEL', help='Override config file logging level.')
+    parser.add_argument('-bc','--bridge_config', action='store', dest='BRIDGE_CONFIG_FILE', help='/full/path/to/bridgeconfig.cfg (default HB_Bridge.cfg)')
     cli_args = parser.parse_args()
 
     # Ensure we have a path for the config file, if one wasn't specified, then use the default (top of file)
     if not cli_args.CONFIG_FILE:
         cli_args.CONFIG_FILE = os.path.dirname(os.path.abspath(__file__))+'/hblink.cfg'
+
+    # Ensure we have a path for the bridge config file, if one wasn't specified, then use the default (top of file)
+    if not cli_args.BRIDGE_CONFIG_FILE:
+        cli_args.BRIDGE_CONFIG_FILE = os.path.dirname(os.path.abspath(__file__))+'/HB_Bridge.cfg'
 
     # Call the external routine to build the configuration dictionary
     CONFIG = hb_config.build_config(cli_args.CONFIG_FILE)
