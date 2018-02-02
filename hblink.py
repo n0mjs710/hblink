@@ -162,18 +162,23 @@ class HBSYSTEM(DatagramProtocol):
     # Aliased in __init__ to maintenance_loop if system is a client           
     def client_maintenance_loop(self):
         self._logger.debug('(%s) Client maintenance loop started', self._system)
+        if self._stats['PING_OUTSTANDING']:
+            self._stats['NUM_OUTSTANDING'] += 1
         # If we're not connected, zero out the stats and send a login request RPTL
-        if self._stats['CONNECTION'] == 'NO' or self._stats['CONNECTION'] == 'RTPL_SENT':
+        if self._stats['CONNECTION'] == 'NO' or self._stats['CONNECTION'] == 'RPTL_SENT' or self._stats['NUM_OUTSTANDING'] >= self._CONFIG['GLOBAL']['MAX_MISSED']:
             self._stats['PINGS_SENT'] = 0
             self._stats['PINGS_ACKD'] = 0
-            self._stats['CONNECTION'] = 'RTPL_SENT'
+            self._stats['NUM_OUTSTANDING'] = 0
+            self._stats['PING_OUTSTANDING'] = False
+            self._stats['CONNECTION'] = 'RPTL_SENT'
             self.send_master('RPTL'+self._config['RADIO_ID'])
             self._logger.info('(%s) Sending login request to master %s:%s', self._system, self._config['MASTER_IP'], self._config['MASTER_PORT'])
         # If we are connected, sent a ping to the master and increment the counter
         if self._stats['CONNECTION'] == 'YES':
             self.send_master('RPTPING'+self._config['RADIO_ID'])
+            self._logger.debug('(%s) RPTPING Sent to Master. Total Sent: %s, Total Missed: %s, Currently Outstanding: %s', self._system, self._stats['PINGS_SENT'], self._stats['PINGS_SENT'] - self._stats['PINGS_ACKD'], self._stats['NUM_OUTSTANDING'])
             self._stats['PINGS_SENT'] += 1
-            self._logger.debug('(%s) RPTPING Sent to Master. Pings Since Connected: %s', self._system, self._stats['PINGS_SENT'])
+            self._stats['PING_OUTSTANDING'] = True
 
     def send_clients(self, _packet):
         for _client in self._clients:
@@ -397,12 +402,12 @@ class HBSYSTEM(DatagramProtocol):
             elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
                 _radio_id = _data[6:10] #
                 if _radio_id == self._config['RADIO_ID']: # Validate the source and intended target
-                    self._logger.warning('(%s) MSTNAK Received', self._system)
+                    self._logger.warning('(%s) MSTNAK Received. Resetting connection to the Master.', self._system)
                     self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
 
             elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
                 # Depending on the state, an RPTACK means different things, in each clause, we check and/or set the state
-                if self._stats['CONNECTION'] == 'RTPL_SENT': # If we've sent a login request...
+                if self._stats['CONNECTION'] == 'RPTL_SENT': # If we've sent a login request...
                     _login_int32 = _data[6:10]
                     self._logger.info('(%s) Repeater Login ACK Received with 32bit ID: %s', self._system, int_id(_login_int32))
                     _pass_hash = sha256(_login_int32+self._config['PASSPHRASE']).hexdigest()
@@ -461,6 +466,8 @@ class HBSYSTEM(DatagramProtocol):
 
             elif _command == 'MSTP':    # Actually MSTPONG -- a reply to RPTPING (send by client)
                 if _data [7:11] == self._config['RADIO_ID']:
+                    self._stats['PING_OUTSTANDING'] = False
+                    self._stats['NUM_OUTSTANDING'] = 0
                     self._stats['PINGS_ACKD'] += 1
                     self._logger.debug('(%s) MSTPONG Received. Pongs Since Connected: %s', self._system, self._stats['PINGS_ACKD'])
 
