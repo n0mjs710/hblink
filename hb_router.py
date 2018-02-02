@@ -101,10 +101,25 @@ def make_rules(_hb_routing_rules):
 # are not yet implemented.
 def build_acl(_sub_acl):
     try:
+        logger.info('ACL file found, importing entries. This will take about 1.5 seconds per 1 million IDs')
         acl_file = import_module(_sub_acl)
-        for i, e in enumerate(acl_file.ACL):
-            acl_file.ACL[i] = hex_str_3(acl_file.ACL[i])
-        logger.info('ACL file found and ACL entries imported')
+        sections = acl_file.ACL.split(':')
+        ACL_ACTION = sections[0]
+        entries_str = sections[1]
+        ACL = set()
+        
+        for entry in entries_str.split(','):
+            if '-' in entry:
+                start,end = entry.split('-')
+                start,end = int(start), int(end)
+                for id in range(start, end+1):
+                    ACL.add(hex_str_3(id))
+            else:
+                id = int(entry)
+                ACL.add(hex_str_3(id))
+        
+        logger.info('ACL loaded: action "{}" for {:,} radio IDs'.format(ACL_ACTION, len(ACL)))
+    
     except ImportError:
         logger.info('ACL file not found or invalid - all subscriber IDs are valid')
         ACL_ACTION = 'NONE'
@@ -112,13 +127,13 @@ def build_acl(_sub_acl):
     # Depending on which type of ACL is used (PERMIT, DENY... or there isn't one)
     # define a differnet function to be used to check the ACL
     global allow_sub
-    if acl_file.ACL_ACTION == 'PERMIT':
+    if ACL_ACTION == 'PERMIT':
         def allow_sub(_sub):
             if _sub in ACL:
                 return True
             else:
                 return False
-    elif acl_file.ACL_ACTION == 'DENY':
+    elif ACL_ACTION == 'DENY':
         def allow_sub(_sub):
             if _sub not in ACL:
                 return True
@@ -128,7 +143,7 @@ def build_acl(_sub_acl):
         def allow_sub(_sub):
             return True
     
-    return acl_file.ACL
+    return ACL
 
 
 # Run this every minute for rule timer updates

@@ -134,7 +134,7 @@ class bridgeallSYSTEM(HBSYSTEM):
             for _target in self._CONFIG['SYSTEMS']: 
                     if _target != self._system:
                         systems[_target].send_system(_data)
-                        self._logger.debug('(%s) Packet routed to system: %s', self._system, _target)
+                        #self._logger.debug('(%s) Packet routed to system: %s', self._system, _target)
             
             
             # Final actions - Is this a voice terminator?

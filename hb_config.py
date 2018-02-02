@@ -121,6 +121,7 @@ def build_config(_config_file):
                         'CONNECTION': 'NO',             # NO, RTPL_SENT, AUTHENTICATED, CONFIG-SENT, YES 
                         'PINGS_SENT': 0,
                         'PINGS_ACKD': 0,
+                        'NUM_OUTSTANDING': 0,
                         'PING_OUTSTANDING': False,
                         'LAST_PING_TX_TIME': 0,
                         'LAST_PING_ACK_TIME': 0,
