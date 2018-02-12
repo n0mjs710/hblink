@@ -157,7 +157,7 @@ class HBSYSTEM(DatagramProtocol):
         if self._stats['PING_OUTSTANDING']:
             self._stats['NUM_OUTSTANDING'] += 1
         # If we're not connected, zero out the stats and send a login request RPTL
-        if self._stats['CONNECTION'] == 'NO' or self._stats['CONNECTION'] == 'RPTL_SENT' or self._stats['NUM_OUTSTANDING'] >= self._CONFIG['GLOBAL']['MAX_MISSED']:
+        if self._stats['CONNECTION'] != 'YES' or self._stats['NUM_OUTSTANDING'] >= self._CONFIG['GLOBAL']['MAX_MISSED']:
             self._stats['PINGS_SENT'] = 0
             self._stats['PINGS_ACKD'] = 0
             self._stats['NUM_OUTSTANDING'] = 0
