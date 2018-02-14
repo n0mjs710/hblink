@@ -234,7 +234,7 @@ class HBSYSTEM(DatagramProtocol):
                 if self._config['REPEAT'] == True:
                     for _client in self._clients:
                         if _client != _radio_id:
-                            self.send_client(_client, _data)
+                            self.send_client(_client, _data[:11] + _client + _data[15:])
                             #self._logger.debug('(%s) Packet on TS%s from %s (%s) for destination ID %s repeated to client: %s (%s) [Stream ID: %s]', self._system, _slot, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id), int_id(_dst_id), self._clients[_client]['CALLSIGN'], int_id(_client), int_id(_stream_id))
 
                 # Userland actions -- typically this is the function you subclass for an application
@@ -376,7 +376,7 @@ class HBSYSTEM(DatagramProtocol):
                     _frame_type = (_bits & 0x30) >> 4
                     _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                     _stream_id = _data[16:20]
-                    #self._logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
+                    self._logger.debug('(%s) DMRD - Sequence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
 
                     # If AMBE audio exporting is configured...
                     if self._config['EXPORT_AMBE']:
