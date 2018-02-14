@@ -313,7 +313,7 @@ if __name__ == '__main__':
     for system in CONFIG['SYSTEMS']:
         for acl_type in ACL:
             if system not in ACL[acl_type]:
-                logger.warning('No SID  ACL for system %s - initializing \'PERMIT:ALL\'', system)
+                logger.warning('No %s  ACL for system %s - initializing \'PERMIT:ALL\'', acl_type, system)
                 ACL[acl_type].update({system: acl_build('PERMIT:ALL')})
     
     
