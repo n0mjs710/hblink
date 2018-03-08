@@ -189,7 +189,7 @@ class HBSYSTEM(DatagramProtocol):
             _packet = _packet[:11] + self._config['RADIO_ID'] + _packet[15:]
         self.transport.write(_packet, (self._config['MASTER_IP'], self._config['MASTER_PORT']))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
-        #self._logger.debug('(%s) TX Packet to %s:%s -- %s', self._system, self._config['MASTER_IP'], self._config['MASTER_PORT'], ahex(_packet))
+        # self._logger.debug('(%s) TX Packet to %s:%s -- %s', self._system, self._config['MASTER_IP'], self._config['MASTER_PORT'], ahex(_packet))
 
     def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pass
@@ -206,7 +206,7 @@ class HBSYSTEM(DatagramProtocol):
     # Aliased in __init__ to datagramReceived if system is a master
     def master_datagramReceived(self, _data, (_host, _port)):
         # Keep This Line Commented Unless HEAVILY Debugging!
-        #self._logger.debug('(%s) RX packet from %s:%s -- %s', self._system, _host, _port, ahex(_data))
+        # self._logger.debug('(%s) RX packet from %s:%s -- %s', self._system, _host, _port, ahex(_data))
 
         # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
         _command = _data[:4]
@@ -236,7 +236,8 @@ class HBSYSTEM(DatagramProtocol):
                 if self._config['REPEAT'] == True:
                     for _client in self._clients:
                         if _client != _radio_id:
-                            self.send_client(_client, _data)
+                            #self.send_client(_client, _data)
+                            self.send_client(_client, _data[:11] + _client + _data[15:])
                             #self.send_client(_client, _data[:11] + self._config['RADIO_ID'] + _data[15:])
                             #self._logger.debug('(%s) Packet on TS%s from %s (%s) for destination ID %s repeated to client: %s (%s) [Stream ID: %s]', self._system, _slot, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id), int_id(_dst_id), self._clients[_client]['CALLSIGN'], int_id(_client), int_id(_stream_id))
 
