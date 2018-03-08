@@ -206,7 +206,7 @@ class HBSYSTEM(DatagramProtocol):
     # Aliased in __init__ to datagramReceived if system is a master
     def master_datagramReceived(self, _data, (_host, _port)):
         # Keep This Line Commented Unless HEAVILY Debugging!
-        # self._logger.debug('(%s) RX packet from %s:%s -- %s', self._system, _host, _port, ahex(_data))
+        #self._logger.debug('(%s) RX packet from %s:%s -- %s', self._system, _host, _port, ahex(_data))
 
         # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
         _command = _data[:4]
