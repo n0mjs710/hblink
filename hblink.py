@@ -39,14 +39,18 @@ from bitstring import BitArray
 import socket
 
 # Twisted is pretty important, so I keep it separate
-from twisted.internet.protocol import DatagramProtocol
-from twisted.internet import reactor
-from twisted.internet import task
+from twisted.internet.protocol import DatagramProtocol, Factory, Protocol
+from twisted.protocols.basic import NetstringReceiver
+from twisted.internet import reactor, task
 
 # Other files we pull from -- this is mostly for readability and segmentation
 import hb_log
 import hb_config
 from dmr_utils.utils import int_id, hex_str_4
+
+# Imports for the reporting server
+import cPickle as pickle
+from reporting_const import *
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -59,6 +63,25 @@ __email__      = 'n0mjs@me.com'
 
 # Global variables used whether we are a module or __main__
 systems = {}
+
+# Timed loop used for reporting IPSC status
+#
+# REPORT BASED ON THE TYPE SELECTED IN THE MAIN CONFIG FILE
+def config_reports(_config, _logger, _factory):                 
+    if _config['REPORTS']['REPORT']:
+        def reporting_loop(_logger, _server):
+            _logger.debug('Periodic reporting loop started')
+            _server.send_config()
+            
+        _logger.info('HBlink TCP reporting server configured')
+        
+        report_server = _factory(_config, _logger)
+        report_server.clients = []
+        reactor.listenTCP(_config['REPORTS']['REPORT_PORT'], report_server)
+        
+        reporting = task.LoopingCall(reporting_loop, _logger, report_server)
+        reporting.start(_config['REPORTS']['REPORT_INTERVAL'])
+
 
 # Shut ourselves down gracefully by disconnecting from the masters and clients.
 def hblink_handler(_signal, _frame, _logger):
@@ -469,6 +492,53 @@ class HBSYSTEM(DatagramProtocol):
             else:
                 self._logger.error('(%s) Received an invalid command in packet: %s', self._system, ahex(_data))
 
+#
+# Socket-based reporting section
+#
+class report(NetstringReceiver):
+    def __init__(self, factory):
+        self._factory = factory
+
+    def connectionMade(self):
+        self._factory.clients.append(self)
+        self._factory._logger.info('HBlink reporting client connected: %s', self.transport.getPeer())
+
+    def connectionLost(self, reason):
+        self._factory._logger.info('HBlink reporting client disconnected: %s', self.transport.getPeer())
+        self._factory.clients.remove(self)
+
+    def stringReceived(self, data):
+        self.process_message(data)
+
+    def process_message(self, _message):
+        opcode = _message[:1]
+        if opcode == REPORT_OPCODES['CONFIG_REQ']:
+            self._factory._logger.info('HBlink reporting client sent \'CONFIG_REQ\': %s', self.transport.getPeer())
+            self.send_config()
+        else:
+            self._factory._logger.error('got unknown opcode')
+        
+class reportFactory(Factory):
+    def __init__(self, config, logger):
+        self._config = config
+        self._logger = logger
+        
+    def buildProtocol(self, addr):
+        if (addr.host) in self._config['REPORTS']['REPORT_CLIENTS'] or '*' in self._config['REPORTS']['REPORT_CLIENTS']:
+            self._logger.debug('Permitting report server connection attempt from: %s:%s', addr.host, addr.port)
+            return report(self)
+        else:
+            self._logger.error('Invalid report server connection attempt from: %s:%s', addr.host, addr.port)
+            return None
+            
+    def send_clients(self, _message):
+        for client in self.clients:
+            client.sendString(_message)
+            
+    def send_config(self):
+        serialized = pickle.dumps(self._config['SYSTEMS'], protocol=pickle.HIGHEST_PROTOCOL)
+        self.send_clients(REPORT_OPCODES['CONFIG_SND']+serialized)
+        
 
 #************************************************
 #      MAIN PROGRAM LOOP STARTS HERE
@@ -514,6 +584,9 @@ if __name__ == '__main__':
     # Set signal handers so that we can gracefully exit if need be
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
+        
+    # INITIALIZE THE REPORTING LOOP
+    config_reports(CONFIG, logger, reportFactory)    
 
     # HBlink instance creation
     logger.info('HBlink \'HBlink.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')

@@ -48,6 +48,7 @@ def build_config(_config_file):
 
     CONFIG = {}
     CONFIG['GLOBAL'] = {}
+    CONFIG['REPORTS'] = {}
     CONFIG['LOGGER'] = {}
     CONFIG['ALIASES'] = {}
     CONFIG['AMBE'] = {}
@@ -60,6 +61,14 @@ def build_config(_config_file):
                     'PATH': config.get(section, 'PATH'),
                     'PING_TIME': config.getint(section, 'PING_TIME'),
                     'MAX_MISSED': config.getint(section, 'MAX_MISSED')
+                })
+
+            elif section == 'REPORTS':
+                CONFIG['REPORTS'].update({
+                    'REPORT': config.getboolean(section, 'REPORT'),
+                    'REPORT_INTERVAL': config.getint(section, 'REPORT_INTERVAL'),
+                    'REPORT_PORT': config.getint(section, 'REPORT_PORT'),
+                    'REPORT_CLIENTS': config.get(section, 'REPORT_CLIENTS').split(',')
                 })
 
             elif section == 'LOGGER':
