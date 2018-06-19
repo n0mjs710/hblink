@@ -141,28 +141,28 @@ class bridgeallSYSTEM(HBSYSTEM):
         if _call_type == 'group':
             
             # Check for GLOBAL Subscriber ID ACL Match
-            if acl_check(_rf_src, ACL['SID']['GLOBAL']) == False:
+            if acl_check(_rf_src, ACL['SID']['GLOBAL'][_slot]) == False:
                 if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS GLOBAL ACL***    SID: %s HBP, Peer %s', self._system, int_id(_rf_src), int_id(_radio_id))
+                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS GLOBAL ACL***    SID: %s SLOT: %s HBP Peer %s', self._system, int_id(_rf_src), _slot, int_id(_radio_id))
                     self.STATUS[_slot]['RX_STREAM_ID'] = _stream_id
                 return
             # Check for SYSTEM Subscriber ID ACL Match
-            if acl_check(_rf_src, ACL['SID'][self._system]) == False:
+            if acl_check(_rf_src, ACL['SID'][self._system][_slot]) == False:
                 if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS SYSTEM ACL***    SID: %s HBP, Peer %s', self._system, int_id(_rf_src), int_id(_radio_id))
+                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS SYSTEM ACL***    SID: %s SLOT: %s HBP Peer %s', self._system, int_id(_rf_src), _slot, int_id(_radio_id))
                     self.STATUS[_slot]['RX_STREAM_ID'] = _stream_id
                 return
             
             # Check for GLOBAL Talkgroup ID ACL Match    
-            if acl_check(_dst_id, ACL['TGID']['GLOBAL']) == False:
+            if acl_check(_dst_id, ACL['TGID']['GLOBAL'][_slot]) == False:
                 if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS GLOBAL ACL***    TGID: %s HBP, Peer %s', self._system, int_id(_dst_id), int_id(_radio_id))
+                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS GLOBAL ACL***    TGID: %s SLOT: %s HBP Peer %s', self._system, int_id(_dst_id), _slot, int_id(_radio_id))
                     self.STATUS[_slot]['RX_STREAM_ID'] = _stream_id
                 return
             # Check for SYSTEM Talkgroup ID ID ACL Match
-            if acl_check(_dst_id, ACL['TGID'][self._system]) == False:
+            if acl_check(_dst_id, ACL['TGID'][self._system][_slot]) == False:
                 if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS SYSTEM ACL***    TGID: %s HBP, Peer %s', self._system, int_id(_dst_id), int_id(_radio_id))
+                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS SYSTEM ACL***    TGID: %s SLOT: %s HBP Peer %s', self._system, int_id(_dst_id), _slot, int_id(_radio_id))
                     self.STATUS[_slot]['RX_STREAM_ID'] = _stream_id
                 return
             
@@ -193,28 +193,28 @@ class bridgeallSYSTEM(HBSYSTEM):
                         _target_system = self._CONFIG['SYSTEMS'][_target]
                         
                         # Check for GLOBAL Subscriber ID ACL Match
-                        if acl_check(_rf_src, ACL['SID']['GLOBAL']) == False:
+                        if acl_check(_rf_src, ACL['SID']['GLOBAL'][_slot]) == False:
                             if (_stream_id != _target_status[_slot]['TX_STREAM_ID']):
-                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS GLOBAL ACL***    SID: %s HBP, Peer %s', _target, int_id(_rf_src), int_id(_radio_id))
+                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS GLOBAL ACL***    SID: %s SLOT: %s HBP Peer %s', _target, int_id(_rf_src), _slot, int_id(_radio_id))
                                 _target_status[_slot]['TX_STREAM_ID'] = _stream_id
                             return
                         # Check for SYSTEM Subscriber ID ACL Match
-                        if acl_check(_rf_src, ACL['SID'][_target]) == False:
+                        if acl_check(_rf_src, ACL['SID'][_target][_slot]) == False:
                             if (_stream_id != _target_status[_slot]['TX_STREAM_ID']):
-                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS SYSTEM ACL***    SID: %s HBP, Peer %s', _target, int_id(_rf_src), int_id(_radio_id))
+                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS SYSTEM ACL***    SID: %s SLOT: %s HBP Peer %s', _target, int_id(_rf_src), _slot, int_id(_radio_id))
                                 _target_status[_slot]['TX_STREAM_ID'] = _stream_id
                             return
             
                         # Check for GLOBAL Talkgroup ID ACL Match    
-                        if acl_check(_dst_id, ACL['TGID']['GLOBAL']) == False:
+                        if acl_check(_dst_id, ACL['TGID']['GLOBAL'][_slot]) == False:
                             if (_stream_id != _target_status[_slot]['TX_STREAM_ID']):
-                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS GLOBAL ACL***    TGID: %s HBP, Peer %s', _target, int_id(_dst_id), int_id(_radio_id))
+                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS GLOBAL ACL***    TGID: %s SLOT: %s HBP Peer %s', _target, int_id(_dst_id), _slot, int_id(_radio_id))
                                 _target_status[_slot]['TX_STREAM_ID'] = _stream_id
                             return
                         # Check for SYSTEM Talkgroup ID ID ACL Match
-                        if acl_check(_dst_id, ACL['TGID'][_target]) == False:
+                        if acl_check(_dst_id, ACL['TGID'][_target][_slot]) == False:
                             if (_stream_id != _target_status[_slot]['TX_STREAM_ID']):
-                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS SYSTEM ACL***    TGID: %s HBP, Peer %s', _target, int_id(_dst_id), int_id(_radio_id))
+                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS SYSTEM ACL***    TGID: %s HBP Peer %s', _target, int_id(_dst_id), int_id(_radio_id))
                                 _target_status[_slot]['TX_STREAM_ID'] = _stream_id
                             return
                         
@@ -304,18 +304,19 @@ if __name__ == '__main__':
             sys.exit(('TERMINATE: SID or TGID stanzas not in ACL!!! Exiting to save you grief later'))
         
         if 'GLOBAL' not in ACL[acl_type]:
-            ACL[acl_type].update({'GLOBAL':'PERMIT:ALL'})
+            ACL[acl_type].update({'GLOBAL': {1:'PERMIT:ALL',2:'PERMIT:ALL'}})
             
         for system_acl in ACL[acl_type]:
             if system_acl not in CONFIG['SYSTEMS'] and system_acl != 'GLOBAL':
                 sys.exit(('TERMINATE: {} ACL configured for system {} that does not exist!!! Exiting to save you grief later'.format(acl_type, system_acl)))
-            ACL[acl_type][system_acl] = acl_build(ACL[acl_type][system_acl])
+            for slot in ACL[acl_type][system_acl]:
+                ACL[acl_type][system_acl][slot] = acl_build(ACL[acl_type][system_acl][slot])
             
     for system in CONFIG['SYSTEMS']:
         for acl_type in ACL:
             if system not in ACL[acl_type]:
                 logger.warning('No %s  ACL for system %s - initializing \'PERMIT:ALL\'', acl_type, system)
-                ACL[acl_type].update({system: acl_build('PERMIT:ALL')})
+                ACL[acl_type].update({system: {1: acl_build('PERMIT:ALL'), 2: acl_build('PERMIT:ALL')}})
     
     
     # HBlink instance creation

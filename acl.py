@@ -1,3 +1,21 @@
+###############################################################################
+#   Copyright (C) 2018  Cortney T. Buffington, N0MJS <n0mjs@me.com>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software Foundation,
+#   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+###############################################################################
+
 from dmr_utils.utils import int_id
 
 # Lowest possible Subscirber and/or talkgroup IDs allowed by ETSI standard
@@ -55,22 +73,32 @@ if __name__ == '__main__':
     
     ACL = {
         'SUB': {  
-            'K0USY':  'PERMIT:1-5,3120101,3120124'
+            'K0USY': {
+                1: 'PERMIT:1-5,3120101,3120124',
+                2: 'DENY:1-5,3120101,3120124'
+                }
         },
         'TGID': {
-            'GLOBAL': 'DENY:ALL',
-            'K0USY':  'PERMIT:1-5,3120,31201'
+            'GLOBAL': {
+                1: 'PERMIT:ALL',
+                2: 'DENY:ALL'
+                },
+            'K0USY': {
+                1: 'PERMIT:1-5,3120,31201',
+                2: 'DENY:1-5,3120,31201'
+                }
             }
     }
 
     for acl in ACL:
         if 'GLOBAL' not in ACL[acl]:
-            ACL[acl].update({'GLOBAL':'PERMIT:ALL'})
+            ACL[acl].update({'GLOBAL': {1:'PERMIT:ALL',2:'PERMIT:ALL'}})
         for acltype in ACL[acl]:
-            ACL[acl][acltype] = acl_build(ACL[acl][acltype])
+            for slot in ACL[acl][acltype]:
+                ACL[acl][acltype][slot] = acl_build(ACL[acl][acltype][slot])  
 
     pprint(ACL)
     print
 
-    print(acl_check('\x00\x00\x01', ACL['TGID']['GLOBAL']))
-    print(acl_check('\x00\x00\x01', ACL['TGID']['K0USY']))
+    print(acl_check('\x00\x00\x01', ACL['TGID']['GLOBAL'][1]))
+    print(acl_check('\x00\x00\x01', ACL['TGID']['K0USY'][2]))

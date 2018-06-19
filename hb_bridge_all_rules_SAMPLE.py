@@ -18,23 +18,45 @@
 # ACLs are applied both ingress AND egress
 # If you omit GLOBAL or SYSTEM level ACLs, they will be initilzied
 # automatically as "PERMIT:ALL"
+# Each system (or global) has two sections 1 and 2, which correspond
+# to timeslots 1 and 2 respectively
 #
 # EXAMPLE:
-# ACL = {
-#     'SID': {  
-#         'K0USY':  'PERMIT:1-5,3120101,3120124'
-#     },
-#     'TGID': {
-#         'GLOBAL': 'PERMIT:ALL',
-#         'K0USY':  'DENY:1-5,3120,31201'
-#         }
-# }
+#ACL = {
+#    'SID': {
+#        'GLOBAL': {
+#            1:  'PERMIT:ALL',
+#            2:  'PERMIT:ALL'
+#        },
+#        'LINK': {
+#            1:  'DENY:3120121',
+#            2:  'PERMIT:ALL'
+#        }
+#    },
+#    'TGID': {
+#        'GLOBAL': {
+#            1:  'PERMIT:ALL',
+#            2:  'PERMIT:ALL'
+#        },
+#        'LINK': {
+#            1:  'DENY:1-5,1616',
+#            2:  'PERMIT:3120'
+#        }
+#    }
+#}
 
 ACL = {
     'SID': {
-        'GLOBAL': 'PERMIT:ALL'
+        'GLOBAL': {
+            1: 'PERMIT:ALL',
+            2: 'PERMIT:ALL'
+        }
     },
     'TGID': {
-        'GLOBAL': 'PERMIT:ALL'
+        'GLOBAL': {
+            1: 'PERMIT:ALL',
+            2: 'PERMIT:ALL'
+        }
     }
 }
+
