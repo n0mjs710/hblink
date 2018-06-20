@@ -19,7 +19,7 @@ For those who will ask: This is a piece of software that implements an open-sour
 This work represents the author's interpretation of the HomeBrew Repeater Protocol, based on the 2015-07-26 documents from DMRplus, "IPSC Protocol Specs for homebrew DMR repeater" as written by Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT, also licenced under Creative Commons BY-NC-SA license.
 
 **WARRANTY**
-None. The owners of this work make absolutley no warranty, express or implied. Use this software at your own risk.
+None. The owners of this work make absolutely no warranty, express or implied. Use this software at your own risk.
 
 **PRE-REQUISITE KNOWLEDGE:**  
 This document assumes the reader is familiar with the Python programming language and DMR.  
