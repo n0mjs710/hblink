@@ -372,6 +372,7 @@ class HBSYSTEM(DatagramProtocol):
                             and self._clients[_radio_id]['CONNECTION'] == "YES" \
                             and self._clients[_radio_id]['IP'] == _host \
                             and self._clients[_radio_id]['PORT'] == _port:
+                    self._clients[_radio_id]['PINGS_RECEIVED'] += 1
                     self._clients[_radio_id]['LAST_PING'] = time()
                     self.send_client(_radio_id, 'MSTPONG'+_radio_id)
                     self._logger.debug('(%s) Received and answered RPTPING from client %s (%s)', self._system, self._clients[_radio_id]['CALLSIGN'], int_id(_radio_id))
