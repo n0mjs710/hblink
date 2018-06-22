@@ -40,17 +40,20 @@ from time import time
 from importlib import import_module
 
 # Twisted is pretty important, so I keep it separate
-from twisted.internet.protocol import DatagramProtocol
-from twisted.internet import reactor
-from twisted.internet import task
+from twisted.internet.protocol import Factory, Protocol
+from twisted.protocols.basic import NetstringReceiver
+from twisted.internet import reactor, task
 
 # Things we import from the main hblink module
-from hblink import HBSYSTEM, systems, hblink_handler
+from hblink import HBSYSTEM, systems, hblink_handler, reportFactory, REPORT_OPCODES
 from dmr_utils.utils import hex_str_3, int_id, get_alias
 from dmr_utils import decode, bptc, const
 import hb_config
 import hb_log
 import hb_const
+
+# Stuff for socket reporting
+import cPickle as pickle
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -62,6 +65,28 @@ __email__      = 'n0mjs@me.com'
 __status__     = 'pre-alpha'
 
 # Module gobal varaibles
+
+
+# Timed loop used for reporting HBP status
+#
+# REPORT BASED ON THE TYPE SELECTED IN THE MAIN CONFIG FILE
+def config_reports(_config, _logger, _factory):                 
+    if _config['REPORTS']['REPORT']:
+        def reporting_loop(_logger, _server):
+            _logger.debug('Periodic reporting loop started')
+            _server.send_config()
+            _server.send_bridge()
+            
+        _logger.info('HBlink TCP reporting server configured')
+        
+        report_server = _factory(_config, _logger)
+        report_server.clients = []
+        reactor.listenTCP(_config['REPORTS']['REPORT_PORT'], report_server)
+        
+        reporting = task.LoopingCall(reporting_loop, _logger, report_server)
+        reporting.start(_config['REPORTS']['REPORT_INTERVAL'])
+    
+    return report_server
 
 # Import Bridging rules
 # Note: A stanza *must* exist for any MASTER or CLIENT configured in the main
@@ -173,11 +198,13 @@ def rule_timer_loop():
             else:
                 logger.debug('Conference Bridge NO ACTION: System: %s, Bridge: %s, TS: %s, TGID: %s', _system['SYSTEM'], _bridge, _system['TS'], int_id(_system['TGID']))
 
+    if CONFIG['REPORTS']['REPORT']:
+        report_server.send_clients('bridge updated')
 
 class routerSYSTEM(HBSYSTEM):
     
-    def __init__(self, _name, _config, _logger):
-        HBSYSTEM.__init__(self, _name, _config, _logger)
+    def __init__(self, _name, _config, _logger, _report):
+        HBSYSTEM.__init__(self, _name, _config, _logger, _report)
         
         # Status information for the system, TS1 & TS2
         # 1 & 2 are "timeslot"
@@ -251,6 +278,9 @@ class routerSYSTEM(HBSYSTEM):
                 self.STATUS['RX_START'] = pkt_time
                 self._logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', \
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
+                if CONFIG['REPORTS']['REPORT']:
+                    self._report.send_bridgeEvent('({}) *CALL START* STREAM ID: {} SUB: {} ({}) REPEATER: {} ({}) TGID {} ({}), TS {}'.format(\
+                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot))
                 
                 # If we can, use the LC from the voice header as to keep all options intact
                 if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
@@ -353,6 +383,9 @@ class routerSYSTEM(HBSYSTEM):
                 call_duration = pkt_time - self.STATUS['RX_START']
                 self._logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
+                if CONFIG['REPORTS']['REPORT']:
+                    self._report.send_bridgeEvent('({}) *CALL START* STREAM ID: {} SUB: {} ({}) REPEATER: {} ({}) TGID {} ({}), TS {}'.format(\
+                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot))
                 
                 #
                 # Begin in-band signalling for call end. This has nothign to do with routing traffic directly.
@@ -419,6 +452,18 @@ class routerSYSTEM(HBSYSTEM):
             self.STATUS[_slot]['RX_TIME']      = pkt_time
             self.STATUS[_slot]['RX_STREAM_ID'] = _stream_id
                 
+#
+# Socket-based reporting section
+#
+class confbridgeReportFactory(reportFactory):
+        
+    def send_bridge(self):
+        serialized = pickle.dumps(BRIDGES, protocol=pickle.HIGHEST_PROTOCOL)
+        self.send_clients(REPORT_OPCODES['BRIDGE_SND']+serialized)
+        
+    def send_bridgeEvent(self, _data):
+        self.send_clients(REPORT_OPCODES['BRDG_EVENT']+_data)
+
 
 #************************************************
 #      MAIN PROGRAM LOOP STARTS HERE
@@ -494,11 +539,14 @@ if __name__ == '__main__':
     # Build the Access Control List
     ACL = build_acl('sub_acl')
     
+    # INITIALIZE THE REPORTING LOOP
+    report_server = config_reports(CONFIG, logger, confbridgeReportFactory)
+    
     # HBlink instance creation
     logger.info('HBlink \'hb_router.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
-            systems[system] = routerSYSTEM(system, CONFIG, logger)
+            systems[system] = routerSYSTEM(system, CONFIG, logger, report_server)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
             

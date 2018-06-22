@@ -64,7 +64,7 @@ __email__      = 'n0mjs@me.com'
 # Global variables used whether we are a module or __main__
 systems = {}
 
-# Timed loop used for reporting IPSC status
+# Timed loop used for reporting HBP status
 #
 # REPORT BASED ON THE TYPE SELECTED IN THE MAIN CONFIG FILE
 def config_reports(_config, _logger, _factory):                 
@@ -81,6 +81,8 @@ def config_reports(_config, _logger, _factory):
         
         reporting = task.LoopingCall(reporting_loop, _logger, report_server)
         reporting.start(_config['REPORTS']['REPORT_INTERVAL'])
+    
+    return report_server
 
 
 # Shut ourselves down gracefully by disconnecting from the masters and clients.
@@ -132,11 +134,12 @@ class AMBE:
 #************************************************
 
 class HBSYSTEM(DatagramProtocol):
-    def __init__(self, _name, _config, _logger):
+    def __init__(self, _name, _config, _logger, _report):
         # Define a few shortcuts to make the rest of the class more readable
         self._CONFIG = _config
         self._system = _name
         self._logger = _logger
+        self._report = _report
         self._config = self._CONFIG['SYSTEMS'][self._system]
         
         # Define shortcuts and generic function names based on the type of system we are
@@ -587,13 +590,13 @@ if __name__ == '__main__':
         signal.signal(sig, sig_handler)
         
     # INITIALIZE THE REPORTING LOOP
-    config_reports(CONFIG, logger, reportFactory)    
+    report_server = config_reports(CONFIG, logger, reportFactory)    
 
     # HBlink instance creation
     logger.info('HBlink \'HBlink.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
-            systems[system] = HBSYSTEM(system, CONFIG, logger)
+            systems[system] = HBSYSTEM(system, CONFIG, logger, report_server)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
