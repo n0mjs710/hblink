@@ -102,6 +102,7 @@ def build_config(_config_file):
                     CONFIG['SYSTEMS'].update({section: {
                         'MODE': config.get(section, 'MODE'),
                         'ENABLED': config.getboolean(section, 'ENABLED'),
+                        'STRICT': config.getboolean(section, 'STRICT'),
                         'EXPORT_AMBE': config.getboolean(section, 'EXPORT_AMBE'),
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
