@@ -161,6 +161,16 @@ class HBSYSTEM(DatagramProtocol):
         if self._config['EXPORT_AMBE']:
             self._ambe = AMBE()
 
+    def validate_radio_id(self, _id):
+
+        if self._config['STRICT']:
+            if _id == self._config['RADIO_ID']:
+                return True
+            else:
+                return False
+        else:
+            return True
+
     def startProtocol(self):
         # Set up periodic loop for tracking pings from clients. Run every 'PING_TIME' seconds
         self._system_maintenance = task.LoopingCall(self.maintenance_loop)
@@ -385,7 +395,7 @@ class HBSYSTEM(DatagramProtocol):
 
         else:
             self._logger.error('(%s) Unrecognized command. Raw HBP PDU: %s', self._system, ahex(_data))
-        
+
     # Aliased in __init__ to datagramReceived if system is a client
     def client_datagramReceived(self, _data, (_host, _port)):
         # Keep This Line Commented Unless HEAVILY Debugging!
@@ -397,7 +407,7 @@ class HBSYSTEM(DatagramProtocol):
             _command = _data[:4]
             if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
                 _radio_id = _data[11:15]
-                if _radio_id == self._config['RADIO_ID']: # Validate the source and intended target
+                if self.validate_radio_id(_radio_id): # Validate the source and intended target
                     _seq = _data[4:5]
                     _rf_src = _data[5:8]
                     _dst_id = _data[8:11]
@@ -418,7 +428,7 @@ class HBSYSTEM(DatagramProtocol):
 
             elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
                 _radio_id = _data[6:10]
-                if _radio_id == self._config['RADIO_ID']: # Validate the source and intended target
+                if self.validate_radio_id(_radio_id):  # Validate the source and intended target
                     self._logger.warning('(%s) MSTNAK Received. Resetting connection to the Master.', self._system)
                     self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
 
@@ -433,7 +443,8 @@ class HBSYSTEM(DatagramProtocol):
                     self._stats['CONNECTION'] = 'AUTHENTICATED'
 
                 elif self._stats['CONNECTION'] == 'AUTHENTICATED': # If we've sent the login challenge...
-                    if _data[6:10] == self._config['RADIO_ID']:
+                    _radio_id = _data[6:10]
+                    if self.validate_radio_id(_radio_id):  # Validate the source and intended target
                         self._logger.info('(%s) Repeater Authentication Accepted', self._system)
                         _config_packet =  self._config['RADIO_ID']+\
                                           self._config['CALLSIGN']+\
@@ -459,7 +470,8 @@ class HBSYSTEM(DatagramProtocol):
                         self._logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self._system)
 
                 elif self._stats['CONNECTION'] == 'CONFIG-SENT': # If we've sent out configuration to the master
-                    if _data[6:10] == self._config['RADIO_ID']:
+                    _radio_id = _data[6:10]
+                    if self.validate_radio_id(_radio_id):  # Validate the source and intended target:
                         self._logger.info('(%s) Repeater Configuration Accepted', self._system)
                         if self._config['OPTIONS']:
                             self.send_master('RPTO'+self._config['RADIO_ID']+self._config['OPTIONS'])
@@ -473,7 +485,8 @@ class HBSYSTEM(DatagramProtocol):
                         self._logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self._system)
 
                 elif self._stats['CONNECTION'] == 'OPTIONS-SENT': # If we've sent out options to the master
-                    if _data[6:10] == self._config['RADIO_ID']:
+                    _radio_id = _data[6:10]
+                    if self.validate_radio_id(_radio_id):  # Validate the source and intended target:
                         self._logger.info('(%s) Repeater Options Accepted', self._system)
                         self._stats['CONNECTION'] = 'YES'
                         self._logger.info('(%s) Connection to Master Completed with options', self._system)
@@ -482,14 +495,16 @@ class HBSYSTEM(DatagramProtocol):
                         self._logger.error('(%s) Master ACK Contained wrong ID - Connection Reset', self._system)
 
             elif _command == 'MSTP':    # Actually MSTPONG -- a reply to RPTPING (send by client)
-                if _data [7:11] == self._config['RADIO_ID']:
+                _radio_id = _data[7:11]
+                if self.validate_radio_id(_radio_id):  # Validate the source and intended target:
                     self._stats['PING_OUTSTANDING'] = False
                     self._stats['NUM_OUTSTANDING'] = 0
                     self._stats['PINGS_ACKD'] += 1
                     self._logger.debug('(%s) MSTPONG Received. Pongs Since Connected: %s', self._system, self._stats['PINGS_ACKD'])
 
             elif _command == 'MSTC':    # Actually MSTCL -- notify us the master is closing down
-                if _data[5:9] == self._config['RADIO_ID']:
+                _radio_id = _data[5:9]
+                if self.validate_radio_id(_radio_id):  # Validate the source and intended target:
                     self._stats['CONNECTION'] = 'NO'
                     self._logger.info('(%s) MSTCL Recieved', self._system)
 
