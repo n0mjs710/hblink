@@ -377,7 +377,7 @@ class HBSYSTEM(DatagramProtocol):
             _command = _data[:4]
             if   _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
                 _radio_id = _data[11:15]
-                if self.validate_radio_id(_radio_id): # Validate the source and intended target
+                if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                     _seq = _data[4:5]
                     _rf_src = _data[5:8]
                     _dst_id = _data[8:11]
@@ -401,7 +401,7 @@ class HBSYSTEM(DatagramProtocol):
 
             elif _command == 'MSTN':    # Actually MSTNAK -- a NACK from the master
                 _radio_id = _data[6:10] #
-                if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']:  # Validate the source and intended target # Validate the source and intended target
+                if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                     self._logger.warning('(%s) MSTNAK Received. Resetting connection to the Master.', self._system)
                     self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
                 else:
@@ -419,7 +419,7 @@ class HBSYSTEM(DatagramProtocol):
 
                 elif self._stats['CONNECTION'] == 'AUTHENTICATED': # If we've sent the login challenge...
                     _radio_id = _data[6:10]
-                    if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']:  # Validate the source and intended target
+                    if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                         self._logger.info('(%s) Repeater Authentication Accepted', self._system)
                         _config_packet =  self._config['RADIO_ID']+\
                                           self._config['CALLSIGN']+\
@@ -446,7 +446,7 @@ class HBSYSTEM(DatagramProtocol):
 
                 elif self._stats['CONNECTION'] == 'CONFIG-SENT': # If we've sent out configuration to the master
                     _radio_id = _data[6:10]
-                    if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']:  # Validate the source and intended target
+                    if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                         if self._config['OPTIONS']:
                             self.send_master('RPTO'+self._config['RADIO_ID']+self._config['OPTIONS'])
                             self._stats['CONNECTION'] = 'OPTIONS-SENT'
@@ -460,7 +460,7 @@ class HBSYSTEM(DatagramProtocol):
 
                 elif self._stats['CONNECTION'] == 'OPTIONS-SENT': # If we've sent out options to the master
                     _radio_id = _data[6:10]
-                    if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']:  # Validate the source and intended target
+                    if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                         self._logger.info('(%s) Repeater Options Accepted', self._system)
                         self._stats['CONNECTION'] = 'YES'
                         self._logger.info('(%s) Connection to Master Completed with options', self._system)
@@ -470,7 +470,7 @@ class HBSYSTEM(DatagramProtocol):
 
             elif _command == 'MSTP':    # Actually MSTPONG -- a reply to RPTPING (send by client)
                 _radio_id = _data[7:11]
-                if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']:  # Validate the source and intended target
+                if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                     self._stats['PING_OUTSTANDING'] = False
                     self._stats['NUM_OUTSTANDING'] = 0
                     self._stats['PINGS_ACKD'] += 1
@@ -480,7 +480,7 @@ class HBSYSTEM(DatagramProtocol):
 
             elif _command == 'MSTC':    # Actually MSTCL -- notify us the master is closing down
                 _radio_id = _data[5:9]
-                if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']:  # Validate the source and intended target
+                if self._config['LOOSE'] or _radio_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                     self._stats['CONNECTION'] = 'NO'
                     self._logger.info('(%s) MSTCL Recieved', self._system)
                 else:
