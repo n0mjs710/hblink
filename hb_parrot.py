@@ -30,12 +30,12 @@ from time import time, sleep
 from importlib import import_module
 
 # Twisted is pretty important, so I keep it separate
-from twisted.internet.protocol import DatagramProtocol
-from twisted.internet import reactor
-from twisted.internet import task
+from twisted.internet.protocol import Factory, Protocol
+from twisted.protocols.basic import NetstringReceiver
+from twisted.internet import reactor, task
 
 # Things we import from the main hblink module
-from hblink import HBSYSTEM, systems, int_id, hblink_handler
+from hblink import HBSYSTEM, systems, hblink_handler, reportFactory, REPORT_OPCODES, config_reports
 from dmr_utils.utils import hex_str_3, int_id, get_alias
 from dmr_utils import decode, bptc, const
 import hb_config
@@ -55,8 +55,8 @@ __status__     = 'pre-alpha'
 
 class parrot(HBSYSTEM):
     
-    def __init__(self, _name, _config, _logger):
-        HBSYSTEM.__init__(self, _name, _config, _logger)
+    def __init__(self, _name, _config, _logger, _report):
+        HBSYSTEM.__init__(self, _name, _config, _logger, _report)
         
         # Status information for the system, TS1 & TS2
         # 1 & 2 are "timeslot"
@@ -218,12 +218,14 @@ if __name__ == '__main__':
     if talkgroup_ids:
         logger.info('ID ALIAS MAPPER: talkgroup_ids dictionary is available')
         
+    # INITIALIZE THE REPORTING LOOP
+    report_server = config_reports(CONFIG, logger, reportFactory)    
     
     # HBlink instance creation
     logger.info('HBlink \'hb_parrot.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
-            systems[system] = parrot(system, CONFIG, logger)
+            systems[system] = parrot(system, CONFIG, logger, report_server)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 

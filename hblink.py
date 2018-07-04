@@ -68,7 +68,7 @@ systems = {}
 #
 # REPORT BASED ON THE TYPE SELECTED IN THE MAIN CONFIG FILE
 def config_reports(_config, _logger, _factory):                 
-    if _config['REPORTS']['REPORT']:
+    if True: #_config['REPORTS']['REPORT']:
         def reporting_loop(_logger, _server):
             _logger.debug('Periodic reporting loop started')
             _server.send_config()

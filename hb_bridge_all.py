@@ -40,12 +40,12 @@ from importlib import import_module
 from types import ModuleType
 
 # Twisted is pretty important, so I keep it separate
-from twisted.internet.protocol import DatagramProtocol
-from twisted.internet import reactor
-from twisted.internet import task
+from twisted.internet.protocol import Factory, Protocol
+from twisted.protocols.basic import NetstringReceiver
+from twisted.internet import reactor, task
 
 # Things we import from the main hblink module
-from hblink import HBSYSTEM, systems, int_id, hblink_handler
+from hblink import HBSYSTEM, systems, hblink_handler, reportFactory, REPORT_OPCODES, config_reports
 from dmr_utils.utils import hex_str_3, int_id, get_alias
 from dmr_utils import decode, bptc, const
 from acl import acl_check, acl_build
@@ -80,8 +80,8 @@ def import_rules(_rules):
 
 class bridgeallSYSTEM(HBSYSTEM):
     
-    def __init__(self, _name, _config, _logger):
-        HBSYSTEM.__init__(self, _name, _config, _logger)
+    def __init__(self, _name, _config, _logger, _report):
+        HBSYSTEM.__init__(self, _name, _config, _logger, _report)
         
         # Status information for the system, TS1 & TS2
         # 1 & 2 are "timeslot"
@@ -318,12 +318,14 @@ if __name__ == '__main__':
                 logger.warning('No %s  ACL for system %s - initializing \'PERMIT:ALL\'', acl_type, system)
                 ACL[acl_type].update({system: {1: acl_build('PERMIT:ALL'), 2: acl_build('PERMIT:ALL')}})
     
+    # INITIALIZE THE REPORTING LOOP
+    report_server = config_reports(CONFIG, logger, reportFactory)
     
     # HBlink instance creation
     logger.info('HBlink \'hb_bridge_all.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
-            systems[system] = bridgeallSYSTEM(system, CONFIG, logger)
+            systems[system] = bridgeallSYSTEM(system, CONFIG, logger, report_server)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
