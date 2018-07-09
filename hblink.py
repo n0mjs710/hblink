@@ -99,6 +99,7 @@ def hblink_handler(_signal, _frame, _logger):
 class AMBE:
     def __init__(self, _config, _logger):
         self._CONFIG = _config
+        self._logger = _logger
          
         self._sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         self._exp_ip = self._CONFIG['AMBE']['EXPORT_IP']
@@ -115,7 +116,7 @@ class AMBE:
         _frameType = (_bits & 0x30) >> 4
         _voiceSeq = (_bits & 0x0f)
         _streamID = int_id(_data[16:20])
-        logger.debug('(%s) seq: %d srcID: %d dstID: %d rptID: %d bits: %0X slot:%d callType: %d frameType:  %d voiceSeq: %d streamID: %0X',
+        self._logger.debug('(%s) seq: %d srcID: %d dstID: %d rptID: %d bits: %0X slot:%d callType: %d frameType:  %d voiceSeq: %d streamID: %0X',
         _client, _seq, _srcID, _dstID, _rptID, _bits, _slot, _callType, _frameType, _voiceSeq, _streamID )
 
         #logger.debug('Frame 1:(%s)', self.ByteToHex(_data))
