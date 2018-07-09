@@ -160,7 +160,7 @@ class HBSYSTEM(DatagramProtocol):
         
         # Configure for AMBE audio export if enabled
         if self._config['EXPORT_AMBE']:
-            self._ambe = AMBE()
+            self._ambe = AMBE(_config, _logger)
 
     def startProtocol(self):
         # Set up periodic loop for tracking pings from clients. Run every 'PING_TIME' seconds
