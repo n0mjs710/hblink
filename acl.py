@@ -59,7 +59,7 @@ def acl_build(_acl):
                 pass #logger message here
         else:
             id = int(entry)
-            if (ID_MIN <= id <= ID_MAX) or (ID_MIN <= id <= ID_MAX):
+            if (ID_MIN <= id <= ID_MAX):
                 acl.add((id, id))
             else:
                 pass #logger message here

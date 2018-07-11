@@ -36,6 +36,7 @@ from random import randint
 from hashlib import sha256
 from time import time
 from bitstring import BitArray
+from importlib import import_module
 import socket
 
 # Twisted is pretty important, so I keep it separate
@@ -91,6 +92,56 @@ def hblink_handler(_signal, _frame, _logger):
         _logger.info('SHUTDOWN: DE-REGISTER SYSTEM: %s', system)
         systems[system].dereg()
 
+
+# Import subscriber registration ACL
+# ACL may be a single list of subscriber IDs
+# Global action is to allow or deny them. Multiple lists with different actions and ranges
+# are not yet implemented.
+def build_acl(_reg_acl):
+    try:
+        logger.info('Registration ACL file found, importing entries. This will take about 1.5 seconds per 1 million IDs')
+        acl_file = import_module(_reg_acl)
+        sections = acl_file.ACL.split(':')
+        ACL_ACTION = sections[0]
+        entries_str = sections[1]
+        ACL = set()
+        
+        for entry in entries_str.split(','):
+            if '-' in entry:
+                start,end = entry.split('-')
+                start,end = int(start), int(end)
+                for id in range(start, end+1):
+                    ACL.add(hex_str_4(id))
+            else:
+                id = int(entry)
+                ACL.add(hex_str_4(id))
+        
+        logger.info('Registration ACL loaded: action "{}" for {:,} registration IDs'.format(ACL_ACTION, len(ACL)))
+    
+    except ImportError:
+        logger.info('Registration ACL file not found or invalid - all IDs are valid')
+        ACL_ACTION = 'NONE'
+
+    # Depending on which type of ACL is used (PERMIT, DENY... or there isn't one)
+    # define a differnet function to be used to check the ACL
+    global allow_reg
+    if ACL_ACTION == 'PERMIT':
+        def allow_reg(_id):
+            if _id in ACL:
+                return True
+            else:
+                return False
+    elif ACL_ACTION == 'DENY':
+        def allow_reg(_id):
+            if _id not in ACL:
+                return True
+            else:
+                return False
+    else:
+        def allow_reg(_id):
+            return True
+    
+    return ACL
 
 #************************************************
 #     AMBE CLASS: Used to parse out AMBE and send to gateway
@@ -273,7 +324,7 @@ class HBSYSTEM(DatagramProtocol):
 
         elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
             _radio_id = _data[4:8]
-            if _radio_id:           # Future check here for valid Radio ID
+            if allow_reg(_radio_id):           # Future check here for valid Radio ID
                 self._clients.update({_radio_id: {      # Build the configuration data strcuture for the client
                     'CONNECTION': 'RPTL-RECEIVED',
                     'PINGS_RECEIVED': 0,
@@ -304,7 +355,7 @@ class HBSYSTEM(DatagramProtocol):
                 self._logger.info('(%s) Sent Challenge Response to %s for login: %s', self._system, int_id(_radio_id), self._clients[_radio_id]['SALT'])
             else:
                 self.transport.write('MSTNAK'+_radio_id, (_host, _port))
-                self._logger.warning('(%s) Invalid Login from Radio ID: %s', self._system, int_id(_radio_id))
+                self._logger.warning('(%s) Invalid Login from Radio ID: %s Denied by Registation ACL', self._system, int_id(_radio_id))
 
         elif _command == 'RPTK':    # Repeater has answered our login challenge
             _radio_id = _data[4:8]
@@ -594,7 +645,10 @@ if __name__ == '__main__':
     # Set signal handers so that we can gracefully exit if need be
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
-        
+    
+    # Build the Access Control List
+    ACL = build_acl('reg_acl')
+    
     # INITIALIZE THE REPORTING LOOP
     report_server = config_reports(CONFIG, logger, reportFactory)    
 
