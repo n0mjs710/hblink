@@ -10,6 +10,8 @@ hblink.cfg
 hb_routing_rules.py
 hb_confbridge_rules.py
 hb_bridge_all_rules.py
+sub_acl.py
+reg_acl.py
 *.csv
 *.config
 *.json
