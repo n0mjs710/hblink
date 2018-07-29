@@ -98,13 +98,13 @@ def hblink_handler(_signal, _frame, _logger):
 # Global action is to allow or deny them. Multiple lists with different actions and ranges
 # are not yet implemented.
 def build_acl(_reg_acl):
+    ACL = set()
     try:
         logger.info('Registration ACL file found, importing entries. This will take about 1.5 seconds per 1 million IDs')
         acl_file = import_module(_reg_acl)
         sections = acl_file.ACL.split(':')
         ACL_ACTION = sections[0]
         entries_str = sections[1]
-        ACL = set()
         
         for entry in entries_str.split(','):
             if '-' in entry:
