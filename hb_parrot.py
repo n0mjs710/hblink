@@ -132,7 +132,7 @@ class parrot(HBSYSTEM):
                 sleep(2)
                 logger.info('(%s) Playing back transmission from subscriber: %s', self._system, int_id(_rf_src))
                 for i in self.CALL_DATA:
-                    self.send_clients(i)
+                    self.send_system(i)
                     sleep(0.06)
                 self.CALL_DATA = []
             
