@@ -258,6 +258,8 @@ class HBSYSTEM(DatagramProtocol):
     def send_client(self, _client, _packet):
         _ip = self._clients[_client]['IP']
         _port = self._clients[_client]['PORT']
+        if _packet[:4] == 'DMRD':
+            _packet = _packet[:11] + _client + _packet[15:]
         self.transport.write(_packet, (_ip, _port))
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #self._logger.debug('(%s) TX Packet to %s on port %s: %s', self._clients[_client]['RADIO_ID'], self._clients[_client]['IP'], self._clients[_client]['PORT'], ahex(_packet))
