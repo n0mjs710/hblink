@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 ###############################################################################
-#   Copyright (C) 2016  Cortney T. Buffington, N0MJS <n0mjs@me.com>
+#   Copyright (C) 2016-2018 Cortney T. Buffington, N0MJS <n0mjs@me.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ from twisted.protocols.basic import NetstringReceiver
 from twisted.internet import reactor, task
 
 # Things we import from the main hblink module
-from hblink import HBSYSTEM, systems, hblink_handler, reportFactory, REPORT_OPCODES, config_reports
+from hblink import HBSYSTEM, systems, hblink_handler, reportFactory, REPORT_OPCODES, config_reports, build_reg_acl
 from dmr_utils.utils import hex_str_3, int_id, get_alias
 from dmr_utils import decode, bptc, const
 from acl import acl_check, acl_build
@@ -55,7 +55,7 @@ import hb_const
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
-__copyright__  = 'Copyright (c) 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
+__copyright__  = 'Copyright (c) 2016-2018 Cortney T. Buffington, N0MJS and the K0USY Group'
 __credits__    = 'Colin Durbridge, G4EML, Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
 __license__    = 'GNU GPLv3'
 __maintainer__ = 'Cort Buffington, N0MJS'
@@ -133,7 +133,7 @@ class bridgeallSYSTEM(HBSYSTEM):
                 }
             }
 
-    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
+    def dmrd_received(self, _peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pkt_time = time()
         dmrpkt = _data[20:53]
         _bits = int_id(_data[15])
@@ -143,40 +143,40 @@ class bridgeallSYSTEM(HBSYSTEM):
             # Check for GLOBAL Subscriber ID ACL Match
             if acl_check(_rf_src, ACL['SID']['GLOBAL'][_slot]) == False:
                 if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS GLOBAL ACL***    SID: %s SLOT: %s HBP Peer %s', self._system, int_id(_rf_src), _slot, int_id(_radio_id))
+                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS GLOBAL ACL***    SID: %s SLOT: %s HBP Peer %s', self._system, int_id(_rf_src), _slot, int_id(_peer_id))
                     self.STATUS[_slot]['RX_STREAM_ID'] = _stream_id
                 return
             # Check for SYSTEM Subscriber ID ACL Match
             if acl_check(_rf_src, ACL['SID'][self._system][_slot]) == False:
                 if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS SYSTEM ACL***    SID: %s SLOT: %s HBP Peer %s', self._system, int_id(_rf_src), _slot, int_id(_radio_id))
+                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS SYSTEM ACL***    SID: %s SLOT: %s HBP Peer %s', self._system, int_id(_rf_src), _slot, int_id(_peer_id))
                     self.STATUS[_slot]['RX_STREAM_ID'] = _stream_id
                 return
             
             # Check for GLOBAL Talkgroup ID ACL Match    
             if acl_check(_dst_id, ACL['TGID']['GLOBAL'][_slot]) == False:
                 if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS GLOBAL ACL***    TGID: %s SLOT: %s HBP Peer %s', self._system, int_id(_dst_id), _slot, int_id(_radio_id))
+                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS GLOBAL ACL***    TGID: %s SLOT: %s HBP Peer %s', self._system, int_id(_dst_id), _slot, int_id(_peer_id))
                     self.STATUS[_slot]['RX_STREAM_ID'] = _stream_id
                 return
             # Check for SYSTEM Talkgroup ID ID ACL Match
             if acl_check(_dst_id, ACL['TGID'][self._system][_slot]) == False:
                 if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
-                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS SYSTEM ACL***    TGID: %s SLOT: %s HBP Peer %s', self._system, int_id(_dst_id), _slot, int_id(_radio_id))
+                    self._logger.warning('(%s) Group Voice Call ***REJECTED BY INGRESS SYSTEM ACL***    TGID: %s SLOT: %s HBP Peer %s', self._system, int_id(_dst_id), _slot, int_id(_peer_id))
                     self.STATUS[_slot]['RX_STREAM_ID'] = _stream_id
                 return
             
             # Is this is a new call stream?
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
                 self.STATUS['RX_START'] = pkt_time
-                self._logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', \
-                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
+                self._logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s', \
+                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
             
             # Final actions - Is this a voice terminator?
             if (_frame_type == hb_const.HBPF_DATA_SYNC) and (_dtype_vseq == hb_const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != hb_const.HBPF_SLT_VTERM):
                 call_duration = pkt_time - self.STATUS['RX_START']
-                self._logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
-                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
+                self._logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
+                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
             
             # Mark status variables for use later
             self.STATUS[_slot]['RX_RFS']       = _rf_src
@@ -195,26 +195,26 @@ class bridgeallSYSTEM(HBSYSTEM):
                         # Check for GLOBAL Subscriber ID ACL Match
                         if acl_check(_rf_src, ACL['SID']['GLOBAL'][_slot]) == False:
                             if (_stream_id != _target_status[_slot]['TX_STREAM_ID']):
-                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS GLOBAL ACL***    SID: %s SLOT: %s HBP Peer %s', _target, int_id(_rf_src), _slot, int_id(_radio_id))
+                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS GLOBAL ACL***    SID: %s SLOT: %s HBP Peer %s', _target, int_id(_rf_src), _slot, int_id(_peer_id))
                                 _target_status[_slot]['TX_STREAM_ID'] = _stream_id
                             return
                         # Check for SYSTEM Subscriber ID ACL Match
                         if acl_check(_rf_src, ACL['SID'][_target][_slot]) == False:
                             if (_stream_id != _target_status[_slot]['TX_STREAM_ID']):
-                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS SYSTEM ACL***    SID: %s SLOT: %s HBP Peer %s', _target, int_id(_rf_src), _slot, int_id(_radio_id))
+                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS SYSTEM ACL***    SID: %s SLOT: %s HBP Peer %s', _target, int_id(_rf_src), _slot, int_id(_peer_id))
                                 _target_status[_slot]['TX_STREAM_ID'] = _stream_id
                             return
             
                         # Check for GLOBAL Talkgroup ID ACL Match    
                         if acl_check(_dst_id, ACL['TGID']['GLOBAL'][_slot]) == False:
                             if (_stream_id != _target_status[_slot]['TX_STREAM_ID']):
-                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS GLOBAL ACL***    TGID: %s SLOT: %s HBP Peer %s', _target, int_id(_dst_id), _slot, int_id(_radio_id))
+                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS GLOBAL ACL***    TGID: %s SLOT: %s HBP Peer %s', _target, int_id(_dst_id), _slot, int_id(_peer_id))
                                 _target_status[_slot]['TX_STREAM_ID'] = _stream_id
                             return
                         # Check for SYSTEM Talkgroup ID ID ACL Match
                         if acl_check(_dst_id, ACL['TGID'][_target][_slot]) == False:
                             if (_stream_id != _target_status[_slot]['TX_STREAM_ID']):
-                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS SYSTEM ACL***    TGID: %s HBP Peer %s', _target, int_id(_dst_id), int_id(_radio_id))
+                                self._logger.warning('(%s) Group Voice Call ***REJECTED BY EGRESS SYSTEM ACL***    TGID: %s HBP Peer %s', _target, int_id(_dst_id), int_id(_peer_id))
                                 _target_status[_slot]['TX_STREAM_ID'] = _stream_id
                             return
                         
@@ -317,6 +317,9 @@ if __name__ == '__main__':
             if system not in ACL[acl_type]:
                 logger.warning('No %s  ACL for system %s - initializing \'PERMIT:ALL\'', acl_type, system)
                 ACL[acl_type].update({system: {1: acl_build('PERMIT:ALL'), 2: acl_build('PERMIT:ALL')}})
+    
+    # Build the Registration Access Control List
+    REG_ACL = build_reg_acl('reg_acl', logger)
     
     # INITIALIZE THE REPORTING LOOP
     report_server = config_reports(CONFIG, logger, reportFactory)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 ###############################################################################
-#   Copyright (C) 2016  Cortney T. Buffington, N0MJS <n0mjs@me.com>
+#   Copyright (C) 2016-2018 Cortney T. Buffington, N0MJS <n0mjs@me.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ from socket import gethostbyname
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
-__copyright__  = 'Copyright (c) 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
+__copyright__  = 'Copyright (c) 2016-2018 Cortney T. Buffington, N0MJS and the K0USY Group'
 __credits__    = 'Colin Durbridge, G4EML, Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
 __license__    = 'GNU GPLv3'
 __maintainer__ = 'Cort Buffington, N0MJS'
@@ -98,14 +98,16 @@ def build_config(_config_file):
                 })
 
             elif config.getboolean(section, 'ENABLED'):
-                if config.get(section, 'MODE') == 'CLIENT':
+                if config.get(section, 'MODE') == 'PEER':
                     CONFIG['SYSTEMS'].update({section: {
                         'MODE': config.get(section, 'MODE'),
                         'ENABLED': config.getboolean(section, 'ENABLED'),
                         'LOOSE': config.getboolean(section, 'LOOSE'),
                         'EXPORT_AMBE': config.getboolean(section, 'EXPORT_AMBE'),
+                        'SOCK_ADDR': (gethostbyname(config.get(section, 'IP')), config.getint(section, 'PORT')),
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
+                        'MASTER_SOCKADDR': (gethostbyname(config.get(section, 'MASTER_IP')), config.getint(section, 'MASTER_PORT')),
                         'MASTER_IP': gethostbyname(config.get(section, 'MASTER_IP')),
                         'MASTER_PORT': config.getint(section, 'MASTER_PORT'),
                         'PASSPHRASE': config.get(section, 'PASSPHRASE'),
@@ -148,7 +150,7 @@ def build_config(_config_file):
                         'PASSPHRASE': config.get(section, 'PASSPHRASE'),
                         'GROUP_HANGTIME': config.getint(section, 'GROUP_HANGTIME')
                     }})
-                    CONFIG['SYSTEMS'][section].update({'CLIENTS': {}})
+                    CONFIG['SYSTEMS'][section].update({'PEERS': {}})
     
     except ConfigParser.Error, err:
 	    print "Cannot parse configuration file. %s" %err
