@@ -22,7 +22,7 @@ This work represents the author's interpretation of the HomeBrew Repeater Protoc
 None. The owners of this work make absolutely no warranty, express or implied. Use this software at your own risk.
 
 **PRE-REQUISITE KNOWLEDGE:**  
-This document assumes the reader is familiar with the Python programming language and DMR.  
+This document assumes the reader is familiar with Linux/UNIX, the Python programming language and DMR.  
 
 **MORE DOCUMENTATION TO COME**
 
