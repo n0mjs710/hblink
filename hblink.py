@@ -94,15 +94,15 @@ def hblink_handler(_signal, _frame, _logger):
 
 
 # Import subscriber registration ACL
-# ACL may be a single list of subscriber IDs
+# Registration ACL may be a single list of subscriber IDs
 # Global action is to allow or deny them. Multiple lists with different actions and ranges
 # are not yet implemented.
-def build_acl(_reg_acl):
-    ACL = set()
+def build_reg_acl(_reg_acl, _logger):
+    REG_ACL = set()
     try:
         acl_file = import_module(_reg_acl)
-        logger.info('Registration ACL file found, importing entries. This will take about 1.5 seconds per 1 million IDs')
-        sections = acl_file.ACL.split(':')
+        _logger.info('Registration ACL file found, importing entries. This will take about 1.5 seconds per 1 million IDs')
+        sections = acl_file.REG_ACL.split(':')
         ACL_ACTION = sections[0]
         entries_str = sections[1]
         
@@ -111,29 +111,29 @@ def build_acl(_reg_acl):
                 start,end = entry.split('-')
                 start,end = int(start), int(end)
                 for id in range(start, end+1):
-                    ACL.add(hex_str_4(id))
+                    REG_ACL.add(hex_str_4(id))
             else:
                 id = int(entry)
-                ACL.add(hex_str_4(id))
+                REG_ACL.add(hex_str_4(id))
         
-        logger.info('Registration ACL loaded: action "{}" for {:,} registration IDs'.format(ACL_ACTION, len(ACL)))
+        _logger.info('Registration ACL loaded: action "{}" for {:,} registration IDs'.format(ACL_ACTION, len(REG_ACL)))
     
     except ImportError:
-        logger.info('Registration ACL file not found or invalid - all IDs are valid')
+        _logger.info('Registration ACL file not found or invalid - all IDs are valid')
         ACL_ACTION = 'NONE'
 
-    # Depending on which type of ACL is used (PERMIT, DENY... or there isn't one)
+    # Depending on which type of REG_ACL is used (PERMIT, DENY... or there isn't one)
     # define a differnet function to be used to check the ACL
     global allow_reg
     if ACL_ACTION == 'PERMIT':
         def allow_reg(_id):
-            if _id in ACL:
+            if _id in REG_ACL:
                 return True
             else:
                 return False
     elif ACL_ACTION == 'DENY':
         def allow_reg(_id):
-            if _id not in ACL:
+            if _id not in REG_ACL:
                 return True
             else:
                 return False
@@ -141,7 +141,7 @@ def build_acl(_reg_acl):
         def allow_reg(_id):
             return True
     
-    return ACL
+    return REG_ACL
 
 #************************************************
 #     AMBE CLASS: Used to parse out AMBE and send to gateway
@@ -649,7 +649,7 @@ if __name__ == '__main__':
         signal.signal(sig, sig_handler)
     
     # Build the Access Control List
-    ACL = build_acl('reg_acl')
+    REG_ACL = build_reg_acl('reg_acl', logger)
     
     # INITIALIZE THE REPORTING LOOP
     report_server = config_reports(CONFIG, logger, reportFactory)    
