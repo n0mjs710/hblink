@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 ###############################################################################
-#   Copyright (C) 2016  Cortney T. Buffington, N0MJS <n0mjs@me.com>
+#   Copyright (C) 2016-2018 Cortney T. Buffington, N0MJS <n0mjs@me.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ import cPickle as pickle
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
-__copyright__  = 'Copyright (c) 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
+__copyright__  = 'Copyright (c) 2016-2018PEER Cortney T. Buffington, N0MJS and the K0USY Group'
 __credits__    = 'Colin Durbridge, G4EML, Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
 __license__    = 'GNU GPLv3'
 __maintainer__ = 'Cort Buffington, N0MJS'
@@ -235,7 +235,7 @@ class routerSYSTEM(HBSYSTEM):
                 }
             }
 
-    def dmrd_received(self, _radio_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
+    def dmrd_received(self, _peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pkt_time = time()
         dmrpkt = _data[20:53]
         _bits = int_id(_data[15])
@@ -244,21 +244,21 @@ class routerSYSTEM(HBSYSTEM):
             
             # Check for ACL match, and return if the subscriber is not allowed
             if allow_sub(_rf_src) == False:
-                self._logger.warning('(%s) Group Voice Packet ***REJECTED BY ACL*** From: %s, HBP Peer %s, Destination TGID %s', self._system, int_id(_rf_src), int_id(_radio_id), int_id(_dst_id))
+                self._logger.warning('(%s) Group Voice Packet ***REJECTED BY ACL*** From: %s, HBP Peer %s, Destination TGID %s', self._system, int_id(_rf_src), int_id(_peer_id), int_id(_dst_id))
                 return
             
             # Is this a new call stream?   
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
                 if (self.STATUS[_slot]['RX_TYPE'] != hb_const.HBPF_SLT_VTERM) and (pkt_time < (self.STATUS[_slot]['RX_TIME'] + hb_const.STREAM_TO)) and (_rf_src != self.STATUS[_slot]['RX_RFS']):
-                    self._logger.warning('(%s) Packet received with STREAM ID: %s <FROM> SUB: %s REPEATER: %s <TO> TGID %s, SLOT %s collided with existing call', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_radio_id), int_id(_dst_id), _slot)
+                    self._logger.warning('(%s) Packet received with STREAM ID: %s <FROM> SUB: %s PEER: %s <TO> TGID %s, SLOT %s collided with existing call', self._system, int_id(_stream_id), int_id(_rf_src), int_id(_peer_id), int_id(_dst_id), _slot)
                     return
                 
                 # This is a new call stream
                 self.STATUS['RX_START'] = pkt_time
-                self._logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', \
-                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
+                self._logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s', \
+                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
                 if CONFIG['REPORTS']['REPORT']:
-                    self._report.send_bridgeEvent('GROUP VOICE,START,{},{},{},{},{},{}'.format(self._system, int_id(_stream_id), int_id(_radio_id), int_id(_rf_src), _slot, int_id(_dst_id)))
+                    self._report.send_bridgeEvent('GROUP VOICE,START,{},{},{},{},{},{}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id)))
                 
                 # If we can, use the LC from the voice header as to keep all options intact
                 if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
@@ -359,10 +359,10 @@ class routerSYSTEM(HBSYSTEM):
             # Final actions - Is this a voice terminator?
             if (_frame_type == hb_const.HBPF_DATA_SYNC) and (_dtype_vseq == hb_const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != hb_const.HBPF_SLT_VTERM):
                 call_duration = pkt_time - self.STATUS['RX_START']
-                self._logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
-                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_radio_id, peer_ids), int_id(_radio_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
+                self._logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
+                        self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
                 if CONFIG['REPORTS']['REPORT']:
-                   self._report.send_bridgeEvent('GROUP VOICE,END,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_stream_id), int_id(_radio_id), int_id(_rf_src), _slot, int_id(_dst_id), call_duration))
+                   self._report.send_bridgeEvent('GROUP VOICE,END,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id), call_duration))
                 
                 #
                 # Begin in-band signalling for call end. This has nothign to do with routing traffic directly.
@@ -518,6 +518,9 @@ if __name__ == '__main__':
     
     # Build the Access Control List
     ACL = build_acl('sub_acl')
+    
+    # Build the Registration Access Control List
+    REG_ACL = build_reg_acl('reg_acl', logger)
     
     # INITIALIZE THE REPORTING LOOP
     report_server = config_reports(CONFIG, logger, confbridgeReportFactory)
