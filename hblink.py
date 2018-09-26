@@ -194,41 +194,33 @@ class OPENBRIDGE(DatagramProtocol):
         self._logger = _logger
         self._report = _report
         self._config = self._CONFIG['SYSTEMS'][self._system]
-        self._localsock = (self._config['IP'], self._config['PORT'])
-        self._targetsock = (self._config['TARGET_IP'], self._config['TARGET_PORT'])
-	print(self._config['NETWORK_ID'])
 
     def dereg(self):
         self._logger.info('(%s) is mode OPENBRIDGE. No De-Registration required, continuing shutdown', self._system)
     
     def send_system(self, _packet):
         if _packet[:4] == 'DMRD':
+            _packet = _packet[:11] + self._config['NETWORK_ID'] + _packet[15:]
             self.transport.write(_packet, (self._config['TARGET_IP'], self._config['TARGET_PORT']))
+            # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
+            # self._logger.debug('(%s) TX Packet to OpenBridge %s:%s -- %s', self._system, self._config['TARGET_IP'], self._config['TARGET_PORT'], ahex(_packet))
+        else:
+            self._logger.error('(%s) OpenBridge system was asked to send non DMRD packet')
 
     def dmrd_received(self, _peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pass
         #print(int_id(_peer_id), int_id(_rf_src), int_id(_dst_id), int_id(_seq), _slot, _call_type, _frame_type, repr(_dtype_vseq), int_id(_stream_id))
-        
-        _dmrd = _data[:53]
-        _hash = _data[53:]
 
-        _ckhs = hmac_new(self._config['PASSPHRASE'],_dmrd,sha1).digest()
-        if compare_digest(_hash, _ckhs):
-            print('PEER:', int_id(_peer_id), 'RF SOURCE:', int_id(_rf_src), 'DESTINATION:', int_id(_dst_id), 'SLOT', _slot, 'SEQ:', int_id(_seq), 'STREAM:', int_id(_stream_id))
-        else:
-            self._logger.info('(%s) OpenBridge HMAC failed, packet discarded', self._system)
-
-    # Aliased in __init__ to datagramReceived if system is a master
-    def datagramReceived(self, _data, _sockaddr):
+    def datagramReceived(self, _packet, _sockaddr):
         # Keep This Line Commented Unless HEAVILY Debugging!
         # self._logger.debug('(%s) RX packet from %s -- %s', self._system, _sockaddr, ahex(_data))
-        
-        # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
-        _command = _data[:4]
 
-        if _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
-            _peer_id = _data[11:15]
-            if _sockaddr == self._targetsock:
+        if _packet[:4] == 'DMRD':    # DMRData -- encapsulated DMR data frame
+            _data = _data[:53]
+            _ckhs = hmac_new(self._config['PASSPHRASE'],_data[53:],sha1).digest()
+            
+            if compare_digest(_hash, _ckhs) and _sockaddr == self._config['TARGET_SOCK']:
+                _peer_id = _data[11:15]
                 _seq = _data[4]
                 _rf_src = _data[5:8]
                 _dst_id = _data[8:11]
@@ -242,6 +234,8 @@ class OPENBRIDGE(DatagramProtocol):
 
                 # Userland actions -- typically this is the function you subclass for an application
                 self.dmrd_received(_peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
+            else:
+                self._logger.info('(%s) OpenBridge HMAC failed, packet discarded', self._system) 
 
 
 #************************************************

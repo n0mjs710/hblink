@@ -160,6 +160,7 @@ def build_config(_config_file):
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
                         'PASSPHRASE': config.get(section, 'PASSPHRASE').ljust(20,'\x00')[:20],
+                        'TARGET_SOCK': (gethostbyname(config.get(section, 'TARGET_IP')), config.getint(section, 'TARGET_PORT')),
                         'TARGET_IP': gethostbyname(config.get(section, 'TARGET_IP')),
                         'TARGET_PORT': config.getint(section, 'TARGET_PORT'),
                     }})
