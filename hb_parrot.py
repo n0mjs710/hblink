@@ -35,7 +35,7 @@ from twisted.protocols.basic import NetstringReceiver
 from twisted.internet import reactor, task
 
 # Things we import from the main hblink module
-from hblink import HBSYSTEM, systems, hblink_handler, reportFactory, REPORT_OPCODES, config_reports
+from hblink import HBSYSTEM, systems, hblink_handler, reportFactory, REPORT_OPCODES, config_reports, build_reg_acl
 from dmr_utils.utils import hex_str_3, int_id, get_alias
 from dmr_utils import decode, bptc, const
 import hb_config
@@ -194,6 +194,9 @@ if __name__ == '__main__':
     # Set signal handers so that we can gracefully exit if need be
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
+        
+    # Build the Access Control List
+    REG_ACL = build_reg_acl('reg_acl', logger)
     
     # ID ALIAS CREATION
     # Download

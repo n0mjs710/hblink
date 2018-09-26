@@ -269,6 +269,9 @@ if __name__ == '__main__':
     # Set signal handers so that we can gracefully exit if need be
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
+        
+    # Build the Access Control List
+    REG_ACL = build_reg_acl('reg_acl', logger)
     
     # ID ALIAS CREATION
     # Download

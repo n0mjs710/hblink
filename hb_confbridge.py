@@ -100,13 +100,14 @@ def make_bridges(_hb_confbridge_bridges):
 # Global action is to allow or deny them. Multiple lists with different actions and ranges
 # are not yet implemented.
 def build_acl(_sub_acl):
+    ACL = set()
     try:
-        logger.info('ACL file found, importing entries. This will take about 1.5 seconds per 1 million IDs')
         acl_file = import_module(_sub_acl)
+        logger.info('ACL file found, importing entries. This will take about 1.5 seconds per 1 million IDs')
         sections = acl_file.ACL.split(':')
         ACL_ACTION = sections[0]
         entries_str = sections[1]
-        ACL = set()
+
         
         for entry in entries_str.split(','):
             if '-' in entry:
@@ -485,6 +486,9 @@ if __name__ == '__main__':
     # Set signal handers so that we can gracefully exit if need be
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
+    
+    # Build the Access Control List
+    REG_ACL = build_reg_acl('reg_acl', logger)
     
     # ID ALIAS CREATION
     # Download
