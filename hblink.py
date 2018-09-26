@@ -33,7 +33,8 @@ from __future__ import print_function
 from binascii import b2a_hex as ahex
 from binascii import a2b_hex as bhex
 from random import randint
-from hashlib import sha256
+from hashlib import sha256, sha1
+from hmac import new as hmac_new, compare_digest
 from time import time
 from bitstring import BitArray
 from importlib import import_module
@@ -179,6 +180,68 @@ class AMBE:
         self._sock.sendto(ambeBytes[0:9], (self._exp_ip, self._exp_port))
         self._sock.sendto(ambeBytes[9:18], (self._exp_ip, self._exp_port))
         self._sock.sendto(ambeBytes[18:27], (self._exp_ip, self._exp_port))
+
+
+#************************************************
+#    OPENBRIDGE CLASS
+#************************************************
+
+class OPENBRIDGE(DatagramProtocol):
+    def __init__(self, _name, _config, _logger, _report):
+        # Define a few shortcuts to make the rest of the class more readable
+        self._CONFIG = _config
+        self._system = _name
+        self._logger = _logger
+        self._report = _report
+        self._config = self._CONFIG['SYSTEMS'][self._system]
+        self._localsock = (self._config['IP'], self._config['PORT'])
+        self._targetsock = (self._config['TARGET_IP'], self._config['TARGET_PORT'])
+	print(self._config['NETWORK_ID'])
+
+    def dereg(self):
+        self._logger.info('(%s) is mode OPENBRIDGE. No De-Registration required, continuing shutdown', self._system)
+    
+    def send_system(self, _packet):
+        if _packet[:4] == 'DMRD':
+            self.transport.write(_packet, (self._config['TARGET_IP'], self._config['TARGET_PORT']))
+
+    def dmrd_received(self, _peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
+        pass
+        #print(int_id(_peer_id), int_id(_rf_src), int_id(_dst_id), int_id(_seq), _slot, _call_type, _frame_type, repr(_dtype_vseq), int_id(_stream_id))
+        
+        _dmrd = _data[:53]
+        _hash = _data[53:]
+
+        _ckhs = hmac_new(self._config['PASSPHRASE'],_dmrd,sha1).digest()
+        if compare_digest(_hash, _ckhs):
+            print('PEER:', int_id(_peer_id), 'RF SOURCE:', int_id(_rf_src), 'DESTINATION:', int_id(_dst_id), 'SLOT', _slot, 'SEQ:', int_id(_seq), 'STREAM:', int_id(_stream_id))
+        else:
+            self._logger.info('(%s) OpenBridge HMAC failed, packet discarded', self._system)
+
+    # Aliased in __init__ to datagramReceived if system is a master
+    def datagramReceived(self, _data, _sockaddr):
+        # Keep This Line Commented Unless HEAVILY Debugging!
+        # self._logger.debug('(%s) RX packet from %s -- %s', self._system, _sockaddr, ahex(_data))
+        
+        # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
+        _command = _data[:4]
+
+        if _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
+            _peer_id = _data[11:15]
+            if _sockaddr == self._targetsock:
+                _seq = _data[4]
+                _rf_src = _data[5:8]
+                _dst_id = _data[8:11]
+                _bits = int_id(_data[15])
+                _slot = 2 if (_bits & 0x80) else 1
+                _call_type = 'unit' if (_bits & 0x40) else 'group'
+                _frame_type = (_bits & 0x30) >> 4
+                _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
+                _stream_id = _data[16:20]
+                #self._logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
+
+                # Userland actions -- typically this is the function you subclass for an application
+                self.dmrd_received(_peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
 
 
 #************************************************
@@ -649,10 +712,13 @@ if __name__ == '__main__':
     report_server = config_reports(CONFIG, logger, reportFactory)    
 
     # HBlink instance creation
-    logger.info('HBlink \'HBlink.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
+    logger.info('HBlink \'HBlink.py\' (c) 2016-2018 N0MJS & the K0USY Group - SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
-            systems[system] = HBSYSTEM(system, CONFIG, logger, report_server)
+            if CONFIG['SYSTEMS'][system]['MODE'] == 'OPENBRIDGE':
+                systems[system] = OPENBRIDGE(system, CONFIG, logger, report_server)
+            else:
+                systems[system] = HBSYSTEM(system, CONFIG, logger, report_server)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 

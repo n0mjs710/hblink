@@ -151,6 +151,19 @@ def build_config(_config_file):
                         'GROUP_HANGTIME': config.getint(section, 'GROUP_HANGTIME')
                     }})
                     CONFIG['SYSTEMS'][section].update({'PEERS': {}})
+                    
+                elif config.get(section, 'MODE') == 'OPENBRIDGE':
+                    CONFIG['SYSTEMS'].update({section: {
+                        'MODE': config.get(section, 'MODE'),
+                        'ENABLED': config.getboolean(section, 'ENABLED'),
+                        'NETWORK_ID': config.getint(section, 'NETWORK_ID'),
+                        'IP': gethostbyname(config.get(section, 'IP')),
+                        'PORT': config.getint(section, 'PORT'),
+                        'PASSPHRASE': config.get(section, 'PASSPHRASE').ljust(20,'\x00')[:20],
+                        'TARGET_IP': gethostbyname(config.get(section, 'TARGET_IP')),
+                        'TARGET_PORT': config.getint(section, 'TARGET_PORT'),
+                    }})
+                    
     
     except ConfigParser.Error, err:
 	    print "Cannot parse configuration file. %s" %err
