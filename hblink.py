@@ -194,41 +194,33 @@ class OPENBRIDGE(DatagramProtocol):
         self._logger = _logger
         self._report = _report
         self._config = self._CONFIG['SYSTEMS'][self._system]
-        self._localsock = (self._config['IP'], self._config['PORT'])
-        self._targetsock = (self._config['TARGET_IP'], self._config['TARGET_PORT'])
-	print(self._config['NETWORK_ID'])
 
     def dereg(self):
         self._logger.info('(%s) is mode OPENBRIDGE. No De-Registration required, continuing shutdown', self._system)
     
     def send_system(self, _packet):
         if _packet[:4] == 'DMRD':
+            _packet = _packet[:11] + self._config['NETWORK_ID'] + _packet[15:]
             self.transport.write(_packet, (self._config['TARGET_IP'], self._config['TARGET_PORT']))
+            # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
+            # self._logger.debug('(%s) TX Packet to OpenBridge %s:%s -- %s', self._system, self._config['TARGET_IP'], self._config['TARGET_PORT'], ahex(_packet))
+        else:
+            self._logger.error('(%s) OpenBridge system was asked to send non DMRD packet')
 
     def dmrd_received(self, _peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pass
         #print(int_id(_peer_id), int_id(_rf_src), int_id(_dst_id), int_id(_seq), _slot, _call_type, _frame_type, repr(_dtype_vseq), int_id(_stream_id))
-        
-        _dmrd = _data[:53]
-        _hash = _data[53:]
 
-        _ckhs = hmac_new(self._config['PASSPHRASE'],_dmrd,sha1).digest()
-        if compare_digest(_hash, _ckhs):
-            print('PEER:', int_id(_peer_id), 'RF SOURCE:', int_id(_rf_src), 'DESTINATION:', int_id(_dst_id), 'SLOT', _slot, 'SEQ:', int_id(_seq), 'STREAM:', int_id(_stream_id))
-        else:
-            self._logger.info('(%s) OpenBridge HMAC failed, packet discarded', self._system)
-
-    # Aliased in __init__ to datagramReceived if system is a master
-    def datagramReceived(self, _data, _sockaddr):
+    def datagramReceived(self, _packet, _sockaddr):
         # Keep This Line Commented Unless HEAVILY Debugging!
         # self._logger.debug('(%s) RX packet from %s -- %s', self._system, _sockaddr, ahex(_data))
-        
-        # Extract the command, which is various length, all but one 4 significant characters -- RPTCL
-        _command = _data[:4]
 
-        if _command == 'DMRD':    # DMRData -- encapsulated DMR data frame
-            _peer_id = _data[11:15]
-            if _sockaddr == self._targetsock:
+        if _packet[:4] == 'DMRD':    # DMRData -- encapsulated DMR data frame
+            _data = _data[:53]
+            _ckhs = hmac_new(self._config['PASSPHRASE'],_data[53:],sha1).digest()
+            
+            if compare_digest(_hash, _ckhs) and _sockaddr == self._config['TARGET_SOCK']:
+                _peer_id = _data[11:15]
                 _seq = _data[4]
                 _rf_src = _data[5:8]
                 _dst_id = _data[8:11]
@@ -242,13 +234,15 @@ class OPENBRIDGE(DatagramProtocol):
 
                 # Userland actions -- typically this is the function you subclass for an application
                 self.dmrd_received(_peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
+            else:
+                self._logger.info('(%s) OpenBridge HMAC failed, packet discarded', self._system) 
 
 
 #************************************************
 #     HB MASTER CLASS
 #************************************************
 
-class HBSYSTEM(DatagramProtocol):
+class HBMASTER(DatagramProtocol):
     def __init__(self, _name, _config, _logger, _report):
         # Define a few shortcuts to make the rest of the class more readable
         self._CONFIG = _config
@@ -256,21 +250,7 @@ class HBSYSTEM(DatagramProtocol):
         self._logger = _logger
         self._report = _report
         self._config = self._CONFIG['SYSTEMS'][self._system]
-        
-        # Define shortcuts and generic function names based on the type of system we are
-        if self._config['MODE'] == 'MASTER':
-            self._peers = self._CONFIG['SYSTEMS'][self._system]['PEERS']
-            self.send_system = self.send_peers
-            self.maintenance_loop = self.master_maintenance_loop
-            self.datagramReceived = self.master_datagramReceived
-            self.dereg = self.master_dereg
-        
-        elif self._config['MODE'] == 'PEER':
-            self._stats = self._config['STATS']
-            self.send_system = self.send_master
-            self.maintenance_loop = self.peer_maintenance_loop
-            self.datagramReceived = self.peer_datagramReceived
-            self.dereg = self.peer_dereg
+        self._peers = self._CONFIG['SYSTEMS'][self._system]['PEERS']
         
         # Configure for AMBE audio export if enabled
         if self._config['EXPORT_AMBE']:
@@ -281,8 +261,7 @@ class HBSYSTEM(DatagramProtocol):
         self._system_maintenance = task.LoopingCall(self.maintenance_loop)
         self._system_maintenance_loop = self._system_maintenance.start(self._CONFIG['GLOBAL']['PING_TIME'])
     
-    # Aliased in __init__ to maintenance_loop if system is a master
-    def master_maintenance_loop(self):
+    def maintenance_loop(self):
         self._logger.debug('(%s) Master maintenance loop started', self._system)
         for peer in self._peers:
             _this_peer = self._peers[peer]
@@ -291,29 +270,8 @@ class HBSYSTEM(DatagramProtocol):
                 self._logger.info('(%s) Peer %s (%s) has timed out', self._system, _this_peer['CALLSIGN'], _this_peer['RADIO_ID'])
                 # Remove any timed out peers from the configuration
                 del self._CONFIG['SYSTEMS'][self._system]['PEERS'][peer]
-    
-    # Aliased in __init__ to maintenance_loop if system is a peer           
-    def peer_maintenance_loop(self):
-        self._logger.debug('(%s) Peer maintenance loop started', self._system)
-        if self._stats['PING_OUTSTANDING']:
-            self._stats['NUM_OUTSTANDING'] += 1
-        # If we're not connected, zero out the stats and send a login request RPTL
-        if self._stats['CONNECTION'] != 'YES' or self._stats['NUM_OUTSTANDING'] >= self._CONFIG['GLOBAL']['MAX_MISSED']:
-            self._stats['PINGS_SENT'] = 0
-            self._stats['PINGS_ACKD'] = 0
-            self._stats['NUM_OUTSTANDING'] = 0
-            self._stats['PING_OUTSTANDING'] = False
-            self._stats['CONNECTION'] = 'RPTL_SENT'
-            self.send_master('RPTL'+self._config['RADIO_ID'])
-            self._logger.info('(%s) Sending login request to master %s:%s', self._system, self._config['MASTER_IP'], self._config['MASTER_PORT'])
-        # If we are connected, sent a ping to the master and increment the counter
-        if self._stats['CONNECTION'] == 'YES':
-            self.send_master('RPTPING'+self._config['RADIO_ID'])
-            self._logger.debug('(%s) RPTPING Sent to Master. Total Sent: %s, Total Missed: %s, Currently Outstanding: %s', self._system, self._stats['PINGS_SENT'], self._stats['PINGS_SENT'] - self._stats['PINGS_ACKD'], self._stats['NUM_OUTSTANDING'])
-            self._stats['PINGS_SENT'] += 1
-            self._stats['PING_OUTSTANDING'] = True
 
-    def send_peers(self, _packet):
+    def send_system(self, _packet):
         for _peer in self._peers:
             self.send_peer(_peer, _packet)
             #self._logger.debug('(%s) Packet sent to peer %s', self._system, self._peers[_peer]['RADIO_ID'])
@@ -323,29 +281,17 @@ class HBSYSTEM(DatagramProtocol):
             _packet = _packet[:11] + _peer + _packet[15:]
         self.transport.write(_packet, self._peers[_peer]['SOCKADDR'])
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
-        #self._logger.debug('(%s) TX Packet to %s on port %s: %s', self._peers[_peer]['RADIO_ID'], self._peers[_peer]['IP'], self._peers[_peer]['PORT'], ahex(_packet))
-
-    def send_master(self, _packet):
-        if _packet[:4] == 'DMRD':
-            _packet = _packet[:11] + self._config['RADIO_ID'] + _packet[15:]
-        self.transport.write(_packet, self._config['MASTER_SOCKADDR'])
-        # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
-        # self._logger.debug('(%s) TX Packet to %s:%s -- %s', self._system, self._config['MASTER_IP'], self._config['MASTER_PORT'], ahex(_packet))
-
+        #self._logger.debug('(%s) TX Packet to Peer %s on port %s: %s', self._peers[_peer]['RADIO_ID'], self._peers[_peer]['IP'], self._peers[_peer]['PORT'], ahex(_packet))
+            
     def dmrd_received(self, _peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pass
     
-    def master_dereg(self):
+    def dereg(self):
         for _peer in self._peers:
             self.send_peer(_peer, 'MSTCL'+_peer)
             self._logger.info('(%s) De-Registration sent to Peer: %s (%s)', self._system, self._peers[_peer]['CALLSIGN'], self._peers[_peer]['RADIO_ID'])
-            
-    def peer_dereg(self):
-        self.send_master('RPTCL'+self._config['RADIO_ID'])
-        self._logger.info('(%s) De-Registration sent to Master: %s:%s', self._system, self._config['MASTER_SOCKADDR'][0], self._config['MASTER_SOCKADDR'][1])
-    
-    # Aliased in __init__ to datagramReceived if system is a master
-    def master_datagramReceived(self, _data, _sockaddr):
+
+    def datagramReceived(self, _data, _sockaddr):
         # Keep This Line Commented Unless HEAVILY Debugging!
         # self._logger.debug('(%s) RX packet from %s -- %s', self._system, _sockaddr, ahex(_data))
 
@@ -497,8 +443,65 @@ class HBSYSTEM(DatagramProtocol):
         else:
             self._logger.error('(%s) Unrecognized command. Raw HBP PDU: %s', self._system, ahex(_data))
 
-    # Aliased in __init__ to datagramReceived if system is a peer
-    def peer_datagramReceived(self, _data, _sockaddr):
+
+#************************************************
+#     HB PEER CLASS
+#************************************************
+
+class HBPEER(DatagramProtocol):
+    def __init__(self, _name, _config, _logger, _report):
+        # Define a few shortcuts to make the rest of the class more readable
+        self._CONFIG = _config
+        self._system = _name
+        self._logger = _logger
+        self._report = _report
+        self._config = self._CONFIG['SYSTEMS'][self._system]
+        self._stats = self._config['STATS']
+        
+        # Configure for AMBE audio export if enabled
+        if self._config['EXPORT_AMBE']:
+            self._ambe = AMBE(_config, _logger)
+
+    def startProtocol(self):
+        # Set up periodic loop for tracking pings from peers. Run every 'PING_TIME' seconds
+        self._system_maintenance = task.LoopingCall(self.maintenance_loop)
+        self._system_maintenance_loop = self._system_maintenance.start(self._CONFIG['GLOBAL']['PING_TIME'])
+             
+    def maintenance_loop(self):
+        self._logger.debug('(%s) Peer maintenance loop started', self._system)
+        if self._stats['PING_OUTSTANDING']:
+            self._stats['NUM_OUTSTANDING'] += 1
+        # If we're not connected, zero out the stats and send a login request RPTL
+        if self._stats['CONNECTION'] != 'YES' or self._stats['NUM_OUTSTANDING'] >= self._CONFIG['GLOBAL']['MAX_MISSED']:
+            self._stats['PINGS_SENT'] = 0
+            self._stats['PINGS_ACKD'] = 0
+            self._stats['NUM_OUTSTANDING'] = 0
+            self._stats['PING_OUTSTANDING'] = False
+            self._stats['CONNECTION'] = 'RPTL_SENT'
+            self.send_system('RPTL'+self._config['RADIO_ID'])
+            self._logger.info('(%s) Sending login request to master %s:%s', self._system, self._config['MASTER_IP'], self._config['MASTER_PORT'])
+        # If we are connected, sent a ping to the master and increment the counter
+        if self._stats['CONNECTION'] == 'YES':
+            self.send_system('RPTPING'+self._config['RADIO_ID'])
+            self._logger.debug('(%s) RPTPING Sent to Master. Total Sent: %s, Total Missed: %s, Currently Outstanding: %s', self._system, self._stats['PINGS_SENT'], self._stats['PINGS_SENT'] - self._stats['PINGS_ACKD'], self._stats['NUM_OUTSTANDING'])
+            self._stats['PINGS_SENT'] += 1
+            self._stats['PING_OUTSTANDING'] = True
+
+    def send_system(self, _packet):
+        if _packet[:4] == 'DMRD':
+            _packet = _packet[:11] + self._config['RADIO_ID'] + _packet[15:]
+        self.transport.write(_packet, self._config['MASTER_SOCKADDR'])
+        # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
+        # self._logger.debug('(%s) TX Packet to Master %s:%s -- %s', self._system, self._config['MASTER_IP'], self._config['MASTER_PORT'], ahex(_packet))
+            
+    def dmrd_received(self, _peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
+        pass
+            
+    def dereg(self):
+        self.send_system('RPTCL'+self._config['RADIO_ID'])
+        self._logger.info('(%s) De-Registration sent to Master: %s:%s', self._system, self._config['MASTER_SOCKADDR'][0], self._config['MASTER_SOCKADDR'][1])  
+    
+    def datagramReceived(self, _data, _sockaddr):
         # Keep This Line Commented Unless HEAVILY Debugging!
         # self._logger.debug('(%s) RX packet from %s -- %s', self._system, _sockaddr, ahex(_data))
 
@@ -540,7 +543,7 @@ class HBSYSTEM(DatagramProtocol):
                     self._logger.info('(%s) Repeater Login ACK Received with 32bit ID: %s', self._system, int_id(_login_int32))
                     _pass_hash = sha256(_login_int32+self._config['PASSPHRASE']).hexdigest()
                     _pass_hash = bhex(_pass_hash)
-                    self.send_master('RPTK'+self._config['RADIO_ID']+_pass_hash)
+                    self.send_system('RPTK'+self._config['RADIO_ID']+_pass_hash)
                     self._stats['CONNECTION'] = 'AUTHENTICATED'
 
                 elif self._stats['CONNECTION'] == 'AUTHENTICATED': # If we've sent the login challenge...
@@ -563,7 +566,7 @@ class HBSYSTEM(DatagramProtocol):
                                           self._config['SOFTWARE_ID']+\
                                           self._config['PACKAGE_ID']
 
-                        self.send_master('RPTC'+_config_packet)
+                        self.send_system('RPTC'+_config_packet)
                         self._stats['CONNECTION'] = 'CONFIG-SENT'
                         self._logger.info('(%s) Repeater Configuration Sent', self._system)
                     else:
@@ -575,7 +578,7 @@ class HBSYSTEM(DatagramProtocol):
                     if self._config['LOOSE'] or _peer_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                         self._logger.info('(%s) Repeater Configuration Accepted', self._system)
                         if self._config['OPTIONS']:
-                            self.send_master('RPTO'+self._config['RADIO_ID']+self._config['OPTIONS'])
+                            self.send_system('RPTO'+self._config['RADIO_ID']+self._config['OPTIONS'])
                             self._stats['CONNECTION'] = 'OPTIONS-SENT'
                             self._logger.info('(%s) Sent options: (%s)', self._system, self._config['OPTIONS'])
                         else:
@@ -717,8 +720,12 @@ if __name__ == '__main__':
         if CONFIG['SYSTEMS'][system]['ENABLED']:
             if CONFIG['SYSTEMS'][system]['MODE'] == 'OPENBRIDGE':
                 systems[system] = OPENBRIDGE(system, CONFIG, logger, report_server)
+            elif CONFIG['SYSTEMS'][system]['MODE'] == 'MASTER':
+                systems[system] = HBMASTER(system, CONFIG, logger, report_server)
+            elif CONFIG['SYSTEMS'][system]['MODE'] == 'PEER':
+                systems[system] = HBPEER(system, CONFIG, logger, report_server)
             else:
-                systems[system] = HBSYSTEM(system, CONFIG, logger, report_server)
+                logger.error('%s instance error: %s, %s. No such MODE: %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system], CONFIG['SYSTEMS'][system]['MODE'])    
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
