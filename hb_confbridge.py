@@ -238,6 +238,7 @@ class routerOBP(OPENBRIDGE):
                         for _target in BRIDGES[_bridge]:
                             print('_target[\'SYSTEM\']', _target['SYSTEM'])
                             print('self._system', self._system)
+                            print('target', _target)
                             print('CONFIG[\'SYSTEMS\'][_target][\'ACTIVE\']', CONFIG['SYSTEMS']) #['SYSTEMS'][_target]['ACTIVE'])
                             print('CONFIG[\'SYSTEMS\'][_target][\'MODE\']', CONFIG['SYSTEMS'][_target]['MODE'])
                             if (_target['SYSTEM'] != self._system) and (CONFIG['SYSTEMS'][_target]['ACTIVE']) and (CONFIG['SYSTEMS'][_target]['MODE'] != 'OPENBRIDGE'):                             
