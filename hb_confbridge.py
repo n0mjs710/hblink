@@ -210,6 +210,7 @@ class routerOBP(OPENBRIDGE):
             if (_stream_id not in self.STATUS):
                 
                 # This is a new call stream
+                self.STATUS[_stream_id] = {}
                 self.STATUS[_stream_id]['STREAM_START'] = pkt_time
                 self.STATUS[_stream_id]['PKT_COUNT'] = 0
                 self.STATUS[_stream_id]['CONTENTION'] = False
