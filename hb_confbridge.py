@@ -236,10 +236,10 @@ class routerOBP(OPENBRIDGE):
                     if (_system['SYSTEM'] == self._system and _system['TGID'] == _dst_id and _system['TS'] == _slot and _system['ACTIVE'] == True):
                         
                         for _target in BRIDGES[_bridge]:
-                            print('_target['SYSTEM']', _target['SYSTEM'])
+                            print('_target[\'SYSTEM\']', _target['SYSTEM'])
                             print('self._system', self._system)
-                            print('CONFIG['SYSTEMS'][_target]['ACTIVE']', CONFIG['SYSTEMS'][_target]['ACTIVE'])
-                            print('CONFIG['SYSTEMS'][_target]['MODE']', CONFIG['SYSTEMS'][_target]['MODE'])
+                            print('CONFIG[\'SYSTEMS\'][_target][\'ACTIVE\']', CONFIG['SYSTEMS'][_target]['ACTIVE'])
+                            print('CONFIG[\'SYSTEMS\'][_target][\'MODE\']', CONFIG['SYSTEMS'][_target]['MODE'])
                             if (_target['SYSTEM'] != self._system) and (CONFIG['SYSTEMS'][_target]['ACTIVE']) and (CONFIG['SYSTEMS'][_target]['MODE'] != 'OPENBRIDGE'):                             
                                 _target_status = systems[_target['SYSTEM']].STATUS
                                 _target_system = self._CONFIG['SYSTEMS'][_target['SYSTEM']]
