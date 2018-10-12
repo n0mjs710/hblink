@@ -201,6 +201,7 @@ class OPENBRIDGE(DatagramProtocol):
     def send_system(self, _packet):
         if _packet[:4] == 'DMRD':
             _packet = _packet[:11] + self._config['NETWORK_ID'] + _packet[15:]
+            _packet += hmac_new(self._config['PASSPHRASE'],_packet,sha1).digest()
             self.transport.write(_packet, (self._config['TARGET_IP'], self._config['TARGET_PORT']))
             # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
             # self._logger.debug('(%s) TX Packet to OpenBridge %s:%s -- %s', self._system, self._config['TARGET_IP'], self._config['TARGET_PORT'], ahex(_packet))
