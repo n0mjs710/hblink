@@ -183,15 +183,14 @@ def rule_timer_loop():
 
 # run this every 10 seconds to trim orphaned stream ids
 def stream_trimmer_loop():
-    return
-    logger.info('(ALL OPENBRIDGE SYSTEMS) Trimming orphaned stream IDs from system lists')
+    logger.debug('(ALL OPENBRIDGE SYSTEMS) Trimming orphaned stream IDs from system lists')
     _now = time()
     
     for system in systems:
         remove_list = []
         if CONFIG['SYSTEMS'][system]['MODE'] == 'OPENBRIDGE':
             for stream_id in systems[system].STATUS:
-                if systems[system].STATUS[stream_id]['LAST'] < _now + 1:
+                if systems[system].STATUS[stream_id]['LAST'] < _now + 5:
                     remove_list.append(stream_id)
         
         for stream in remove_list:
@@ -761,6 +760,6 @@ if __name__ == '__main__':
     
     # Initialize the stream trimmer
     stream_trimmer = task.LoopingCall(stream_trimmer_loop)
-    stream_trimmer.start(10)
+    stream_trimmer.start(5)
 
     reactor.run()
