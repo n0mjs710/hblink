@@ -183,19 +183,20 @@ def rule_timer_loop():
 
 # run this every 10 seconds to trim orphaned stream ids
 def stream_trimmer_loop():
-    logger.debug('(ALL OPENBRIDGE SYSTEMS) Trimming orphaned stream IDs from system lists')
+    logger.debug('(ALL OPENBRIDGE SYSTEMS) Trimming inactive stream IDs from system lists')
     _now = time()
     
     for system in systems:
         remove_list = []
         if CONFIG['SYSTEMS'][system]['MODE'] == 'OPENBRIDGE':
             for stream_id in systems[system].STATUS:
-                if systems[system].STATUS[stream_id]['LAST'] < _now + 5:
+                if systems[system].STATUS[stream_id]['LAST'] < _now - 5:
+                    
                     remove_list.append(stream_id)
         
-        for stream in remove_list:
+        for stream_id in remove_list:
             removed = systems[system].STATUS.pop(stream_id)
-            logger.warning('STALE OPENBRIDGE STREAM ID REMOVED FROM SYSTEM: %s, STREAM ID %s', system, int_id(stream))
+            logger.debug('Inactive OpenBridge Stream ID removed from System: %s, Stream ID %s', system, int_id(stream_id))
 
             
 class routerOBP(OPENBRIDGE):
@@ -343,6 +344,7 @@ class routerOBP(OPENBRIDGE):
                 if CONFIG['REPORTS']['REPORT']:
                    self._report.send_bridgeEvent('GROUP VOICE,END,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id), call_duration))
                 removed = self.STATUS.pop(_stream_id)
+                self._logger.debug('(%s) OpenBridge sourced call stream end, remove terminated Stream ID: %s', self._system, int_id(_stream_id))
                 if not removed:
                     self_logger.error('(%s) *CALL END*   STREAM ID: %s NOT IN LIST -- THIS IS A REAL PROBLEM', self._system, int_id(_stream_id))
 
