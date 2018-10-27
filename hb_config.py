@@ -156,7 +156,7 @@ def build_config(_config_file):
                     CONFIG['SYSTEMS'].update({section: {
                         'MODE': config.get(section, 'MODE'),
                         'ENABLED': config.getboolean(section, 'ENABLED'),
-                        'NETWORK_ID': config.getint(section, 'NETWORK_ID'),
+                        'NETWORK_ID': hex(int(config.get(section, 'NETWORK_ID')))[2:].rjust(8,'0').decode('hex'),
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
                         'PASSPHRASE': config.get(section, 'PASSPHRASE').ljust(20,'\x00')[:20],
