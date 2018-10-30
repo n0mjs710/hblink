@@ -1,0 +1,21 @@
+[Unit]
+Description=HB bridge conference bridge Service
+# Description=Place this file in /lib/systemd/system
+# Description=N4IRS 04/20/2018
+
+# To make the network-online.target available
+# systemctl enable systemd-networkd-wait-online.service
+
+After=network-online.target syslog.target
+Wants=network-online.target
+
+[Service]
+StandardOutput=null
+WorkingDirectory=/opt/HBlink
+RestartSec=3
+ExecStart=/usr/bin/python /opt/HBlink/hb_confbridge.py
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
+
