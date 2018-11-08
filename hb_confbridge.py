@@ -45,7 +45,7 @@ from twisted.protocols.basic import NetstringReceiver
 from twisted.internet import reactor, task
 
 # Things we import from the main hblink module
-from hblink import HBSYSTEM, OPENBRIDGE, systems, hblink_handler, reportFactory, REPORT_OPCODES, config_reports, build_reg_acl
+from hblink import HBSYSTEM, OPENBRIDGE, systems, hblink_handler, reportFactory, REPORT_OPCODES, build_reg_acl
 from dmr_utils.utils import hex_str_3, int_id, get_alias
 from dmr_utils import decode, bptc, const
 import hb_config
@@ -65,6 +65,28 @@ __email__      = 'n0mjs@me.com'
 __status__     = 'pre-alpha'
 
 # Module gobal varaibles
+
+# Timed loop used for reporting HBP status
+#
+# REPORT BASED ON THE TYPE SELECTED IN THE MAIN CONFIG FILE
+def config_reports(_config, _logger, _factory):                 
+    if True: #_config['REPORTS']['REPORT']:
+        def reporting_loop(_logger, _server):
+            _logger.debug('Periodic reporting loop started')
+            _server.send_config()
+            _server.send_bridge()
+            
+        _logger.info('HBlink TCP reporting server configured')
+        
+        report_server = _factory(_config, _logger)
+        report_server.clients = []
+        reactor.listenTCP(_config['REPORTS']['REPORT_PORT'], report_server)
+        
+        reporting = task.LoopingCall(reporting_loop, _logger, report_server)
+        reporting.start(_config['REPORTS']['REPORT_INTERVAL'])
+    
+    return report_server
+
 
 # Import Bridging rules
 # Note: A stanza *must* exist for any MASTER or CLIENT configured in the main
@@ -181,8 +203,8 @@ def rule_timer_loop():
                 logger.debug('Conference Bridge NO ACTION: System: %s, Bridge: %s, TS: %s, TGID: %s', _system['SYSTEM'], _bridge, _system['TS'], int_id(_system['TGID']))
 
     if CONFIG['REPORTS']['REPORT']:
-        #report_server.send_clients('bridge updated')
-	report_server.send_bridge()
+        report_server.send_clients('bridge updated')
+
 
 # run this every 10 seconds to trim orphaned stream ids
 def stream_trimmer_loop():
