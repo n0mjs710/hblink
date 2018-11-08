@@ -214,7 +214,7 @@ class OPENBRIDGE(DatagramProtocol):
 
     def datagramReceived(self, _packet, _sockaddr):
         # Keep This Line Commented Unless HEAVILY Debugging!
-        # self._logger.debug('(%s) RX packet from %s -- %s', self._system, _sockaddr, ahex(_data))
+        #self._logger.debug('(%s) RX packet from %s -- %s', self._system, _sockaddr, ahex(_packet))
 
         if _packet[:4] == 'DMRD':    # DMRData -- encapsulated DMR data frame
             _data = _packet[:53]
