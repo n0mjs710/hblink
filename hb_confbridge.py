@@ -178,8 +178,8 @@ def rule_timer_loop():
                 logger.debug('Conference Bridge NO ACTION: System: %s, Bridge: %s, TS: %s, TGID: %s', _system['SYSTEM'], _bridge, _system['TS'], int_id(_system['TGID']))
 
     if CONFIG['REPORTS']['REPORT']:
-        report_server.send_clients('bridge updated')
-
+        #report_server.send_clients('bridge updated')
+	report_server.send_bridge()
 
 # run this every 10 seconds to trim orphaned stream ids
 def stream_trimmer_loop():
