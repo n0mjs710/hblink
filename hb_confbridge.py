@@ -90,7 +90,10 @@ def make_bridges(_hb_confbridge_bridges):
             for i, e in enumerate(_system['OFF']):
                 _system['OFF'][i] = hex_str_3(_system['OFF'][i])
             _system['TIMEOUT']    = _system['TIMEOUT']*60
-            _system['TIMER']      = time() + _system['TIMEOUT']
+            if _system['ACTIVE'] == True:
+                _system['TIMER']  = time() + _system['TIMEOUT']
+            else:
+                _system['TIMER']  = time()
 
     return bridge_file.BRIDGES
 
