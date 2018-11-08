@@ -279,10 +279,9 @@ class routerOBP(OPENBRIDGE):
                     if (_system['SYSTEM'] == self._system and _system['TGID'] == _dst_id and _system['TS'] == _slot and _system['ACTIVE'] == True):
                         
                         for _target in BRIDGES[_bridge]:
-                            if (_target['SYSTEM'] != self._system) and (_target['ACTIVE']) and (CONFIG['SYSTEMS'][_target['SYSTEM']]['MODE'] != 'OPENBRIDGE'):
+                            if (_target['SYSTEM'] != self._system) and (_target['ACTIVE']):
                                 _target_status = systems[_target['SYSTEM']].STATUS
                                 _target_system = self._CONFIG['SYSTEMS'][_target['SYSTEM']]
-                                
                                 if _target_system['MODE'] == 'OPENBRIDGE':
                                     # Is this a new call stream on the target?  
                                     if (_stream_id not in _target_status):
