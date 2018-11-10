@@ -307,7 +307,8 @@ class routerOBP(OPENBRIDGE):
                                         _target_status[_stream_id]['H_LC']   = bptc.encode_header_lc(_target_status[_stream_id]['LC'])
                                         _target_status[_stream_id]['T_LC']   = bptc.encode_terminator_lc(_target_status[_stream_id]['LC'])
                                         _target_status[_stream_id]['EMB_LC'] = bptc.encode_emblc(_target_status[_stream_id]['LC'])
-                                    
+                                        self._logger.info('(%s) Conference Bridge: %s, Call Bridged to OBP System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
+
                                     # Record the time of this packet so we can later identify a stale stream   
                                     _target_status[_stream_id]['LAST'] = pkt_time
                                     # Clear the TS bit -- all OpenBridge streams are effectively on TS1
@@ -378,7 +379,7 @@ class routerOBP(OPENBRIDGE):
                                         _target_status[_target['TS']]['TX_T_LC'] = bptc.encode_terminator_lc(dst_lc)
                                         _target_status[_target['TS']]['TX_EMB_LC'] = bptc.encode_emblc(dst_lc)
                                         self._logger.debug('(%s) Generating TX FULL and EMB LCs for destination: System: %s, TS: %s, TGID: %s', self._system, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
-                                        self._logger.info('(%s) Conference Bridge: %s, Call Bridged to: System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
+                                        self._logger.info('(%s) Conference Bridge: %s, Call Bridged HBP System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
                 
                                     # Handle any necessary re-writes for the destination
                                     if _system['TS'] != _target['TS']:
@@ -521,7 +522,7 @@ class routerHBP(HBSYSTEM):
                         
                         for _target in BRIDGES[_bridge]:
                             if _target['SYSTEM'] != self._system:
-                                if _target['ACTIVE']:                             
+                                if _target['ACTIVE']:
                                     _target_status = systems[_target['SYSTEM']].STATUS
                                     _target_system = self._CONFIG['SYSTEMS'][_target['SYSTEM']]
                                 
@@ -550,7 +551,8 @@ class routerHBP(HBSYSTEM):
                                             _target_status[_stream_id]['H_LC']   = bptc.encode_header_lc(_target_status[_stream_id]['LC'])
                                             _target_status[_stream_id]['T_LC']   = bptc.encode_terminator_lc(_target_status[_stream_id]['LC'])
                                             _target_status[_stream_id]['EMB_LC'] = bptc.encode_emblc(_target_status[_stream_id]['LC'])
-                                        
+                                            self._logger.info('(%s) Conference Bridge: %s, Call Bridged to OBP System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
+ 
                                         # Record the time of this packet so we can later identify a stale stream   
                                         _target_status[_stream_id]['LAST'] = pkt_time
                                         # Clear the TS bit -- all OpenBridge streams are effectively on TS1
@@ -575,7 +577,7 @@ class routerHBP(HBSYSTEM):
                                             dmrbits = dmrbits[0:116] + _target_status[_stream_id]['EMB_LC'][_dtype_vseq] + dmrbits[148:264]
                                         dmrpkt = dmrbits.tobytes()
                                         _tmp_data = _tmp_data + dmrpkt #+ _data[53:55]
-                                            
+
                                     else:
                                         # BEGIN STANDARD CONTENTION HANDLING
                                         #
@@ -617,7 +619,7 @@ class routerHBP(HBSYSTEM):
                                             _target_status[_target['TS']]['TX_T_LC'] = bptc.encode_terminator_lc(dst_lc)
                                             _target_status[_target['TS']]['TX_EMB_LC'] = bptc.encode_emblc(dst_lc)
                                             self._logger.debug('(%s) Generating TX FULL and EMB LCs for HomeBrew destination: System: %s, TS: %s, TGID: %s', self._system, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
-                                            self._logger.info('(%s) Conference Bridge: %s, Call Bridged to: System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
+                                            self._logger.info('(%s) Conference Bridge: %s, Call Bridged to HBP System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
                     
                                         # Handle any necessary re-writes for the destination
                                         if _system['TS'] != _target['TS']:

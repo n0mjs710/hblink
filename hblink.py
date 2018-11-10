@@ -237,7 +237,7 @@ class OPENBRIDGE(DatagramProtocol):
                 # Userland actions -- typically this is the function you subclass for an application
                 self.dmrd_received(_peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
             else:
-                self._logger.info('(%s) OpenBridge HMAC failed, packet discarded', self._system) 
+                self._logger.info('(%s) OpenBridge HMAC failed, packet discarded - OPCODE: %s DATA: %s HMAC LENGTH: %s HMAC: %s', self._system, _packet[:4], repr(_packet[:53]), len(_packet[53:]), repr(_packet[53:])) 
 
 
 #************************************************
