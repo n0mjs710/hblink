@@ -366,7 +366,7 @@ class HBSYSTEM(DatagramProtocol):
         elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
             _peer_id = _data[4:8]
             # Check for valid Radio ID
-            if acl_check(_peer_id, self._CONFIG['REG_ACL']) and acl_check(_peer_id, self._config['REG_ACL']):
+            if acl_check(_peer_id, self._CONFIG['GLOBAL']['REG_ACL']) and acl_check(_peer_id, self._config['REG_ACL']):
                 # Build the configuration data strcuture for the peer
                 self._peers.update({_peer_id: {      
                     'CONNECTION': 'RPTL-RECEIVED',
