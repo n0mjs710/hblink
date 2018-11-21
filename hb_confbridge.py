@@ -45,7 +45,7 @@ from twisted.protocols.basic import NetstringReceiver
 from twisted.internet import reactor, task
 
 # Things we import from the main hblink module
-from hblink import HBSYSTEM, OPENBRIDGE, systems, hblink_handler, reportFactory, REPORT_OPCODES, build_reg_acl
+from hblink import HBSYSTEM, OPENBRIDGE, systems, hblink_handler, reportFactory, REPORT_OPCODES
 from dmr_utils.utils import hex_str_3, int_id, get_alias
 from dmr_utils import decode, bptc, const
 import hb_config
@@ -115,61 +115,8 @@ def make_bridges(_hb_confbridge_bridges):
                 _system['TIMER']  = time() + _system['TIMEOUT']
             else:
                 _system['TIMER']  = time()
-
     return bridge_file.BRIDGES
-
-
-# Import subscriber ACL
-# ACL may be a single list of subscriber IDs
-# Global action is to allow or deny them. Multiple lists with different actions and ranges
-# are not yet implemented.
-def build_acl(_sub_acl):
-    ACL = set()
-    try:
-        acl_file = import_module(_sub_acl)
-        logger.info('ACL file found, importing entries. This will take about 1.5 seconds per 1 million IDs')
-        sections = acl_file.ACL.split(':')
-        ACL_ACTION = sections[0]
-        entries_str = sections[1]
-
-
-        for entry in entries_str.split(','):
-            if '-' in entry:
-                start,end = entry.split('-')
-                start,end = int(start), int(end)
-                for id in range(start, end+1):
-                    ACL.add(hex_str_3(id))
-            else:
-                id = int(entry)
-                ACL.add(hex_str_3(id))
-
-        logger.info('ACL loaded: action "{}" for {:,} radio IDs'.format(ACL_ACTION, len(ACL)))
-
-    except ImportError:
-        logger.info('ACL file not found or invalid - all subscriber IDs are valid')
-        ACL_ACTION = 'NONE'
-
-    # Depending on which type of ACL is used (PERMIT, DENY... or there isn't one)
-    # define a differnet function to be used to check the ACL
-    global allow_sub
-    if ACL_ACTION == 'PERMIT':
-        def allow_sub(_sub):
-            if _sub in ACL:
-                return True
-            else:
-                return False
-    elif ACL_ACTION == 'DENY':
-        def allow_sub(_sub):
-            if _sub not in ACL:
-                return True
-            else:
-                return False
-    else:
-        def allow_sub(_sub):
-            return True
-
-    return ACL
-
+    
 
 # Run this every minute for rule timer updates
 def rule_timer_loop():
@@ -250,12 +197,6 @@ class routerOBP(OPENBRIDGE):
         _bits = int_id(_data[15])
 
         if _call_type == 'group':
-
-            # Check for ACL match, and return if the subscriber is not allowed
-            if allow_sub(_rf_src) == False:
-                self._logger.warning('(%s) Group Voice Packet ***REJECTED BY ACL*** From: %s, HBP Peer %s, Destination TGID %s', self._system, int_id(_rf_src), int_id(_peer_id), int_id(_dst_id))
-                return
-
             # Is this a new call stream?
             if (_stream_id not in self.STATUS):
                 # This is a new call stream
@@ -504,11 +445,6 @@ class routerHBP(HBSYSTEM):
         _bits = int_id(_data[15])
 
         if _call_type == 'group':
-
-            # Check for ACL match, and return if the subscriber is not allowed
-            if allow_sub(_rf_src) == False:
-                self._logger.warning('(%s) Group Voice Packet ***REJECTED BY ACL*** From: %s, HBP Peer %s, Destination TGID %s', self._system, int_id(_rf_src), int_id(_peer_id), int_id(_dst_id))
-                return
 
             # Is this a new call stream?
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
@@ -804,9 +740,6 @@ if __name__ == '__main__':
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
 
-    # Build the Access Control List
-    REG_ACL = build_reg_acl('reg_acl', logger)
-
     # ID ALIAS CREATION
     # Download
     if CONFIG['ALIASES']['TRY_DOWNLOAD'] == True:
@@ -832,12 +765,6 @@ if __name__ == '__main__':
 
     # Build the routing rules file
     BRIDGES = make_bridges('hb_confbridge_rules')
-
-    # Build the Access Control List
-    ACL = build_acl('sub_acl')
-
-    # Build the Registration Access Control List
-    REG_ACL = build_reg_acl('reg_acl', logger)
 
     # INITIALIZE THE REPORTING LOOP
     report_server = config_reports(CONFIG, logger, confbridgeReportFactory)

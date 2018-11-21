@@ -48,6 +48,7 @@ from twisted.internet import reactor, task
 # Other files we pull from -- this is mostly for readability and segmentation
 import hb_log
 import hb_config
+import hb_const as const
 from dmr_utils.utils import int_id, hex_str_4
 
 # Imports for the reporting server
@@ -93,93 +94,15 @@ def hblink_handler(_signal, _frame, _logger):
         _logger.info('SHUTDOWN: DE-REGISTER SYSTEM: %s', system)
         systems[system].dereg()
 
-
-# Import subscriber registration ACL
-# REG_ACL may be a single list of subscriber IDs
-# Global action is to allow or deny them. Multiple lists with different actions and ranges
-# are not yet implemented.
-def build_reg_acl(_reg_acl, _logger):
-    REG_ACL = set()
-    try:
-        acl_file = import_module(_reg_acl)
-        _logger.info('Registration ACL file found, importing entries. This will take about 1.5 seconds per 1 million IDs')
-        sections = acl_file.REG_ACL.split(':')
-        REG_ACL_ACTION = sections[0]
-        entries_str = sections[1]
-        
-        for entry in entries_str.split(','):
-            if '-' in entry:
-                start,end = entry.split('-')
-                start,end = int(start), int(end)
-                for id in range(start, end+1):
-                    REG_ACL.add(hex_str_4(id))
-            else:
-                id = int(entry)
-                REG_ACL.add(hex_str_4(id))
-        
-        _logger.info('Registration ACL loaded: action "{}" for {:,} registration IDs'.format( REG_ACL_ACTION, len(REG_ACL)))
+# Check a supplied ID against the ACL provided. Returns action (True|False) based
+# on matching and the action specified.
+def acl_check(_id, _acl):
+    id = int_id(_id)
+    for entry in _acl[1]:
+        if entry[0] <= id <= entry[1]:
+            return _acl[0]
+    return not _acl[0]
     
-    except ImportError:
-        _logger.info('Registration ACL file not found or invalid - all IDs may register with this system')
-        REG_ACL_ACTION = 'NONE'
-
-    # Depending on which type of REG_ACL is used (PERMIT, DENY... or there isn't one)
-    # define a differnet function to be used to check the ACL
-    global allow_reg
-    if REG_ACL_ACTION == 'PERMIT':
-        def allow_reg(_id):
-            if _id in REG_ACL:
-                return True
-            else:
-                return False
-    elif REG_ACL_ACTION == 'DENY':
-        def allow_reg(_id):
-            if _id not in REG_ACL:
-                return True
-            else:
-                return False
-    else:
-        def allow_reg(_id):
-            return True
-    
-    return REG_ACL
-
-#************************************************
-#     AMBE CLASS: Used to parse out AMBE and send to gateway
-#************************************************
-
-class AMBE:
-    def __init__(self, _config, _logger):
-        self._CONFIG = _config
-        self._logger = _logger
-         
-        self._sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        self._exp_ip = self._CONFIG['AMBE']['EXPORT_IP']
-        self._exp_port = self._CONFIG['AMBE']['EXPORT_PORT']
-
-    def parseAMBE(self, _peer, _data):
-        _seq = int_id(_data[4:5])
-        _srcID = int_id(_data[5:8])
-        _dstID = int_id(_data[8:11])
-        _rptID = int_id(_data[11:15])
-        _bits = int_id(_data[15:16])       # SCDV NNNN (Slot|Call type|Data|Voice|Seq or Data type)
-        _slot = 2 if _bits & 0x80 else 1
-        _callType = 1 if (_bits & 0x40) else 0
-        _frameType = (_bits & 0x30) >> 4
-        _voiceSeq = (_bits & 0x0f)
-        _streamID = int_id(_data[16:20])
-        self._logger.debug('(%s) seq: %d srcID: %d dstID: %d rptID: %d bits: %0X slot:%d callType: %d frameType:  %d voiceSeq: %d streamID: %0X',
-        _peer, _seq, _srcID, _dstID, _rptID, _bits, _slot, _callType, _frameType, _voiceSeq, _streamID )
-
-        #logger.debug('Frame 1:(%s)', self.ByteToHex(_data))
-        _dmr_frame = BitArray('0x'+ahex(_data[20:]))
-        _ambe = _dmr_frame[0:108] + _dmr_frame[156:264]
-        #_sock.sendto(_ambe.tobytes(), ("127.0.0.1", 31000))
-
-        ambeBytes = _ambe.tobytes()
-        self._sock.sendto(ambeBytes[0:9], (self._exp_ip, self._exp_port))
-        self._sock.sendto(ambeBytes[9:18], (self._exp_ip, self._exp_port))
-        self._sock.sendto(ambeBytes[18:27], (self._exp_ip, self._exp_port))
 
 
 #************************************************
@@ -194,6 +117,7 @@ class OPENBRIDGE(DatagramProtocol):
         self._logger = _logger
         self._report = _report
         self._config = self._CONFIG['SYSTEMS'][self._system]
+        self._laststrid = ''
 
     def dereg(self):
         self._logger.info('(%s) is mode OPENBRIDGE. No De-Registration required, continuing shutdown', self._system)
@@ -206,7 +130,7 @@ class OPENBRIDGE(DatagramProtocol):
             # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
             # self._logger.debug('(%s) TX Packet to OpenBridge %s:%s -- %s', self._system, self._config['TARGET_IP'], self._config['TARGET_PORT'], ahex(_packet))
         else:
-            self._logger.error('(%s) OpenBridge system was asked to send non DMRD packet')
+            self._logger.error('(%s) OpenBridge system was asked to send non DMRD packet', self._system)
 
     def dmrd_received(self, _peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pass
@@ -233,12 +157,42 @@ class OPENBRIDGE(DatagramProtocol):
                 _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                 _stream_id = _data[16:20]
                 #self._logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
-
+                
+                # Sanity check for OpenBridge -- all calls must be on Slot 1
+                if _slot != 1:
+                    self._logger.error('(%s) OpenBridge packet discarded because it was not received on slot 1. SID: %s, TGID %s', self._system, int_id(_rf_src), int_id(_dst_id))
+                    return
+                
+                # ACL Processing
+                if self._CONFIG['GLOBAL']['USE_ACL']:
+                    if not acl_check(_rf_src, self._CONFIG['GLOBAL']['SUB_ACL']):
+                        if self._laststrid != _stream_id:
+                            self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s FROM SUBSCRIBER %s BY GLOBAL ACL', self._system, int_id(_stream_id), int_id(_rf_src))
+                            self._laststrid = _stream_id
+                        return
+                    if _slot == 1 and not acl_check(_dst_id, self._CONFIG['GLOBAL']['TG1_ACL']):
+                        if self._laststrid != _stream_id:
+                            self._logger.info('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY GLOBAL TS1 ACL', self._system, int_id(_stream_id), int_id(_dst_id))
+                            self._laststrid = _stream_id
+                        return
+                if self._config['USE_ACL']:
+                    if not acl_check(_rf_src, self._config['SUB_ACL']):
+                        if self._laststrid != _stream_id:
+                            self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s FROM SUBSCRIBER %s BY SYSTEM ACL', self._system, int_id(_stream_id), int_id(_rf_src))
+                            self._laststrid = _stream_id
+                        return
+                    if not acl_check(_dst_id, self._config['TG1_ACL']):
+                        if self._laststrid != _stream_id:
+                            self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY SYSTEM ACL', self._system, int_id(_stream_id), int_id(_dst_id))
+                            self._laststrid = _stream_id
+                        return
+                self._laststrid = _stream_id
+                
                 # Userland actions -- typically this is the function you subclass for an application
                 self.dmrd_received(_peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
             else:
                 self._logger.info('(%s) OpenBridge HMAC failed, packet discarded - OPCODE: %s DATA: %s HMAC LENGTH: %s HMAC: %s', self._system, _packet[:4], repr(_packet[:53]), len(_packet[53:]), repr(_packet[53:])) 
-
+            
 
 #************************************************
 #     HB MASTER CLASS
@@ -252,6 +206,7 @@ class HBSYSTEM(DatagramProtocol):
         self._logger = _logger
         self._report = _report
         self._config = self._CONFIG['SYSTEMS'][self._system]
+        self._laststrid = ''
         
         # Define shortcuts and generic function names based on the type of system we are
         if self._config['MODE'] == 'MASTER':
@@ -267,10 +222,6 @@ class HBSYSTEM(DatagramProtocol):
             self.maintenance_loop = self.peer_maintenance_loop
             self.datagramReceived = self.peer_datagramReceived
             self.dereg = self.peer_dereg
-        
-        # Configure for AMBE audio export if enabled
-        if self._config['EXPORT_AMBE']:
-            self._ambe = AMBE(_config, _logger)
 
     def startProtocol(self):
         # Set up periodic loop for tracking pings from peers. Run every 'PING_TIME' seconds
@@ -363,10 +314,41 @@ class HBSYSTEM(DatagramProtocol):
                 _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                 _stream_id = _data[16:20]
                 #self._logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
-
-                # If AMBE audio exporting is configured...
-                if self._config['EXPORT_AMBE']:
-                    self._ambe.parseAMBE(self._system, _data)
+                
+                # ACL Processing
+                if self._CONFIG['GLOBAL']['USE_ACL']:
+                    if not acl_check(_rf_src, self._CONFIG['GLOBAL']['SUB_ACL']):
+                        if self._laststrid != _stream_id:
+                            self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s FROM SUBSCRIBER %s BY GLOBAL ACL', self._system, int_id(_stream_id), int_id(_rf_src))
+                            self._laststrid = _stream_id
+                        return
+                    if _slot == 1 and not acl_check(_dst_id, self._CONFIG['GLOBAL']['TG1_ACL']):
+                        if self._laststrid != _stream_id:
+                            self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY GLOBAL TS1 ACL', self._system, int_id(_stream_id), int_id(_dst_id))
+                            self._laststrid = _stream_id
+                        return
+                    if _slot == 2 and not acl_check(_dst_id, self._CONFIG['GLOBAL']['TG2_ACL']):
+                        if self._laststrid != _stream_id:
+                            self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY GLOBAL TS2 ACL', self._system, int_id(_stream_id), int_id(_dst_id))
+                            self._laststrid = _stream_id
+                        return
+                if self._config['USE_ACL']:
+                    if not acl_check(_rf_src, self._config['SUB_ACL']):
+                        if self._laststrid != _stream_id:
+                            self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s FROM SUBSCRIBER %s BY SYSTEM ACL', self._system, int_id(_stream_id), int_id(_rf_src))
+                            self._laststrid = _stream_id
+                        return
+                    if _slot == 1 and not acl_check(_dst_id, self._config['TG1_ACL']):
+                        if self._laststrid != _stream_id:
+                            self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY SYSTEM TS1 ACL', self._system, int_id(_stream_id), int_id(_dst_id))
+                            self._laststrid = _stream_id
+                        return
+                    if _slot == 2 and not acl_check(_dst_id, self._config['TG2_ACL']):
+                        if self._laststrid != _stream_id:
+                            self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY SYSTEM TS2 ACL', self._system, int_id(_stream_id), int_id(_dst_id))
+                            self._laststrid = _stream_id
+                        return
+                self._laststrid = _stream_id
 
                 # The basic purpose of a master is to repeat to the peers
                 if self._config['REPEAT'] == True:
@@ -377,13 +359,16 @@ class HBSYSTEM(DatagramProtocol):
                             #self.send_peer(_peer, _data[:11] + self._config['RADIO_ID'] + _data[15:])
                             #self._logger.debug('(%s) Packet on TS%s from %s (%s) for destination ID %s repeated to peer: %s (%s) [Stream ID: %s]', self._system, _slot, self._peers[_peer_id]['CALLSIGN'], int_id(_peer_id), int_id(_dst_id), self._peers[_peer]['CALLSIGN'], int_id(_peer), int_id(_stream_id))
 
+
                 # Userland actions -- typically this is the function you subclass for an application
                 self.dmrd_received(_peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
 
         elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
             _peer_id = _data[4:8]
-            if allow_reg(_peer_id):                    # Check for valid Radio ID
-                self._peers.update({_peer_id: {      # Build the configuration data strcuture for the peer
+            # Check for valid Radio ID
+            if acl_check(_peer_id, self._CONFIG['REG_ACL']) and acl_check(_peer_id, self._config['REG_ACL']):
+                # Build the configuration data strcuture for the peer
+                self._peers.update({_peer_id: {      
                     'CONNECTION': 'RPTL-RECEIVED',
                     'PINGS_RECEIVED': 0,
                     'LAST_PING': time(),
@@ -515,10 +500,42 @@ class HBSYSTEM(DatagramProtocol):
                     _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                     _stream_id = _data[16:20]
                     self._logger.debug('(%s) DMRD - Sequence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
-
-                    # If AMBE audio exporting is configured...
-                    if self._config['EXPORT_AMBE']:
-                        self._ambe.parseAMBE(self._system, _data)
+                        
+                    # ACL Processing
+                    if self._CONFIG['GLOBAL']['USE_ACL']:
+                        if not acl_check(_rf_src, self._CONFIG['GLOBAL']['SUB_ACL']):
+                            if self._laststrid != _stream_id:
+                                self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s FROM SUBSCRIBER %s BY GLOBAL ACL', self._system, int_id(_stream_id), int_id(_rf_src))
+                                self._laststrid = _stream_id
+                            return
+                        if _slot == 1 and not acl_check(_dst_id, self._CONFIG['GLOBAL']['TG1_ACL']):
+                            if self._laststrid != _stream_id:
+                                self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY GLOBAL TS1 ACL', self._system, int_id(_stream_id), int_id(_dst_id))
+                                self._laststrid = _stream_id
+                            return
+                        if _slot == 2 and not acl_check(_dst_id, self._CONFIG['GLOBAL']['TG2_ACL']):
+                            if self._laststrid != _stream_id:
+                                self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY GLOBAL TS2 ACL', self._system, int_id(_stream_id), int_id(_dst_id))
+                                self._laststrid = _stream_id
+                            return
+                    if self._config['USE_ACL']:
+                        if not acl_check(_rf_src, self._config['SUB_ACL']):
+                            if self._laststrid != _stream_id:
+                                self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s FROM SUBSCRIBER %s BY SYSTEM ACL', self._system, int_id(_stream_id), int_id(_rf_src))
+                                self._laststrid = _stream_id
+                            return
+                        if _slot == 1 and not acl_check(_dst_id, self._config['TG1_ACL']):
+                            if self._laststrid != _stream_id:
+                                self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY SYSTEM TS1 ACL', self._system, int_id(_stream_id), int_id(_dst_id))
+                                self._laststrid = _stream_id
+                            return
+                        if _slot == 2 and not acl_check(_dst_id, self._config['TG2_ACL']):
+                            if self._laststrid != _stream_id:
+                                self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY SYSTEM TS2 ACL', self._system, int_id(_stream_id), int_id(_dst_id))
+                                self._laststrid = _stream_id
+                            return
+                    self._laststrid = _stream_id
+                    
 
                     # Userland actions -- typically this is the function you subclass for an application
                     self.dmrd_received(_peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
@@ -700,9 +717,6 @@ if __name__ == '__main__':
     # Set signal handers so that we can gracefully exit if need be
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
-    
-    # Build the Registration Access Control List
-    REG_ACL = build_reg_acl('reg_acl', logger)
     
     # INITIALIZE THE REPORTING LOOP
     report_server = config_reports(CONFIG, logger, reportFactory)    
