@@ -70,21 +70,21 @@ systems = {}
 # Timed loop used for reporting HBP status
 #
 # REPORT BASED ON THE TYPE SELECTED IN THE MAIN CONFIG FILE
-def config_reports(_config, _logger, _factory):                 
+def config_reports(_config, _logger, _factory):
     if True: #_config['REPORTS']['REPORT']:
         def reporting_loop(_logger, _server):
             _logger.debug('Periodic reporting loop started')
             _server.send_config()
-            
+
         _logger.info('HBlink TCP reporting server configured')
-        
+
         report_server = _factory(_config, _logger)
         report_server.clients = []
         reactor.listenTCP(_config['REPORTS']['REPORT_PORT'], report_server)
-        
+
         reporting = task.LoopingCall(reporting_loop, _logger, report_server)
         reporting.start(_config['REPORTS']['REPORT_INTERVAL'])
-    
+
     return report_server
 
 
@@ -102,7 +102,7 @@ def acl_check(_id, _acl):
         if entry[0] <= id <= entry[1]:
             return _acl[0]
     return not _acl[0]
-    
+
 
 
 #************************************************
@@ -121,7 +121,7 @@ class OPENBRIDGE(DatagramProtocol):
 
     def dereg(self):
         self._logger.info('(%s) is mode OPENBRIDGE. No De-Registration required, continuing shutdown', self._system)
-    
+
     def send_system(self, _packet):
         if _packet[:4] == 'DMRD':
             _packet = _packet[:11] + self._config['NETWORK_ID'] + _packet[15:]
@@ -144,7 +144,7 @@ class OPENBRIDGE(DatagramProtocol):
             _data = _packet[:53]
             _hash = _packet[53:]
             _ckhs = hmac_new(self._config['PASSPHRASE'],_data,sha1).digest()
-            
+
             if compare_digest(_hash, _ckhs) and _sockaddr == self._config['TARGET_SOCK']:
                 _peer_id = _data[11:15]
                 _seq = _data[4]
@@ -157,12 +157,12 @@ class OPENBRIDGE(DatagramProtocol):
                 _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                 _stream_id = _data[16:20]
                 #self._logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
-                
+
                 # Sanity check for OpenBridge -- all calls must be on Slot 1
                 if _slot != 1:
                     self._logger.error('(%s) OpenBridge packet discarded because it was not received on slot 1. SID: %s, TGID %s', self._system, int_id(_rf_src), int_id(_dst_id))
                     return
-                
+
                 # ACL Processing
                 if self._CONFIG['GLOBAL']['USE_ACL']:
                     if not acl_check(_rf_src, self._CONFIG['GLOBAL']['SUB_ACL']):
@@ -186,13 +186,12 @@ class OPENBRIDGE(DatagramProtocol):
                             self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY SYSTEM ACL', self._system, int_id(_stream_id), int_id(_dst_id))
                             self._laststrid = _stream_id
                         return
-                self._laststrid = _stream_id
-                
+
                 # Userland actions -- typically this is the function you subclass for an application
                 self.dmrd_received(_peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
             else:
                 self._logger.info('(%s) OpenBridge HMAC failed, packet discarded - OPCODE: %s DATA: %s HMAC LENGTH: %s HMAC: %s', self._system, _packet[:4], repr(_packet[:53]), len(_packet[53:]), repr(_packet[53:])) 
-            
+
 
 #************************************************
 #     HB MASTER CLASS
@@ -207,7 +206,7 @@ class HBSYSTEM(DatagramProtocol):
         self._report = _report
         self._config = self._CONFIG['SYSTEMS'][self._system]
         self._laststrid = ''
-        
+
         # Define shortcuts and generic function names based on the type of system we are
         if self._config['MODE'] == 'MASTER':
             self._peers = self._CONFIG['SYSTEMS'][self._system]['PEERS']
@@ -215,7 +214,7 @@ class HBSYSTEM(DatagramProtocol):
             self.maintenance_loop = self.master_maintenance_loop
             self.datagramReceived = self.master_datagramReceived
             self.dereg = self.master_dereg
-        
+
         elif self._config['MODE'] == 'PEER':
             self._stats = self._config['STATS']
             self.send_system = self.send_master
@@ -227,7 +226,7 @@ class HBSYSTEM(DatagramProtocol):
         # Set up periodic loop for tracking pings from peers. Run every 'PING_TIME' seconds
         self._system_maintenance = task.LoopingCall(self.maintenance_loop)
         self._system_maintenance_loop = self._system_maintenance.start(self._CONFIG['GLOBAL']['PING_TIME'])
-    
+
     # Aliased in __init__ to maintenance_loop if system is a master
     def master_maintenance_loop(self):
         self._logger.debug('(%s) Master maintenance loop started', self._system)
@@ -238,8 +237,8 @@ class HBSYSTEM(DatagramProtocol):
                 self._logger.info('(%s) Peer %s (%s) has timed out', self._system, _this_peer['CALLSIGN'], _this_peer['RADIO_ID'])
                 # Remove any timed out peers from the configuration
                 del self._CONFIG['SYSTEMS'][self._system]['PEERS'][peer]
-    
-    # Aliased in __init__ to maintenance_loop if system is a peer           
+
+    # Aliased in __init__ to maintenance_loop if system is a peer
     def peer_maintenance_loop(self):
         self._logger.debug('(%s) Peer maintenance loop started', self._system)
         if self._stats['PING_OUTSTANDING']:
@@ -281,16 +280,16 @@ class HBSYSTEM(DatagramProtocol):
 
     def dmrd_received(self, _peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
         pass
-    
+
     def master_dereg(self):
         for _peer in self._peers:
             self.send_peer(_peer, 'MSTCL'+_peer)
             self._logger.info('(%s) De-Registration sent to Peer: %s (%s)', self._system, self._peers[_peer]['CALLSIGN'], self._peers[_peer]['RADIO_ID'])
-            
+
     def peer_dereg(self):
         self.send_master('RPTCL'+self._config['RADIO_ID'])
         self._logger.info('(%s) De-Registration sent to Master: %s:%s', self._system, self._config['MASTER_SOCKADDR'][0], self._config['MASTER_SOCKADDR'][1])
-    
+
     # Aliased in __init__ to datagramReceived if system is a master
     def master_datagramReceived(self, _data, _sockaddr):
         # Keep This Line Commented Unless HEAVILY Debugging!
@@ -314,7 +313,7 @@ class HBSYSTEM(DatagramProtocol):
                 _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                 _stream_id = _data[16:20]
                 #self._logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
-                
+
                 # ACL Processing
                 if self._CONFIG['GLOBAL']['USE_ACL']:
                     if not acl_check(_rf_src, self._CONFIG['GLOBAL']['SUB_ACL']):
@@ -348,7 +347,6 @@ class HBSYSTEM(DatagramProtocol):
                             self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY SYSTEM TS2 ACL', self._system, int_id(_stream_id), int_id(_dst_id))
                             self._laststrid = _stream_id
                         return
-                self._laststrid = _stream_id
 
                 # The basic purpose of a master is to repeat to the peers
                 if self._config['REPEAT'] == True:
@@ -368,7 +366,7 @@ class HBSYSTEM(DatagramProtocol):
             # Check for valid Radio ID
             if acl_check(_peer_id, self._CONFIG['GLOBAL']['REG_ACL']) and acl_check(_peer_id, self._config['REG_ACL']):
                 # Build the configuration data strcuture for the peer
-                self._peers.update({_peer_id: {      
+                self._peers.update({_peer_id: {
                     'CONNECTION': 'RPTL-RECEIVED',
                     'PINGS_RECEIVED': 0,
                     'LAST_PING': time(),
@@ -500,7 +498,7 @@ class HBSYSTEM(DatagramProtocol):
                     _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                     _stream_id = _data[16:20]
                     self._logger.debug('(%s) DMRD - Sequence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
-                        
+
                     # ACL Processing
                     if self._CONFIG['GLOBAL']['USE_ACL']:
                         if not acl_check(_rf_src, self._CONFIG['GLOBAL']['SUB_ACL']):
@@ -534,8 +532,7 @@ class HBSYSTEM(DatagramProtocol):
                                 self._logger.debug('(%s) CALL DROPPED WITH STREAM ID %s ON TGID %s BY SYSTEM TS2 ACL', self._system, int_id(_stream_id), int_id(_dst_id))
                                 self._laststrid = _stream_id
                             return
-                    self._laststrid = _stream_id
-                    
+
 
                     # Userland actions -- typically this is the function you subclass for an application
                     self.dmrd_received(_peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data)
@@ -650,12 +647,12 @@ class report(NetstringReceiver):
             self.send_config()
         else:
             self._factory._logger.error('got unknown opcode')
-        
+
 class reportFactory(Factory):
     def __init__(self, config, logger):
         self._config = config
         self._logger = logger
-        
+
     def buildProtocol(self, addr):
         if (addr.host) in self._config['REPORTS']['REPORT_CLIENTS'] or '*' in self._config['REPORTS']['REPORT_CLIENTS']:
             self._logger.debug('Permitting report server connection attempt from: %s:%s', addr.host, addr.port)
@@ -663,15 +660,15 @@ class reportFactory(Factory):
         else:
             self._logger.error('Invalid report server connection attempt from: %s:%s', addr.host, addr.port)
             return None
-            
+
     def send_clients(self, _message):
         for client in self.clients:
             client.sendString(_message)
-            
+
     def send_config(self):
         serialized = pickle.dumps(self._config['SYSTEMS'], protocol=pickle.HIGHEST_PROTOCOL)
         self.send_clients(REPORT_OPCODES['CONFIG_SND']+serialized)
-        
+
 
 #************************************************
 #      MAIN PROGRAM LOOP STARTS HERE
@@ -683,8 +680,8 @@ if __name__ == '__main__':
     import sys
     import os
     import signal
-    
-    
+
+
     # Change the current directory to the location of the application
     os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
 
@@ -700,7 +697,7 @@ if __name__ == '__main__':
 
     # Call the external routine to build the configuration dictionary
     CONFIG = hb_config.build_config(cli_args.CONFIG_FILE)
-    
+
     # Call the external routing to start the system logger
     if cli_args.LOG_LEVEL:
         CONFIG['LOGGER']['LOG_LEVEL'] = cli_args.LOG_LEVEL
@@ -713,11 +710,11 @@ if __name__ == '__main__':
         hblink_handler(_signal, _frame, logger)
         logger.info('SHUTDOWN: ALL SYSTEM HANDLERS EXECUTED - STOPPING REACTOR')
         reactor.stop()
-        
+
     # Set signal handers so that we can gracefully exit if need be
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
-    
+
     # INITIALIZE THE REPORTING LOOP
     report_server = config_reports(CONFIG, logger, reportFactory)    
 
