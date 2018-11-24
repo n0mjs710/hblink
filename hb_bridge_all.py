@@ -45,12 +45,17 @@ from twisted.protocols.basic import NetstringReceiver
 from twisted.internet import reactor, task
 
 # Things we import from the main hblink module
-from hblink import HBSYSTEM, OPENBRIDGE, systems, hblink_handler, reportFactory, REPORT_OPCODES, config_reports
+from hblink import HBSYSTEM, OPENBRIDGE, systems, hblink_handler, reportFactory, REPORT_OPCODES, config_reports, mk_aliases
 from dmr_utils.utils import hex_str_3, int_id, get_alias
 from dmr_utils import decode, bptc, const
 import hb_config
 import hb_log
 import hb_const
+
+# The module needs logging logging, but handlers, etc. are controlled by the parent
+import logging
+logger = logging.getLogger(__name__)
+
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
@@ -66,8 +71,8 @@ __status__     = 'pre-alpha'
 
 class bridgeallSYSTEM(HBSYSTEM):
     
-    def __init__(self, _name, _config, _logger, _report):
-        HBSYSTEM.__init__(self, _name, _config, _logger, _report)
+    def __init__(self, _name, _config, _report):
+        HBSYSTEM.__init__(self, _name, _config, _report)
         
         # Status information for the system, TS1 & TS2
         # 1 & 2 are "timeslot"
@@ -228,42 +233,20 @@ if __name__ == '__main__':
     # Set up the signal handler
     def sig_handler(_signal, _frame):
         logger.info('SHUTDOWN: HBROUTER IS TERMINATING WITH SIGNAL %s', str(_signal))
-        hblink_handler(_signal, _frame, logger)
+        hblink_handler(_signal, _frame)
         logger.info('SHUTDOWN: ALL SYSTEM HANDLERS EXECUTED - STOPPING REACTOR')
         reactor.stop()
         
     # Set signal handers so that we can gracefully exit if need be
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
-    
-    # ID ALIAS CREATION
-    # Download
-    if CONFIG['ALIASES']['TRY_DOWNLOAD'] == True:
-        # Try updating peer aliases file
-        result = try_download(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['PEER_FILE'], CONFIG['ALIASES']['PEER_URL'], CONFIG['ALIASES']['STALE_TIME'])
-        logger.info(result)
-        # Try updating subscriber aliases file
-        result = try_download(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['SUBSCRIBER_FILE'], CONFIG['ALIASES']['SUBSCRIBER_URL'], CONFIG['ALIASES']['STALE_TIME'])
-        logger.info(result)
-        
-    # Make Dictionaries
-    peer_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['PEER_FILE'])
-    if peer_ids:
-        logger.info('ID ALIAS MAPPER: peer_ids dictionary is available')
-        
-    subscriber_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['SUBSCRIBER_FILE'])
-    if subscriber_ids:
-        logger.info('ID ALIAS MAPPER: subscriber_ids dictionary is available')
-    
-    talkgroup_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['TGID_FILE'])
-    if talkgroup_ids:
-        logger.info('ID ALIAS MAPPER: talkgroup_ids dictionary is available')
 
-    
+    # Create the name-number mapping dictionaries
+    peer_ids, subscriber_ids, talkgroup_ids = mk_aliases(CONFIG)
+
     # INITIALIZE THE REPORTING LOOP
-    report_server = config_reports(CONFIG, logger, reportFactory)
-    
-    
+    report_server = config_reports(CONFIG, reportFactory)
+
     # HBlink instance creation
     logger.info('HBlink \'HBlink.py\' (c) 2016-2018 N0MJS & the K0USY Group - SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
@@ -272,7 +255,7 @@ if __name__ == '__main__':
                 logger.critical('%s FATAL: Instance is mode \'OPENBRIDGE\', \n\t\t...Which would be tragic for Bridge All, since it carries multiple call\n\t\tstreams simultaneously. hb_bridge_all.py onlyl works with MMDVM-based systems', system)
                 sys.exit('hb_bridge_all.py cannot function with systems that are not MMDVM devices. System {} is configured as an OPENBRIDGE'.format(system))
             else:
-                systems[system] = HBSYSTEM(system, CONFIG, logger, report_server)
+                systems[system] = HBSYSTEM(system, CONFIG, report_server)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
