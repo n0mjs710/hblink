@@ -736,7 +736,7 @@ if __name__ == '__main__':
 
     # Set up the signal handler
     def sig_handler(_signal, _frame):
-        logger.info('SHUTDOWN: HBROUTER IS TERMINATING WITH SIGNAL %s', str(_signal))
+        logger.info('SHUTDOWN: CONFBRIDGE IS TERMINATING WITH SIGNAL %s', str(_signal))
         hblink_handler(_signal, _frame)
         logger.info('SHUTDOWN: ALL SYSTEM HANDLERS EXECUTED - STOPPING REACTOR')
         reactor.stop()
