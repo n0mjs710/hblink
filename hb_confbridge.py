@@ -742,7 +742,7 @@ if __name__ == '__main__':
         reactor.stop()
 
     # Set signal handers so that we can gracefully exit if need be
-    for sig in [signal.SIGTERM, signal.SIGINT]:
+    for sig in [signal.SIGINT, signal.SIGTERM]:
         signal.signal(sig, sig_handler)
     
     # Create the name-number mapping dictionaries
