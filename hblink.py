@@ -370,41 +370,46 @@ class HBSYSTEM(DatagramProtocol):
 
         elif _command == 'RPTL':    # RPTLogin -- a repeater wants to login
             _peer_id = _data[4:8]
-            # Check for valid Radio ID
-            if acl_check(_peer_id, self._CONFIG['GLOBAL']['REG_ACL']) and acl_check(_peer_id, self._config['REG_ACL']):
-                # Build the configuration data strcuture for the peer
-                self._peers.update({_peer_id: {
-                    'CONNECTION': 'RPTL-RECEIVED',
-                    'PINGS_RECEIVED': 0,
-                    'LAST_PING': time(),
-                    'SOCKADDR': _sockaddr,
-                    'IP': _sockaddr[0],
-                    'PORT': _sockaddr[1],
-                    'SALT': randint(0,0xFFFFFFFF),
-                    'RADIO_ID': str(int(ahex(_peer_id), 16)),
-                    'CALLSIGN': '',
-                    'RX_FREQ': '',
-                    'TX_FREQ': '',
-                    'TX_POWER': '',
-                    'COLORCODE': '',
-                    'LATITUDE': '',
-                    'LONGITUDE': '',
-                    'HEIGHT': '',
-                    'LOCATION': '',
-                    'DESCRIPTION': '',
-                    'SLOTS': '',
-                    'URL': '',
-                    'SOFTWARE_ID': '',
-                    'PACKAGE_ID': '',
-                }})
-                logger.info('(%s) Repeater Logging in with Radio ID: %s, %s:%s', self._system, int_id(_peer_id), _sockaddr[0], _sockaddr[1])
-                _salt_str = hex_str_4(self._peers[_peer_id]['SALT'])
-                self.send_peer(_peer_id, 'RPTACK'+_salt_str)
-                self._peers[_peer_id]['CONNECTION'] = 'CHALLENGE_SENT'
-                logger.info('(%s) Sent Challenge Response to %s for login: %s', self._system, int_id(_peer_id), self._peers[_peer_id]['SALT'])
+            # Check to see if we've reached the maximum number of allowed peers
+            if len(self._peers < self._config['MAX_PEERS']):
+                # Check for valid Radio ID
+                if acl_check(_peer_id, self._CONFIG['GLOBAL']['REG_ACL']) and acl_check(_peer_id, self._config['REG_ACL']):
+                    # Build the configuration data strcuture for the peer
+                    self._peers.update({_peer_id: {
+                        'CONNECTION': 'RPTL-RECEIVED',
+                        'PINGS_RECEIVED': 0,
+                        'LAST_PING': time(),
+                        'SOCKADDR': _sockaddr,
+                        'IP': _sockaddr[0],
+                        'PORT': _sockaddr[1],
+                        'SALT': randint(0,0xFFFFFFFF),
+                        'RADIO_ID': str(int(ahex(_peer_id), 16)),
+                        'CALLSIGN': '',
+                        'RX_FREQ': '',
+                        'TX_FREQ': '',
+                        'TX_POWER': '',
+                        'COLORCODE': '',
+                        'LATITUDE': '',
+                        'LONGITUDE': '',
+                        'HEIGHT': '',
+                        'LOCATION': '',
+                        'DESCRIPTION': '',
+                        'SLOTS': '',
+                        'URL': '',
+                        'SOFTWARE_ID': '',
+                        'PACKAGE_ID': '',
+                    }})
+                    logger.info('(%s) Repeater Logging in with Radio ID: %s, %s:%s', self._system, int_id(_peer_id), _sockaddr[0], _sockaddr[1])
+                    _salt_str = hex_str_4(self._peers[_peer_id]['SALT'])
+                    self.send_peer(_peer_id, 'RPTACK'+_salt_str)
+                    self._peers[_peer_id]['CONNECTION'] = 'CHALLENGE_SENT'
+                    logger.info('(%s) Sent Challenge Response to %s for login: %s', self._system, int_id(_peer_id), self._peers[_peer_id]['SALT'])
+                else:
+                    self.transport.write('MSTNAK'+_peer_id, _sockaddr)
+                    logger.warning('(%s) Invalid Login from Radio ID: %s Denied by Registation ACL', self._system, int_id(_peer_id))
             else:
                 self.transport.write('MSTNAK'+_peer_id, _sockaddr)
-                logger.warning('(%s) Invalid Login from Radio ID: %s Denied by Registation ACL', self._system, int_id(_peer_id))
+                logger.warning('(%s) Registration denied from Radio ID: %s Maximum number of peers exceeded', self._system, int_id(_peer_id))
 
         elif _command == 'RPTK':    # Repeater has answered our login challenge
             _peer_id = _data[4:8]

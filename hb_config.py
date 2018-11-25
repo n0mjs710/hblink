@@ -202,6 +202,7 @@ def build_config(_config_file):
                         'MODE': config.get(section, 'MODE'),
                         'ENABLED': config.getboolean(section, 'ENABLED'),
                         'REPEAT': config.getboolean(section, 'REPEAT'),
+                        'MAX_PEERS': config.getint(section, 'MAX_PEERS'),
                         'EXPORT_AMBE': config.getboolean(section, 'EXPORT_AMBE'),
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
