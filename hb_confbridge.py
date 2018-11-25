@@ -731,6 +731,7 @@ if __name__ == '__main__':
     if cli_args.LOG_LEVEL:
         CONFIG['LOGGER']['LOG_LEVEL'] = cli_args.LOG_LEVEL
     logger = hb_log.config_logging(CONFIG['LOGGER'])
+    logger.info('\n\nCopyright (c) 2013, 2014, 2015, 2016, 2018\n\tThe Founding Members of the K0USY Group. All rights reserved.\n')
     logger.debug('Logging system started, anything from here on gets logged')
 
     # Set up the signal handler
@@ -754,7 +755,7 @@ if __name__ == '__main__':
     report_server = config_reports(CONFIG, confbridgeReportFactory)
 
     # HBlink instance creation
-    logger.info('HBlink \'hb_confbridge.py\' (c) 2016-2018 N0MJS & the K0USY Group - SYSTEM STARTING...')
+    logger.info('HBlink \'hb_confbridge.py\' -- SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
             if CONFIG['SYSTEMS'][system]['MODE'] == 'OPENBRIDGE':

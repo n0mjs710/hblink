@@ -67,7 +67,6 @@ __license__    = 'GNU GPLv3'
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 
-
 # Global variables used whether we are a module or __main__
 systems = {}
 
@@ -741,8 +740,9 @@ if __name__ == '__main__':
     if cli_args.LOG_LEVEL:
         CONFIG['LOGGER']['LOG_LEVEL'] = cli_args.LOG_LEVEL
     logger = hb_log.config_logging(CONFIG['LOGGER'])
+    logger.info('\n\nCopyright (c) 2013, 2014, 2015, 2016, 2018\n\tThe Founding Members of the K0USY Group. All rights reserved.\n')
     logger.debug('Logging system started, anything from here on gets logged')
-
+    
     # Set up the signal handler
     def sig_handler(_signal, _frame):
         logger.info('SHUTDOWN: HBLINK IS TERMINATING WITH SIGNAL %s', str(_signal))
@@ -760,7 +760,7 @@ if __name__ == '__main__':
     report_server = config_reports(CONFIG, reportFactory)    
 
     # HBlink instance creation
-    logger.info('HBlink \'HBlink.py\' (c) 2016-2018 N0MJS & the K0USY Group - SYSTEM STARTING...')
+    logger.info('HBlink \'HBlink.py\' -- SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
             if CONFIG['SYSTEMS'][system]['MODE'] == 'OPENBRIDGE':
