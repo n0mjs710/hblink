@@ -633,10 +633,10 @@ class report(NetstringReceiver):
 
     def connectionMade(self):
         self._factory.clients.append(self)
-        self._factory._logger.info('HBlink reporting client connected: %s', self.transport.getPeer())
+        logger.info('HBlink reporting client connected: %s', self.transport.getPeer())
 
     def connectionLost(self, reason):
-        self._factory._logger.info('HBlink reporting client disconnected: %s', self.transport.getPeer())
+        logger.info('HBlink reporting client disconnected: %s', self.transport.getPeer())
         self._factory.clients.remove(self)
 
     def stringReceived(self, data):
@@ -645,10 +645,10 @@ class report(NetstringReceiver):
     def process_message(self, _message):
         opcode = _message[:1]
         if opcode == REPORT_OPCODES['CONFIG_REQ']:
-            self._factory._logger.info('HBlink reporting client sent \'CONFIG_REQ\': %s', self.transport.getPeer())
+            logger.info('HBlink reporting client sent \'CONFIG_REQ\': %s', self.transport.getPeer())
             self.send_config()
         else:
-            self._factory._logger.error('got unknown opcode')
+            logger.error('got unknown opcode')
 
 class reportFactory(Factory):
     def __init__(self, config):
