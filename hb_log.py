@@ -83,7 +83,6 @@ def config_logging(_logger):
                 'formatter': 'syslog',
             }
         },
-
         'root': {
             'handlers': _logger['LOG_HANDLERS'].split(','),
             'level': _logger['LOG_LEVEL'],
