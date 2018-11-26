@@ -45,17 +45,17 @@ __email__      = 'n0mjs@me.com'
 def process_acls(_config):
     # Global registration ACL
     _config['GLOBAL']['REG_ACL'] = acl_build(_config['GLOBAL']['REG_ACL'], const.PEER_MAX)
-    
+
     # Global subscriber and TGID ACLs
     for acl in ['SUB_ACL', 'TG1_ACL', 'TG2_ACL']:
         _config['GLOBAL'][acl] = acl_build(_config['GLOBAL'][acl], const.ID_MAX)
-    
+
     # System level ACLs
     for system in _config['SYSTEMS']:
         # Registration ACLs (which make no sense for peer systems)
         if _config['SYSTEMS'][system]['MODE'] == 'MASTER':
             _config['SYSTEMS'][system]['REG_ACL'] = acl_build(_config['SYSTEMS'][system]['REG_ACL'], const.PEER_MAX)
-        
+
         # Subscriber and TGID ACLs (valid for all system types)
         for acl in ['SUB_ACL', 'TG1_ACL', 'TG2_ACL']:
             _config['SYSTEMS'][system][acl] = acl_build(_config['SYSTEMS'][system][acl], const.ID_MAX)
@@ -66,20 +66,20 @@ def process_acls(_config):
 def acl_build(_acl, _max):
     if not _acl:
         return(True, set((const.ID_MIN, _max)))
-    
+
     acl = set()
     sections = _acl.split(':')
-    
+
     if sections[0] == 'PERMIT':
         action = True
     else:
         action = False
-    
+
     for entry in sections[1].split(','):
         if entry == 'ALL':
             acl.add((const.ID_MIN, _max))
             break
-            
+
         elif '-' in entry:
             start,end = entry.split('-')
             start,end = int(start), int(end)
@@ -157,7 +157,6 @@ def build_config(_config_file):
                         'MODE': config.get(section, 'MODE'),
                         'ENABLED': config.getboolean(section, 'ENABLED'),
                         'LOOSE': config.getboolean(section, 'LOOSE'),
-                        'EXPORT_AMBE': config.getboolean(section, 'EXPORT_AMBE'),
                         'SOCK_ADDR': (gethostbyname(config.get(section, 'IP')), config.getint(section, 'PORT')),
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
@@ -203,7 +202,6 @@ def build_config(_config_file):
                         'ENABLED': config.getboolean(section, 'ENABLED'),
                         'REPEAT': config.getboolean(section, 'REPEAT'),
                         'MAX_PEERS': config.getint(section, 'MAX_PEERS'),
-                        'EXPORT_AMBE': config.getboolean(section, 'EXPORT_AMBE'),
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
                         'PASSPHRASE': config.get(section, 'PASSPHRASE'),

@@ -234,7 +234,7 @@ class HBSYSTEM(DatagramProtocol):
         for peer in self._peers:
             _this_peer = self._peers[peer]
             # Check to see if any of the peers have been quiet (no ping) longer than allowed
-            if _this_peer['LAST_PING']+self._CONFIG['GLOBAL']['PING_TIME']*self._CONFIG['GLOBAL']['MAX_MISSED'] < time():
+            if _this_peer['LAST_PING']+(self._CONFIG['GLOBAL']['PING_TIME']*self._CONFIG['GLOBAL']['MAX_MISSED']) < time():
                 logger.info('(%s) Peer %s (%s) has timed out', self._system, _this_peer['CALLSIGN'], _this_peer['RADIO_ID'])
                 # Remove any timed out peers from the configuration
                 del self._CONFIG['SYSTEMS'][self._system]['PEERS'][peer]
