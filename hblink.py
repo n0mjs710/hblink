@@ -231,13 +231,16 @@ class HBSYSTEM(DatagramProtocol):
     # Aliased in __init__ to maintenance_loop if system is a master
     def master_maintenance_loop(self):
         logger.debug('(%s) Master maintenance loop started', self._system)
+        remove_list = []
         for peer in self._peers:
             _this_peer = self._peers[peer]
             # Check to see if any of the peers have been quiet (no ping) longer than allowed
             if _this_peer['LAST_PING']+(self._CONFIG['GLOBAL']['PING_TIME']*self._CONFIG['GLOBAL']['MAX_MISSED']) < time():
-                logger.info('(%s) Peer %s (%s) has timed out', self._system, _this_peer['CALLSIGN'], _this_peer['RADIO_ID'])
-                # Remove any timed out peers from the configuration
-                del self._CONFIG['SYSTEMS'][self._system]['PEERS'][peer]
+                remove_list.append(peer)
+        for peer in remove_list:
+            logger.info('(%s) Peer %s (%s) has timed out and is being removed', self._system, self._peers[peer]['CALLSIGN'], self._peers[peer]['RADIO_ID'])
+            # Remove any timed out peers from the configuration
+            del self._CONFIG['SYSTEMS'][self._system]['PEERS'][peer]
 
     # Aliased in __init__ to maintenance_loop if system is a peer
     def peer_maintenance_loop(self):
@@ -483,7 +486,7 @@ class HBSYSTEM(DatagramProtocol):
                     logger.debug('(%s) Received and answered RPTPING from peer %s (%s)', self._system, self._peers[_peer_id]['CALLSIGN'], int_id(_peer_id))
                 else:
                     self.transport.write('MSTNAK'+_peer_id, _sockaddr)
-                    logger.warning('(%s) Peer info from Radio ID that has not logged in: %s', self._system, int_id(_peer_id))
+                    logger.warning('(%s) Ping from Radio ID that is not logged in: %s', self._system, int_id(_peer_id))
 
         else:
             logger.error('(%s) Unrecognized command. Raw HBP PDU: %s', self._system, ahex(_data))
