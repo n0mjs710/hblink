@@ -367,7 +367,7 @@ class routerOBP(OPENBRIDGE):
                                     elif _dtype_vseq in [1,2,3,4]:
                                         dmrbits = dmrbits[0:116] + _target_status[_target['TS']]['TX_EMB_LC'][_dtype_vseq] + dmrbits[148:264]
                                     dmrpkt = dmrbits.tobytes()
-                                    _tmp_data = _tmp_data + dmrpkt + _data[53:55]
+                                    _tmp_data = _tmp_data + dmrpkt + '\x00\x00' # Add two bytes of nothing since OBP doesn't include BER & RSSI bytes #_data[53:55]
 
                                 # Transmit the packet to the destination system
                                 systems[_target['SYSTEM']].send_system(_tmp_data)
