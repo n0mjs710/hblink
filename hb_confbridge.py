@@ -287,6 +287,8 @@ class routerOBP(OPENBRIDGE):
                                     # Create a voice terminator packet (FULL LC)
                                     elif _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VTERM:
                                         dmrbits = _target_status[_stream_id]['T_LC'][0:98] + dmrbits[98:166] + _target_status[_stream_id]['T_LC'][98:197]
+                                        removed = _target_status.pop(_stream_id)
+                                        logger.info('(%s) OpenBridge sourced call stream end, remove Stream ID from destination: System: %s, Stream ID: %s', self._system, _target['SYSTEM'], int_id(_stream_id))
                                     # Create a Burst B-E packet (Embedded LC)
                                     elif _dtype_vseq in [1,2,3,4]:
                                         dmrbits = dmrbits[0:116] + _target_status[_stream_id]['EMB_LC'][_dtype_vseq] + dmrbits[148:264]
