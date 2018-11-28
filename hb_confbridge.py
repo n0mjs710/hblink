@@ -182,8 +182,12 @@ def stream_trimmer_loop():
                 if stream_id in systems[system].STATUS:
                     _system = systems[system].STATUS[stream_id]
                     _config = CONFIG['SYSTEMS'][system]
-                    logger.info('(%s) *TIME OUT*   STREAM ID: %s SUB: %s PEER: %s TGID: %s TS 1 Duration: %s', \
-                        system, int_id(stream_id), get_alias(int_id(_system['RFS']), subscriber_ids), get_alias(int_id(_config['NETWORK_ID']), peer_ids), get_alias(int_id(_system['TGID']), talkgroup_ids), _system['LAST'] - _system['START'])
+                    if systems[system].STATUS[stream_id]['REMOVE'] == True:
+                        logger.info('(%s) *REMOVE ENDED*   STREAM ID: %s SUB: %s PEER: %s TGID: %s TS 1 Duration: %s', \
+                            system, int_id(stream_id), get_alias(int_id(_system['RFS']), subscriber_ids), get_alias(int_id(_config['NETWORK_ID']), peer_ids), get_alias(int_id(_system['TGID']), talkgroup_ids), _system['LAST'] - _system['START'])
+                    else:
+                        logger.info('(%s) *TIME OUT*   STREAM ID: %s SUB: %s PEER: %s TGID: %s TS 1 Duration: %s', \
+                            system, int_id(stream_id), get_alias(int_id(_system['RFS']), subscriber_ids), get_alias(int_id(_config['NETWORK_ID']), peer_ids), get_alias(int_id(_system['TGID']), talkgroup_ids), _system['LAST'] - _system['START'])
                     # self._report.send_bridgeEvent('GROUP VOICE,END,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id), call_duration))
                     removed = systems[system].STATUS.pop(stream_id)
                 else:
@@ -210,6 +214,7 @@ class routerOBP(OPENBRIDGE):
                     'CONTENTION':False,
                     'RFS':       _rf_src,
                     'TGID':      _dst_id,
+                    'REMOVE':    False
                 }
 
                 # If we can, use the LC from the voice header as to keep all options intact
@@ -250,6 +255,7 @@ class routerOBP(OPENBRIDGE):
                                             'CONTENTION':False,
                                             'RFS':       _rf_src,
                                             'TGID':      _dst_id,
+                                            'REMOVE':    False
                                         }
                                         # If we can, use the LC from the voice header as to keep all options intact
                                         if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
@@ -287,8 +293,7 @@ class routerOBP(OPENBRIDGE):
                                     # Create a voice terminator packet (FULL LC)
                                     elif _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VTERM:
                                         dmrbits = _target_status[_stream_id]['T_LC'][0:98] + dmrbits[98:166] + _target_status[_stream_id]['T_LC'][98:197]
-                                        #removed = _target_status.pop(_stream_id)
-                                        #logger.debug('(%s) OpenBridge sourced call stream end, remove Stream ID from destination: System: %s, Stream ID: %s', self._system, _target['SYSTEM'], int_id(_stream_id))
+                                        _target_status[_stream_id]['REMOVE'] = True
                                     # Create a Burst B-E packet (Embedded LC)
                                     elif _dtype_vseq in [1,2,3,4]:
                                         dmrbits = dmrbits[0:116] + _target_status[_stream_id]['EMB_LC'][_dtype_vseq] + dmrbits[148:264]
@@ -496,6 +501,7 @@ class routerHBP(HBSYSTEM):
                                                 'CONTENTION':False,
                                                 'RFS':       _rf_src,
                                                 'TGID':      _dst_id,
+                                                'REMOVE':    False
                                             }
                                             # If we can, use the LC from the voice header as to keep all options intact
                                             if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
@@ -533,8 +539,7 @@ class routerHBP(HBSYSTEM):
                                         # Create a voice terminator packet (FULL LC)
                                         elif _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VTERM:
                                             dmrbits = _target_status[_stream_id]['T_LC'][0:98] + dmrbits[98:166] + _target_status[_stream_id]['T_LC'][98:197]
-                                            #removed = _target_status.pop(_stream_id)
-                                            #logger.debug('(%s) OpenBridge sourced call stream end, remove Stream ID from destination: System: %s, Stream ID: %s', self._system, _target['SYSTEM'], int_id(_stream_id))
+                                            _target_status[_stream_id]['REMOVE'] = True
                                         # Create a Burst B-E packet (Embedded LC)
                                         elif _dtype_vseq in [1,2,3,4]:
                                             dmrbits = dmrbits[0:116] + _target_status[_stream_id]['EMB_LC'][_dtype_vseq] + dmrbits[148:264]
