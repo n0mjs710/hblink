@@ -153,7 +153,13 @@ class OPENBRIDGE(DatagramProtocol):
                 _dst_id = _data[8:11]
                 _bits = int_id(_data[15])
                 _slot = 2 if (_bits & 0x80) else 1
-                _call_type = 'unit' if (_bits & 0x40) else 'group'
+                #_call_type = 'unit' if (_bits & 0x40) else 'group'
+                if _bits & 0x40:
+                    _call_type = 'unit'
+                elif (_bits & 0x23) == 0x23:
+                    _call_type = 'vcsbk'
+                else:
+                    _call_type = 'group'
                 _frame_type = (_bits & 0x30) >> 4
                 _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                 _stream_id = _data[16:20]
@@ -312,12 +318,17 @@ class HBSYSTEM(DatagramProtocol):
                 _dst_id = _data[8:11]
                 _bits = int_id(_data[15])
                 _slot = 2 if (_bits & 0x80) else 1
-                _call_type = 'unit' if (_bits & 0x40) else 'group'
+                #_call_type = 'unit' if (_bits & 0x40) else 'group'
+                if _bits & 0x40:
+                    _call_type = 'unit'
+                elif (_bits & 0x23) == 0x23:
+                    _call_type = 'vcsbk'
+                else:
+                    _call_type = 'group'
                 _frame_type = (_bits & 0x30) >> 4
                 _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                 _stream_id = _data[16:20]
                 #logger.debug('(%s) DMRD - Seqence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
-
                 # ACL Processing
                 if self._CONFIG['GLOBAL']['USE_ACL']:
                     if not acl_check(_rf_src, self._CONFIG['GLOBAL']['SUB_ACL']):
@@ -508,7 +519,13 @@ class HBSYSTEM(DatagramProtocol):
                     _dst_id = _data[8:11]
                     _bits = int_id(_data[15])
                     _slot = 2 if (_bits & 0x80) else 1
-                    _call_type = 'unit' if (_bits & 0x40) else 'group'
+                    #_call_type = 'unit' if (_bits & 0x40) else 'group'
+                    if _bits & 0x40:
+                        _call_type = 'unit'
+                    elif (_bits & 0x23) == 0x23:
+                        _call_type = 'vcsbk'
+                    else:
+                        _call_type = 'group'
                     _frame_type = (_bits & 0x30) >> 4
                     _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                     _stream_id = _data[16:20]
