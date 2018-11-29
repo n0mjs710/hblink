@@ -183,7 +183,7 @@ def stream_trimmer_loop():
                     _system = systems[system].STATUS[stream_id]
                     _config = CONFIG['SYSTEMS'][system]
                     if systems[system].STATUS[stream_id]['REMOVE'] == True:
-                        logger.info('(%s) *REMOVE ENDED*   STREAM ID: %s SUB: %s PEER: %s TGID: %s TS 1 Duration: %s', \
+                        logger.debug('(%s) *REMOVE ENDED*   STREAM ID: %s SUB: %s PEER: %s TGID: %s TS 1 Duration: %s', \
                             system, int_id(stream_id), get_alias(int_id(_system['RFS']), subscriber_ids), get_alias(int_id(_config['NETWORK_ID']), peer_ids), get_alias(int_id(_system['TGID']), talkgroup_ids), _system['LAST'] - _system['START'])
                     else:
                         logger.info('(%s) *TIME OUT*   STREAM ID: %s SUB: %s PEER: %s TGID: %s TS 1 Duration: %s', \

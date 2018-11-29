@@ -118,7 +118,7 @@ class OPENBRIDGE(DatagramProtocol):
         self._system = _name
         self._report = _report
         self._config = self._CONFIG['SYSTEMS'][self._system]
-        self._laststrid = deque([], 10)
+        self._laststrid = deque([], 20)
 
     def dereg(self):
         logger.info('(%s) is mode OPENBRIDGE. No De-Registration required, continuing shutdown', self._system)
