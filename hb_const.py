@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 ###############################################################################
-#   Copyright (C) 2016  Cortney T. Buffington, N0MJS <n0mjs@me.com>
+#   Copyright (C) 2016-2018  Cortney T. Buffington, N0MJS <n0mjs@me.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -47,3 +47,6 @@ HBPF_VOICE_SYNC = 0x1
 HBPF_DATA_SYNC  = 0x2
 HBPF_SLT_VHEAD  = 0x1
 HBPF_SLT_VTERM  = 0x2
+
+# Higheset peer ID permitted by HBP
+PEER_MAX = 4294967295

@@ -28,6 +28,7 @@ change.
 
 import ConfigParser
 import sys
+import hb_const as const
 
 from socket import gethostbyname 
 
@@ -39,6 +40,61 @@ __license__    = 'GNU GPLv3'
 __maintainer__ = 'Cort Buffington, N0MJS'
 __email__      = 'n0mjs@me.com'
 
+# Processing of ALS goes here. It's separated from the acl_build function because this
+# code is hblink config-file format specific, and acl_build is abstracted
+def process_acls(_config):
+    # Global registration ACL
+    _config['GLOBAL']['REG_ACL'] = acl_build(_config['GLOBAL']['REG_ACL'], const.PEER_MAX)
+
+    # Global subscriber and TGID ACLs
+    for acl in ['SUB_ACL', 'TG1_ACL', 'TG2_ACL']:
+        _config['GLOBAL'][acl] = acl_build(_config['GLOBAL'][acl], const.ID_MAX)
+
+    # System level ACLs
+    for system in _config['SYSTEMS']:
+        # Registration ACLs (which make no sense for peer systems)
+        if _config['SYSTEMS'][system]['MODE'] == 'MASTER':
+            _config['SYSTEMS'][system]['REG_ACL'] = acl_build(_config['SYSTEMS'][system]['REG_ACL'], const.PEER_MAX)
+
+        # Subscriber and TGID ACLs (valid for all system types)
+        for acl in ['SUB_ACL', 'TG1_ACL', 'TG2_ACL']:
+            _config['SYSTEMS'][system][acl] = acl_build(_config['SYSTEMS'][system][acl], const.ID_MAX)
+
+# Create an access control list that is programatically useable from human readable:
+# ORIGINAL:  'DENY:1-5,3120101,3120124'
+# PROCESSED: (False, set([(1, 5), (3120124, 3120124), (3120101, 3120101)]))
+def acl_build(_acl, _max):
+    if not _acl:
+        return(True, set((const.ID_MIN, _max)))
+
+    acl = set()
+    sections = _acl.split(':')
+
+    if sections[0] == 'PERMIT':
+        action = True
+    else:
+        action = False
+
+    for entry in sections[1].split(','):
+        if entry == 'ALL':
+            acl.add((const.ID_MIN, _max))
+            break
+
+        elif '-' in entry:
+            start,end = entry.split('-')
+            start,end = int(start), int(end)
+            if (const.ID_MIN <= start <= _max) or (const.ID_MIN <= end <= _max):
+                acl.add((start, end))
+            else:
+                sys.exit('ACL CREATION ERROR, VALUE OUT OF RANGE (} - {})IN RANGE-BASED ENTRY: {}'.format(const.ID_MIN, _max, entry))
+        else:
+            id = int(entry)
+            if (const.ID_MIN <= id <= _max):
+                acl.add((id, id))
+            else:
+                 sys.exit('ACL CREATION ERROR, VALUE OUT OF RANGE ({} - {}) IN SINGLE ID ENTRY: {}'.format(const.ID_MIN, _max, entry))
+
+    return (action, acl)
 
 def build_config(_config_file):
     config = ConfigParser.ConfigParser()
@@ -51,7 +107,6 @@ def build_config(_config_file):
     CONFIG['REPORTS'] = {}
     CONFIG['LOGGER'] = {}
     CONFIG['ALIASES'] = {}
-    CONFIG['AMBE'] = {}
     CONFIG['SYSTEMS'] = {}
 
     try:
@@ -60,7 +115,12 @@ def build_config(_config_file):
                 CONFIG['GLOBAL'].update({
                     'PATH': config.get(section, 'PATH'),
                     'PING_TIME': config.getint(section, 'PING_TIME'),
-                    'MAX_MISSED': config.getint(section, 'MAX_MISSED')
+                    'MAX_MISSED': config.getint(section, 'MAX_MISSED'),
+                    'USE_ACL': config.get(section, 'USE_ACL'),
+                    'REG_ACL': config.get(section, 'REG_ACL'),
+                    'SUB_ACL': config.get(section, 'SUB_ACL'),
+                    'TG1_ACL': config.get(section, 'TGID_TS1_ACL'),
+                    'TG2_ACL': config.get(section, 'TGID_TS2_ACL')
                 })
 
             elif section == 'REPORTS':
@@ -91,19 +151,12 @@ def build_config(_config_file):
                     'STALE_TIME': config.getint(section, 'STALE_DAYS') * 86400,
                 })
 
-            elif section == 'AMBE':
-                CONFIG['AMBE'].update({
-                    'EXPORT_IP': gethostbyname(config.get(section, 'EXPORT_IP')),
-                    'EXPORT_PORT': config.getint(section, 'EXPORT_PORT'),
-                })
-
             elif config.getboolean(section, 'ENABLED'):
                 if config.get(section, 'MODE') == 'PEER':
                     CONFIG['SYSTEMS'].update({section: {
                         'MODE': config.get(section, 'MODE'),
                         'ENABLED': config.getboolean(section, 'ENABLED'),
                         'LOOSE': config.getboolean(section, 'LOOSE'),
-                        'EXPORT_AMBE': config.getboolean(section, 'EXPORT_AMBE'),
                         'SOCK_ADDR': (gethostbyname(config.get(section, 'IP')), config.getint(section, 'PORT')),
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
@@ -127,7 +180,11 @@ def build_config(_config_file):
                         'SOFTWARE_ID': config.get(section, 'SOFTWARE_ID').ljust(40)[:40],
                         'PACKAGE_ID': config.get(section, 'PACKAGE_ID').ljust(40)[:40],
                         'GROUP_HANGTIME': config.getint(section, 'GROUP_HANGTIME'),
-                        'OPTIONS': config.get(section, 'OPTIONS')
+                        'OPTIONS': config.get(section, 'OPTIONS'),
+                        'USE_ACL': config.getboolean(section, 'USE_ACL'),
+                        'SUB_ACL': config.get(section, 'SUB_ACL'),
+                        'TG1_ACL': config.get(section, 'TGID_TS1_ACL'),
+                        'TG2_ACL': config.get(section, 'TGID_TS2_ACL')
                     }})
                     CONFIG['SYSTEMS'][section].update({'STATS': {
                         'CONNECTION': 'NO',             # NO, RTPL_SENT, AUTHENTICATED, CONFIG-SENT, YES 
@@ -144,23 +201,43 @@ def build_config(_config_file):
                         'MODE': config.get(section, 'MODE'),
                         'ENABLED': config.getboolean(section, 'ENABLED'),
                         'REPEAT': config.getboolean(section, 'REPEAT'),
-                        'EXPORT_AMBE': config.getboolean(section, 'EXPORT_AMBE'),
+                        'MAX_PEERS': config.getint(section, 'MAX_PEERS'),
                         'IP': gethostbyname(config.get(section, 'IP')),
                         'PORT': config.getint(section, 'PORT'),
                         'PASSPHRASE': config.get(section, 'PASSPHRASE'),
-                        'GROUP_HANGTIME': config.getint(section, 'GROUP_HANGTIME')
+                        'GROUP_HANGTIME': config.getint(section, 'GROUP_HANGTIME'),
+                        'USE_ACL': config.getboolean(section, 'USE_ACL'),
+                        'REG_ACL': config.get(section, 'REG_ACL'),
+                        'SUB_ACL': config.get(section, 'SUB_ACL'),
+                        'TG1_ACL': config.get(section, 'TGID_TS1_ACL'),
+                        'TG2_ACL': config.get(section, 'TGID_TS2_ACL')
                     }})
                     CONFIG['SYSTEMS'][section].update({'PEERS': {}})
+                    
+                elif config.get(section, 'MODE') == 'OPENBRIDGE':
+                    CONFIG['SYSTEMS'].update({section: {
+                        'MODE': config.get(section, 'MODE'),
+                        'ENABLED': config.getboolean(section, 'ENABLED'),
+                        'NETWORK_ID': hex(int(config.get(section, 'NETWORK_ID')))[2:].rjust(8,'0').decode('hex'),
+                        'IP': gethostbyname(config.get(section, 'IP')),
+                        'PORT': config.getint(section, 'PORT'),
+                        'PASSPHRASE': config.get(section, 'PASSPHRASE').ljust(20,'\x00')[:20],
+                        'TARGET_SOCK': (gethostbyname(config.get(section, 'TARGET_IP')), config.getint(section, 'TARGET_PORT')),
+                        'TARGET_IP': gethostbyname(config.get(section, 'TARGET_IP')),
+                        'TARGET_PORT': config.getint(section, 'TARGET_PORT'),
+                        'USE_ACL': config.getboolean(section, 'USE_ACL'),
+                        'SUB_ACL': config.get(section, 'SUB_ACL'),
+                        'TG1_ACL': config.get(section, 'TGID_ACL'),
+                        'TG2_ACL': 'PERMIT:ALL'
+                    }})
+                    
     
     except ConfigParser.Error, err:
-	    print "Cannot parse configuration file. %s" %err
-            sys.exit('Could not parse configuration file, exiting...')
+        sys.exit('Error processing configuration file -- {}'.format(err))
         
+    process_acls(CONFIG)
+    
     return CONFIG
-
-
-
-
 
 # Used to run this file direclty and print the config,
 # which might be useful for debugging
@@ -169,6 +246,7 @@ if __name__ == '__main__':
     import os
     import argparse
     from pprint import pprint
+    from dmr_utils.utils import int_id
     
     # Change the current directory to the location of the application
     os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
@@ -183,5 +261,14 @@ if __name__ == '__main__':
     if not cli_args.CONFIG_FILE:
         cli_args.CONFIG_FILE = os.path.dirname(os.path.abspath(__file__))+'/hblink.cfg'
     
+    CONFIG = build_config(cli_args.CONFIG_FILE)
+    pprint(CONFIG)
     
-    pprint(build_config(cli_args.CONFIG_FILE))
+    def acl_check(_id, _acl):
+        id = int_id(_id)
+        for entry in _acl[1]:
+            if entry[0] <= id <= entry[1]:
+                return _acl[0]
+        return not _acl[0]
+        
+    print acl_check('\x00\x01\x37', CONFIG['GLOBAL']['TG1_ACL'])

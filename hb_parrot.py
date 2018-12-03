@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 ###############################################################################
-#   Copyright (C) 2016  Cortney T. Buffington, N0MJS <n0mjs@me.com> (and Mike Zingman N4IRR)
+#   Copyright (C) 2016-2018  Cortney T. Buffington, N0MJS <n0mjs@me.com> (and Mike Zingman N4IRR)
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -35,12 +35,17 @@ from twisted.protocols.basic import NetstringReceiver
 from twisted.internet import reactor, task
 
 # Things we import from the main hblink module
-from hblink import HBSYSTEM, systems, hblink_handler, reportFactory, REPORT_OPCODES, config_reports, build_reg_acl
+from hblink import HBSYSTEM, systems, hblink_handler, reportFactory, REPORT_OPCODES, config_reports, mk_aliases
 from dmr_utils.utils import hex_str_3, int_id, get_alias
 from dmr_utils import decode, bptc, const
 import hb_config
 import hb_log
 import hb_const
+
+# The module needs logging logging, but handlers, etc. are controlled by the parent
+import logging
+logger = logging.getLogger(__name__)
+
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS and Mike Zingman, N4IRR'
@@ -55,8 +60,8 @@ __status__     = 'pre-alpha'
 
 class parrot(HBSYSTEM):
     
-    def __init__(self, _name, _config, _logger, _report):
-        HBSYSTEM.__init__(self, _name, _config, _logger, _report)
+    def __init__(self, _name, _config, _report):
+        HBSYSTEM.__init__(self, _name, _config, _report)
         
         # Status information for the system, TS1 & TS2
         # 1 & 2 are "timeslot"
@@ -119,14 +124,14 @@ class parrot(HBSYSTEM):
             # Is this is a new call stream?
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
                 self.STATUS['RX_START'] = pkt_time
-                self._logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', \
+                logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', \
                                   self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
         
             
             # Final actions - Is this a voice terminator?
             if (_frame_type == hb_const.HBPF_DATA_SYNC) and (_dtype_vseq == hb_const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != hb_const.HBPF_SLT_VTERM):
                 call_duration = pkt_time - self.STATUS['RX_START']
-                self._logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
+                logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
                                   self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
                 self.CALL_DATA.append(_data)
                 sleep(2)
@@ -182,21 +187,19 @@ if __name__ == '__main__':
     if cli_args.LOG_LEVEL:
         CONFIG['LOGGER']['LOG_LEVEL'] = cli_args.LOG_LEVEL
     logger = hb_log.config_logging(CONFIG['LOGGER'])
+    logger.info('\n\nCopyright (c) 2013, 2014, 2015, 2016, 2018\n\tThe Founding Members of the K0USY Group. All rights reserved.\n')
     logger.debug('Logging system started, anything from here on gets logged')
     
     # Set up the signal handler
     def sig_handler(_signal, _frame):
         logger.info('SHUTDOWN: HBROUTER IS TERMINATING WITH SIGNAL %s', str(_signal))
-        hblink_handler(_signal, _frame, logger)
+        hblink_handler(_signal, _frame)
         logger.info('SHUTDOWN: ALL SYSTEM HANDLERS EXECUTED - STOPPING REACTOR')
         reactor.stop()
         
     # Set signal handers so that we can gracefully exit if need be
     for sig in [signal.SIGTERM, signal.SIGINT]:
         signal.signal(sig, sig_handler)
-        
-    # Build the Access Control List
-    REG_ACL = build_reg_acl('reg_acl', logger)
     
     # ID ALIAS CREATION
     # Download
@@ -208,27 +211,21 @@ if __name__ == '__main__':
         result = try_download(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['SUBSCRIBER_FILE'], CONFIG['ALIASES']['SUBSCRIBER_URL'], CONFIG['ALIASES']['STALE_TIME'])
         logger.info(result)
         
-    # Make Dictionaries
-    peer_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['PEER_FILE'])
-    if peer_ids:
-        logger.info('ID ALIAS MAPPER: peer_ids dictionary is available')
-        
-    subscriber_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['SUBSCRIBER_FILE'])
-    if subscriber_ids:
-        logger.info('ID ALIAS MAPPER: subscriber_ids dictionary is available')
-    
-    talkgroup_ids = mk_id_dict(CONFIG['ALIASES']['PATH'], CONFIG['ALIASES']['TGID_FILE'])
-    if talkgroup_ids:
-        logger.info('ID ALIAS MAPPER: talkgroup_ids dictionary is available')
+    # Create the name-number mapping dictionaries
+    peer_ids, subscriber_ids, talkgroup_ids = mk_aliases(CONFIG)
         
     # INITIALIZE THE REPORTING LOOP
-    report_server = config_reports(CONFIG, logger, reportFactory)    
+    report_server = config_reports(CONFIG, reportFactory)    
     
     # HBlink instance creation
-    logger.info('HBlink \'hb_parrot.py\' (c) 2016 N0MJS & the K0USY Group - SYSTEM STARTING...')
+    logger.info('HBlink \'hb_parrot.py\' (c) 2017 Mike Zingman, N4IRR -- SYSTEM STARTING...')
     for system in CONFIG['SYSTEMS']:
         if CONFIG['SYSTEMS'][system]['ENABLED']:
-            systems[system] = parrot(system, CONFIG, logger, report_server)
+            if CONFIG['SYSTEMS'][system]['MODE'] == 'OPENBRIDGE':
+                logger.critical('%s FATAL: Instance is mode \'OPENBRIDGE\', \n\t\t...Which would be tragic for parrot, since it carries multiple call\n\t\tstreams simultaneously. hb_parrot.py onlyl works with MMDVM-based systems', system)
+                sys.exit('hb_parrot.py cannot function with systems that are not MMDVM devices. System {} is configured as an OPENBRIDGE'.format(system))
+            else:
+                systems[system] = HBSYSTEM(system, CONFIG, report_server)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 

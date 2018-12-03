@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 ###############################################################################
-#   Copyright (C) 2016  Cortney T. Buffington, N0MJS <n0mjs@me.com>
+#   Copyright (C) 2016-2018  Cortney T. Buffington, N0MJS <n0mjs@me.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ from logging.config import dictConfig
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
 __author__     = 'Cortney T. Buffington, N0MJS'
-__copyright__  = 'Copyright (c) 2016 Cortney T. Buffington, N0MJS and the K0USY Group'
+__copyright__  = 'Copyright (c) 2016-2018 Cortney T. Buffington, N0MJS and the K0USY Group'
 __credits__    = 'Colin Durbridge, G4EML, Steve Zingman, N4IRS; Mike Zingman, N4IRR; Jonathan Naylor, G4KLX; Hans Barthen, DL5DI; Torsten Shultze, DG1HT'
 __license__    = 'GNU GPLv3'
 __maintainer__ = 'Cort Buffington, N0MJS'
@@ -83,13 +83,11 @@ def config_logging(_logger):
                 'formatter': 'syslog',
             }
         },
-        'loggers': {
-            _logger['LOG_NAME']: {
-                'handlers': _logger['LOG_HANDLERS'].split(','),
-                'level': _logger['LOG_LEVEL'],
-                'propagate': True,
-            }
-        }
+        'root': {
+            'handlers': _logger['LOG_HANDLERS'].split(','),
+            'level': _logger['LOG_LEVEL'],
+            'propagate': True,
+        },
     })
 
     return logging.getLogger(_logger['LOG_NAME'])
