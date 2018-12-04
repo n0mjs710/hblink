@@ -121,7 +121,7 @@ def make_bridges(_hb_confbridge_bridges):
             else:
                 _system['TIMER']  = time()
     return bridge_file.BRIDGES
-    
+
 
 # Run this every minute for rule timer updates
 def rule_timer_loop():
@@ -171,7 +171,7 @@ def stream_trimmer_loop():
                     _slot['RX_TYPE'] = hb_const.HBPF_SLT_VTERM
                     logger.info('(%s) *TIME OUT*   STREAM ID: %s SUB: %s TGID %s, TS %s, Duration: %s', \
                         system, int_id(_slot['RX_STREAM_ID']), int_id(_slot['RX_RFS']), int_id(_slot['RX_TGID']), slot, _slot['RX_TIME'] - _slot['RX_START'])
-                    #systems[system]._report.send_bridgeEvent('GROUP VOICE,END,{},{},{},{},{},{},{:.2f}'.format(system, int_id(_slot['RX_STREAM_ID']), 'self', int_id(_slot['RX_RFS']), slot, int_id(_slot['RX_TGID']), _slot['RX_TIME'] - _slot['RX_START']))
+                    systems[system]._report.send_bridgeEvent('GROUP VOICE,END,{},{},{},{},{},{},{:.2f}'.format(system, int_id(_slot['RX_STREAM_ID']), int_id(_slot['RX_PEER']), int_id(_slot['RX_RFS']), slot, int_id(_slot['RX_TGID']), _slot['RX_TIME'] - _slot['RX_START']))
         # OBP systems
         # We can't delete items from a dicationry that's being iterated, so we have to make a temporarly list of entrys to remove later
         if CONFIG['SYSTEMS'][system]['MODE'] == 'OPENBRIDGE':
@@ -410,6 +410,7 @@ class routerHBP(HBSYSTEM):
                 'RX_SEQ':       '\x00',
                 'RX_RFS':       '\x00',
                 'TX_RFS':       '\x00',
+                'RX_PEER':      '\x00',
                 'RX_STREAM_ID': '\x00',
                 'TX_STREAM_ID': '\x00',
                 'RX_TGID':      '\x00\x00\x00',
@@ -433,6 +434,7 @@ class routerHBP(HBSYSTEM):
                 'RX_SEQ':       '\x00',
                 'RX_RFS':       '\x00',
                 'TX_RFS':       '\x00',
+                'RX_PEER':      '\x00',
                 'RX_STREAM_ID': '\x00',
                 'TX_STREAM_ID': '\x00',
                 'RX_TGID':      '\x00\x00\x00',
@@ -690,6 +692,7 @@ class routerHBP(HBSYSTEM):
 
 
             # Mark status variables for use later
+            self.STATUS[_slot]['RX_PEER']      = _peer_id
             self.STATUS[_slot]['RX_SEQ']       = _seq
             self.STATUS[_slot]['RX_RFS']       = _rf_src
             self.STATUS[_slot]['RX_TYPE']      = _dtype_vseq
