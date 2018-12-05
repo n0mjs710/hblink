@@ -591,8 +591,8 @@ class routerHBP(HBSYSTEM):
                                              _target_status[_target['TS']]['TX_EMB_LC'] = bptc.encode_emblc(dst_lc)
                                              logger.debug('(%s) Generating TX FULL and EMB LCs for HomeBrew destination: System: %s, TS: %s, TGID: %s', self._system, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
                                              logger.info('(%s) Conference Bridge: %s, Call Bridged to HBP System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
-                                             #if CONFIG['REPORTS']['REPORT']:
-                                             #   systems[_target['SYSTEM']]._report.send_bridgeEvent('GROUP VOICE,START,TX,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_target_status[_stream_id]), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_target['TGID'])))
+                                             if CONFIG['REPORTS']['REPORT']:
+                                                systems[_target['SYSTEM']]._report.send_bridgeEvent('GROUP VOICE,START,TX,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_target_status[_stream_id]), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_target['TGID'])))
 
                                         # Set other values for the contention handler to test next time there is a frame to forward
                                         _target_status[_target['TS']]['TX_TIME'] = pkt_time
