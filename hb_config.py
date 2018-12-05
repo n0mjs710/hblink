@@ -188,7 +188,6 @@ def build_config(_config_file):
                     }})
                     CONFIG['SYSTEMS'][section].update({'STATS': {
                         'CONNECTION': 'NO',             # NO, RTPL_SENT, AUTHENTICATED, CONFIG-SENT, YES 
-                        'CONNECTED': None,
                         'PINGS_SENT': 0,
                         'PINGS_ACKD': 0,
                         'NUM_OUTSTANDING': 0,
