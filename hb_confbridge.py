@@ -592,7 +592,7 @@ class routerHBP(HBSYSTEM):
                                              logger.debug('(%s) Generating TX FULL and EMB LCs for HomeBrew destination: System: %s, TS: %s, TGID: %s', self._system, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
                                              logger.info('(%s) Conference Bridge: %s, Call Bridged to HBP System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
                                              if CONFIG['REPORTS']['REPORT']:
-                                                systems[_target['SYSTEM']]._report.send_bridgeEvent('GROUP VOICE,START,TX,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_target_status[_stream_id]), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_target['TGID'])))
+                                                _target_system._report.send_bridgeEvent('GROUP VOICE,START,TX,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_target_status[_stream_id]), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_target['TGID'])))
 
                                         # Set other values for the contention handler to test next time there is a frame to forward
                                         _target_status[_target['TS']]['TX_TIME'] = pkt_time
@@ -618,7 +618,7 @@ class routerHBP(HBSYSTEM):
                                         elif _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VTERM:
                                             dmrbits = _target_status[_target['TS']]['TX_T_LC'][0:98] + dmrbits[98:166] + _target_status[_target['TS']]['TX_T_LC'][98:197]
                                             if CONFIG['REPORTS']['REPORT']:
-                                               systems[_target['SYSTEM']]._report.send_bridgeEvent('GROUP VOICE,END,TX,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_target_status[_stream_id]), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_target['TGID'], 1)))
+                                               _target_system._report.send_bridgeEvent('GROUP VOICE,END,TX,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_target_status[_stream_id]), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_target['TGID'], 1)))
                                         # Create a Burst B-E packet (Embedded LC)
                                         elif _dtype_vseq in [1,2,3,4]:
                                             dmrbits = dmrbits[0:116] + _target_status[_target['TS']]['TX_EMB_LC'][_dtype_vseq] + dmrbits[148:264]
