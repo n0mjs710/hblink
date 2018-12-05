@@ -391,6 +391,7 @@ class HBSYSTEM(DatagramProtocol):
                     # Build the configuration data strcuture for the peer
                     self._peers.update({_peer_id: {
                         'CONNECTION': 'RPTL-RECEIVED',
+                        'CONNECTED': None,
                         'PINGS_RECEIVED': 0,
                         'LAST_PING': time(),
                         'SOCKADDR': _sockaddr,
@@ -464,6 +465,7 @@ class HBSYSTEM(DatagramProtocol):
                             and self._peers[_peer_id]['SOCKADDR'] == _sockaddr:
                     _this_peer = self._peers[_peer_id]
                     _this_peer['CONNECTION'] = 'YES'
+                    _this_peer['CONNECTED'] = time()
                     _this_peer['LAST_PING'] = time()
                     _this_peer['CALLSIGN'] = _data[8:16]
                     _this_peer['RX_FREQ'] = _data[16:25]
@@ -628,6 +630,7 @@ class HBSYSTEM(DatagramProtocol):
                             logger.info('(%s) Sent options: (%s)', self._system, self._config['OPTIONS'])
                         else:
                             self._stats['CONNECTION'] = 'YES'
+                            self._stats['CONNECTED'] = time()
                             logger.info('(%s) Connection to Master Completed', self._system)
                     else:
                         self._stats['CONNECTION'] = 'NO'
@@ -638,6 +641,7 @@ class HBSYSTEM(DatagramProtocol):
                     if self._config['LOOSE'] or _peer_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                         logger.info('(%s) Repeater Options Accepted', self._system)
                         self._stats['CONNECTION'] = 'YES'
+                        self._stats['CONNECTED'] = time()
                         logger.info('(%s) Connection to Master Completed with options', self._system)
                     else:
                         self._stats['CONNECTION'] = 'NO'
