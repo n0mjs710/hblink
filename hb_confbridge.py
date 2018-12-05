@@ -121,7 +121,7 @@ def make_bridges(_hb_confbridge_bridges):
             else:
                 _system['TIMER']  = time()
     return bridge_file.BRIDGES
-    
+
 
 # Run this every minute for rule timer updates
 def rule_timer_loop():
@@ -173,7 +173,6 @@ def stream_trimmer_loop():
                         system, int_id(_slot['RX_STREAM_ID']), int_id(_slot['RX_RFS']), int_id(_slot['RX_TGID']), slot, _slot['RX_TIME'] - _slot['RX_START'])
                     if CONFIG['REPORTS']['REPORT']:
                         systems[system]._report.send_bridgeEvent('GROUP VOICE,END,RX,{},{},{},{},{},{},{:.2f}'.format(system, int_id(_slot['RX_STREAM_ID']), int_id(_slot['RX_PEER']), int_id(_slot['RX_RFS']), slot, int_id(_slot['RX_TGID']), _slot['RX_TIME'] - _slot['RX_START']))
-
         # OBP systems
         # We can't delete items from a dicationry that's being iterated, so we have to make a temporarly list of entrys to remove later
         if CONFIG['SYSTEMS'][system]['MODE'] == 'OPENBRIDGE':
@@ -473,7 +472,7 @@ class routerHBP(HBSYSTEM):
                 logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s', \
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
                 if CONFIG['REPORTS']['REPORT']:
-                    self._report.send_bridgeEvent('GROUP VOICE,START,RX,{},{},{},{},{},{}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id)))
+                    self._report.send_bridgeEvent('GROUP VOICE,START,RXstuff,{},{},{},{},{},{}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id)))
 
                 # If we can, use the LC from the voice header as to keep all options intact
                 if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
