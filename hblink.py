@@ -582,6 +582,7 @@ class HBSYSTEM(DatagramProtocol):
                 if self._config['LOOSE'] or _peer_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                     logger.warning('(%s) MSTNAK Received. Resetting connection to the Master.', self._system)
                     self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
+                    self._stats['CONNECTED'] = None
 
             elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
                 # Depending on the state, an RPTACK means different things, in each clause, we check and/or set the state
