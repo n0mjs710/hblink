@@ -159,7 +159,6 @@ def rule_timer_loop():
 
 # run this every 10 seconds to trim orphaned stream ids
 def stream_trimmer_loop():
-    print(time())
     logger.debug('(ALL OPENBRIDGE SYSTEMS) Trimming inactive stream IDs from system lists')
     _now = time()
 
@@ -244,7 +243,6 @@ class routerOBP(OPENBRIDGE):
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
                 if CONFIG['REPORTS']['REPORT']:
                     self._report.send_bridgeEvent('GROUP VOICE,START,RX,{},{},{},{},{},{}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id)))
-
 
             self.STATUS[_stream_id]['LAST'] = pkt_time
 
