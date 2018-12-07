@@ -363,7 +363,7 @@ class routerOBP(OPENBRIDGE):
 
                                     # Set other values for the contention handler to test next time there is a frame to forward
                                     _target_status[_target['TS']]['TX_TIME'] = pkt_time
-                                    _target_status[_target['TS']]['TX_TYPE'] = _dtype_seq
+                                    _target_status[_target['TS']]['TX_TYPE'] = _dtype_vseq
 
                                     # Handle any necessary re-writes for the destination
                                     if _system['TS'] != _target['TS']:
@@ -613,7 +613,7 @@ class routerHBP(HBSYSTEM):
 
                                         # Set other values for the contention handler to test next time there is a frame to forward
                                         _target_status[_target['TS']]['TX_TIME'] = pkt_time
-                                        _target_status[_target['TS']]['TX_TYPE'] = _dtype_seq
+                                        _target_status[_target['TS']]['TX_TYPE'] = _dtype_vseq
 
                                         # Handle any necessary re-writes for the destination
                                         if _system['TS'] != _target['TS']:
