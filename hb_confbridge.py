@@ -169,10 +169,21 @@ def stream_trimmer_loop():
                 _slot  = systems[system].STATUS[slot]
                 if _slot['RX_TYPE'] != hb_const.HBPF_SLT_VTERM and _slot['RX_TIME'] <  _now - 5:
                     _slot['RX_TYPE'] = hb_const.HBPF_SLT_VTERM
-                    logger.info('(%s) *TIME OUT*   STREAM ID: %s SUB: %s TGID %s, TS %s, Duration: %s', \
+                    logger.info('(%s) *TIME OUT*  RX STREAM ID: %s SUB: %s TGID %s, TS %s, Duration: %s', \
                         system, int_id(_slot['RX_STREAM_ID']), int_id(_slot['RX_RFS']), int_id(_slot['RX_TGID']), slot, _slot['RX_TIME'] - _slot['RX_START'])
                     if CONFIG['REPORTS']['REPORT']:
                         systems[system]._report.send_bridgeEvent('GROUP VOICE,END,RX,{},{},{},{},{},{},{:.2f}'.format(system, int_id(_slot['RX_STREAM_ID']), int_id(_slot['RX_PEER']), int_id(_slot['RX_RFS']), slot, int_id(_slot['RX_TGID']), _slot['RX_TIME'] - _slot['RX_START']))
+
+            for slot in range(1,3):
+                _slot  = systems[system].STATUS[slot]
+                if _slot['TX_TYPE'] != hb_const.HBPF_SLT_VTERM and _slot['TX_TIME'] <  _now - 5:
+                    _slot['TX_TYPE'] = hb_const.HBPF_SLT_VTERM
+                    logger.info('(%s) *TIME OUT*  TX STREAM ID: %s SUB: %s TGID %s, TS %s, Duration: %s', \
+                        system, int_id(_slot['TX_STREAM_ID']), int_id(_slot['TX_RFS']), int_id(_slot['TX_TGID']), slot, _slot['TX_TIME'] - _slot['TX_START'])
+                    if CONFIG['REPORTS']['REPORT']:
+                        systems[system]._report.send_bridgeEvent('GROUP VOICE,END,TX,{},{},{},{},{},{},{:.2f}'.format(system, int_id(_slot['TX_STREAM_ID']), int_id(_slot['TX_PEER']), int_id(_slot['TX_RFS']), slot, int_id(_slot['TX_TGID']), _slot['TX_TIME'] - _slot['TX_START']))
+
+
         # OBP systems
         # We can't delete items from a dicationry that's being iterated, so we have to make a temporarly list of entrys to remove later
         if CONFIG['SYSTEMS'][system]['MODE'] == 'OPENBRIDGE':
@@ -352,6 +363,7 @@ class routerOBP(OPENBRIDGE):
 
                                     # Set other values for the contention handler to test next time there is a frame to forward
                                     _target_status[_target['TS']]['TX_TIME'] = pkt_time
+                                    _target_status[_target['TS']]['TX_TYPE'] = _dtype_seq
 
                                     # Handle any necessary re-writes for the destination
                                     if _system['TS'] != _target['TS']:
@@ -422,6 +434,7 @@ class routerHBP(HBSYSTEM):
                 'RX_TIME':      time(),
                 'TX_TIME':      time(),
                 'RX_TYPE':      hb_const.HBPF_SLT_VTERM,
+                'TX_TYPE':      hb_const.HBPF_SLT_VTERM,
                 'RX_LC':        '\x00',
                 'TX_H_LC':      '\x00',
                 'TX_T_LC':      '\x00',
@@ -446,6 +459,7 @@ class routerHBP(HBSYSTEM):
                 'RX_TIME':      time(),
                 'TX_TIME':      time(),
                 'RX_TYPE':      hb_const.HBPF_SLT_VTERM,
+                'TX_TYPE':      hb_const.HBPF_SLT_VTERM,
                 'RX_LC':        '\x00',
                 'TX_H_LC':      '\x00',
                 'TX_T_LC':      '\x00',
@@ -599,6 +613,7 @@ class routerHBP(HBSYSTEM):
 
                                         # Set other values for the contention handler to test next time there is a frame to forward
                                         _target_status[_target['TS']]['TX_TIME'] = pkt_time
+                                        _target_status[_target['TS']]['TX_TYPE'] = _dtype_seq
 
                                         # Handle any necessary re-writes for the destination
                                         if _system['TS'] != _target['TS']:
