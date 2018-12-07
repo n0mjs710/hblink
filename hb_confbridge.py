@@ -159,6 +159,7 @@ def rule_timer_loop():
 
 # run this every 10 seconds to trim orphaned stream ids
 def stream_trimmer_loop():
+    print(time())
     logger.debug('(ALL OPENBRIDGE SYSTEMS) Trimming inactive stream IDs from system lists')
     _now = time()
 
@@ -182,7 +183,6 @@ def stream_trimmer_loop():
                         system, int_id(_slot['TX_STREAM_ID']), int_id(_slot['TX_RFS']), int_id(_slot['TX_TGID']), slot, _slot['TX_TIME'] - _slot['TX_START'])
                     if CONFIG['REPORTS']['REPORT']:
                         systems[system]._report.send_bridgeEvent('GROUP VOICE,END,TX,{},{},{},{},{},{},{:.2f}'.format(system, int_id(_slot['TX_STREAM_ID']), int_id(_slot['TX_PEER']), int_id(_slot['TX_RFS']), slot, int_id(_slot['TX_TGID']), _slot['TX_TIME'] - _slot['TX_START']))
-
 
         # OBP systems
         # We can't delete items from a dicationry that's being iterated, so we have to make a temporarly list of entrys to remove later
@@ -351,6 +351,7 @@ class routerOBP(OPENBRIDGE):
                                         _target_status[_target['TS']]['TX_TGID'] = _target['TGID']
                                         _target_status[_target['TS']]['TX_STREAM_ID'] = _stream_id
                                         _target_status[_target['TS']]['TX_RFS'] = _rf_src
+                                        _target_status[_target['TS']]['TX_PEER'] = _peer_id
                                         # Generate LCs (full and EMB) for the TX stream
                                         dst_lc = self.STATUS[_stream_id]['LC'][0:3] + _target['TGID'] + _rf_src
                                         _target_status[_target['TS']]['TX_H_LC'] = bptc.encode_header_lc(dst_lc)
@@ -427,6 +428,7 @@ class routerHBP(HBSYSTEM):
                 'RX_RFS':       '\x00',
                 'TX_RFS':       '\x00',
                 'RX_PEER':      '\x00',
+                'TX_PEER':      '\x00',
                 'RX_STREAM_ID': '\x00',
                 'TX_STREAM_ID': '\x00',
                 'RX_TGID':      '\x00\x00\x00',
@@ -452,6 +454,7 @@ class routerHBP(HBSYSTEM):
                 'RX_RFS':       '\x00',
                 'TX_RFS':       '\x00',
                 'RX_PEER':      '\x00',
+                'TX_PEER':      '\x00',
                 'RX_STREAM_ID': '\x00',
                 'TX_STREAM_ID': '\x00',
                 'RX_TGID':      '\x00\x00\x00',
@@ -601,6 +604,7 @@ class routerHBP(HBSYSTEM):
                                              _target_status[_target['TS']]['TX_TGID'] = _target['TGID']
                                              _target_status[_target['TS']]['TX_STREAM_ID'] = _stream_id
                                              _target_status[_target['TS']]['TX_RFS'] = _rf_src
+                                             _target_status[_target['TS']]['TX_PEER'] = _peer_id
                                              # Generate LCs (full and EMB) for the TX stream
                                              dst_lc = self.STATUS[_slot]['RX_LC'][0:3] + _target['TGID'] + _rf_src
                                              _target_status[_target['TS']]['TX_H_LC'] = bptc.encode_header_lc(dst_lc)
