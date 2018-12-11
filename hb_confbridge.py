@@ -203,7 +203,7 @@ def stream_trimmer_loop():
                     removed = systems[system].STATUS.pop(stream_id)
                 else:
                     logger.error('(%s) Attemped to remove OpenBridge Stream ID %s not in the Stream ID list: %s', system, int_id(stream_id), [id for id in systems[system].STATUS])
-
+            #print(systems[system].STATUS)
 class routerOBP(OPENBRIDGE):
 
     def __init__(self, _name, _config, _report):

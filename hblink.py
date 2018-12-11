@@ -391,7 +391,7 @@ class HBSYSTEM(DatagramProtocol):
                     # Build the configuration data strcuture for the peer
                     self._peers.update({_peer_id: {
                         'CONNECTION': 'RPTL-RECEIVED',
-                        'CONNECTED': None,
+                        'CONNECTED': time(),
                         'PINGS_RECEIVED': 0,
                         'LAST_PING': time(),
                         'SOCKADDR': _sockaddr,
@@ -582,7 +582,7 @@ class HBSYSTEM(DatagramProtocol):
                 if self._config['LOOSE'] or _peer_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                     logger.warning('(%s) MSTNAK Received. Resetting connection to the Master.', self._system)
                     self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
-                    self._stats['CONNECTED'] = None
+                    self._stats['CONNECTED'] = time()
 
             elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
                 # Depending on the state, an RPTACK means different things, in each clause, we check and/or set the state
