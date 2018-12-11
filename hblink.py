@@ -391,6 +391,7 @@ class HBSYSTEM(DatagramProtocol):
                     # Build the configuration data strcuture for the peer
                     self._peers.update({_peer_id: {
                         'CONNECTION': 'RPTL-RECEIVED',
+                        'CONNECTED': time(),
                         'PINGS_RECEIVED': 0,
                         'LAST_PING': time(),
                         'SOCKADDR': _sockaddr,
@@ -464,6 +465,7 @@ class HBSYSTEM(DatagramProtocol):
                             and self._peers[_peer_id]['SOCKADDR'] == _sockaddr:
                     _this_peer = self._peers[_peer_id]
                     _this_peer['CONNECTION'] = 'YES'
+                    _this_peer['CONNECTED'] = time()
                     _this_peer['LAST_PING'] = time()
                     _this_peer['CALLSIGN'] = _data[8:16]
                     _this_peer['RX_FREQ'] = _data[16:25]
@@ -529,7 +531,7 @@ class HBSYSTEM(DatagramProtocol):
                     _frame_type = (_bits & 0x30) >> 4
                     _dtype_vseq = (_bits & 0xF) # data, 1=voice header, 2=voice terminator; voice, 0=burst A ... 5=burst F
                     _stream_id = _data[16:20]
-                    logger.debug('(%s) DMRD - Sequence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
+                    #logger.debug('(%s) DMRD - Sequence: %s, RF Source: %s, Destination ID: %s', self._system, int_id(_seq), int_id(_rf_src), int_id(_dst_id))
 
                     # ACL Processing
                     if self._CONFIG['GLOBAL']['USE_ACL']:
@@ -580,6 +582,7 @@ class HBSYSTEM(DatagramProtocol):
                 if self._config['LOOSE'] or _peer_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                     logger.warning('(%s) MSTNAK Received. Resetting connection to the Master.', self._system)
                     self._stats['CONNECTION'] = 'NO' # Disconnect ourselves and re-register
+                    self._stats['CONNECTED'] = time()
 
             elif _command == 'RPTA':    # Actually RPTACK -- an ACK from the master
                 # Depending on the state, an RPTACK means different things, in each clause, we check and/or set the state
@@ -628,6 +631,7 @@ class HBSYSTEM(DatagramProtocol):
                             logger.info('(%s) Sent options: (%s)', self._system, self._config['OPTIONS'])
                         else:
                             self._stats['CONNECTION'] = 'YES'
+                            self._stats['CONNECTED'] = time()
                             logger.info('(%s) Connection to Master Completed', self._system)
                     else:
                         self._stats['CONNECTION'] = 'NO'
@@ -638,6 +642,7 @@ class HBSYSTEM(DatagramProtocol):
                     if self._config['LOOSE'] or _peer_id == self._config['RADIO_ID']: # Validate the Radio_ID unless using loose validation
                         logger.info('(%s) Repeater Options Accepted', self._system)
                         self._stats['CONNECTION'] = 'YES'
+                        self._stats['CONNECTED'] = time()
                         logger.info('(%s) Connection to Master Completed with options', self._system)
                     else:
                         self._stats['CONNECTION'] = 'NO'

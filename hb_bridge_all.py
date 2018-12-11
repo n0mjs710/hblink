@@ -134,13 +134,13 @@ class bridgeallSYSTEM(HBSYSTEM):
             # Is this is a new call stream?
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
                 self.STATUS['RX_START'] = pkt_time
-                self._logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s', \
+                logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s', \
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
             
             # Final actions - Is this a voice terminator?
             if (_frame_type == hb_const.HBPF_DATA_SYNC) and (_dtype_vseq == hb_const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != hb_const.HBPF_SLT_VTERM):
                 call_duration = pkt_time - self.STATUS['RX_START']
-                self._logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
+                logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s, Duration: %s', \
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
             
             # Mark status variables for use later
@@ -162,39 +162,39 @@ class bridgeallSYSTEM(HBSYSTEM):
                         if self._CONFIG['GLOBAL']['USE_ACL']:
                             if not acl_check(_rf_src, self._CONFIG['GLOBAL']['SUB_ACL']):
                                 if self._laststrid != _stream_id:
-                                    self._logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s FROM SUBSCRIBER %s BY GLOBAL ACL', _target_system, int_id(_stream_id), int_id(_rf_src))
+                                    logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s FROM SUBSCRIBER %s BY GLOBAL ACL', _target_system, int_id(_stream_id), int_id(_rf_src))
                                     self._laststrid = _stream_id
                                 return
                             if _slot == 1 and not acl_check(_dst_id, self._CONFIG['GLOBAL']['TG1_ACL']):
                                 if self._laststrid != _stream_id:
-                                    self._logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s ON TGID %s BY GLOBAL TS1 ACL', _target_system, int_id(_stream_id), int_id(_dst_id))
+                                    logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s ON TGID %s BY GLOBAL TS1 ACL', _target_system, int_id(_stream_id), int_id(_dst_id))
                                     self._laststrid = _stream_id
                                 return
                             if _slot == 2 and not acl_check(_dst_id, self._CONFIG['GLOBAL']['TG2_ACL']):
                                 if self._laststrid != _stream_id:
-                                    self._logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s ON TGID %s BY GLOBAL TS2 ACL', _target_system, int_id(_stream_id), int_id(_dst_id))
+                                    logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s ON TGID %s BY GLOBAL TS2 ACL', _target_system, int_id(_stream_id), int_id(_dst_id))
                                     self._laststrid = _stream_id
                                 return
                         if self._target_system['USE_ACL']:
                             if not acl_check(_rf_src, _target_system['SUB_ACL']):
                                 if self._laststrid != _stream_id:
-                                    self._logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s FROM SUBSCRIBER %s BY SYSTEM ACL', _target_system, int_id(_stream_id), int_id(_rf_src))
+                                    logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s FROM SUBSCRIBER %s BY SYSTEM ACL', _target_system, int_id(_stream_id), int_id(_rf_src))
                                     self._laststrid = _stream_id
                                 return
                             if _slot == 1 and not acl_check(_dst_id, _target_system['TG1_ACL']):
                                 if self._laststrid != _stream_id:
-                                    self._logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s ON TGID %s BY SYSTEM TS1 ACL', _target_system, int_id(_stream_id), int_id(_dst_id))
+                                    logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s ON TGID %s BY SYSTEM TS1 ACL', _target_system, int_id(_stream_id), int_id(_dst_id))
                                     self._laststrid = _stream_id
                                 return
                             if _slot == 2 and not acl_check(_dst_id, _target_system['TG2_ACL']):
                                 if self._laststrid != _stream_id:
-                                    self._logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s ON TGID %s BY SYSTEM TS2 ACL', _target_system, int_id(_stream_id), int_id(_dst_id))
+                                    logger.debug('(%s) CALL DROPPED ON EGRESS WITH STREAM ID %s ON TGID %s BY SYSTEM TS2 ACL', _target_system, int_id(_stream_id), int_id(_dst_id))
                                     self._laststrid = _stream_id
                                 return
                         self._laststrid = _stream_id
                         
                         systems[_target].send_system(_data)
-                        #self._logger.debug('(%s) Packet routed to system: %s', self._system, _target)
+                        #logger.debug('(%s) Packet routed to system: %s', self._system, _target)
                 
 
 #************************************************
@@ -256,7 +256,7 @@ if __name__ == '__main__':
                 logger.critical('%s FATAL: Instance is mode \'OPENBRIDGE\', \n\t\t...Which would be tragic for Bridge All, since it carries multiple call\n\t\tstreams simultaneously. hb_bridge_all.py onlyl works with MMDVM-based systems', system)
                 sys.exit('hb_bridge_all.py cannot function with systems that are not MMDVM devices. System {} is configured as an OPENBRIDGE'.format(system))
             else:
-                systems[system] = HBSYSTEM(system, CONFIG, report_server)
+                systems[system] = bridgeallSYSTEM(system, CONFIG, report_server)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
