@@ -59,10 +59,10 @@ __status__     = 'pre-alpha'
 # Module gobal varaibles
 
 class parrot(HBSYSTEM):
-    
+
     def __init__(self, _name, _config, _report):
         HBSYSTEM.__init__(self, _name, _config, _report)
-        
+
         # Status information for the system, TS1 & TS2
         # 1 & 2 are "timeslot"
         # In TX_EMB_LC, 2-5 are burst B-E
@@ -118,16 +118,15 @@ class parrot(HBSYSTEM):
         pkt_time = time()
         dmrpkt = _data[20:53]
         _bits = int_id(_data[15])
-        
         if _call_type == 'group':
-            
+
             # Is this is a new call stream?
             if (_stream_id != self.STATUS[_slot]['RX_STREAM_ID']):
                 self.STATUS['RX_START'] = pkt_time
                 logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) REPEATER: %s (%s) TGID %s (%s), TS %s', \
                                   self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
-        
-            
+
+
             # Final actions - Is this a voice terminator?
             if (_frame_type == hb_const.HBPF_DATA_SYNC) and (_dtype_vseq == hb_const.HBPF_SLT_VTERM) and (self.STATUS[_slot]['RX_TYPE'] != hb_const.HBPF_SLT_VTERM):
                 call_duration = pkt_time - self.STATUS['RX_START']
@@ -140,13 +139,13 @@ class parrot(HBSYSTEM):
                     self.send_system(i)
                     sleep(0.06)
                 self.CALL_DATA = []
-            
+
             else:
                 if not self.CALL_DATA:
                     logger.info('(%s) Receiving transmission to be played back from subscriber: %s', self._system, int_id(_rf_src))
                 self.CALL_DATA.append(_data)
-            
-            
+
+
             # Mark status variables for use later
             self.STATUS[_slot]['RX_RFS']       = _rf_src
             self.STATUS[_slot]['RX_TYPE']      = _dtype_vseq
@@ -225,7 +224,7 @@ if __name__ == '__main__':
                 logger.critical('%s FATAL: Instance is mode \'OPENBRIDGE\', \n\t\t...Which would be tragic for parrot, since it carries multiple call\n\t\tstreams simultaneously. hb_parrot.py onlyl works with MMDVM-based systems', system)
                 sys.exit('hb_parrot.py cannot function with systems that are not MMDVM devices. System {} is configured as an OPENBRIDGE'.format(system))
             else:
-                systems[system] = HBSYSTEM(system, CONFIG, report_server)
+                systems[system] = parrot(system, CONFIG, report_server)
             reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('%s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
