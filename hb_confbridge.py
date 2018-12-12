@@ -54,7 +54,7 @@ import hb_const
 
 # Stuff for socket reporting
 import cPickle as pickle
-
+from datetime import datetime
 # The module needs logging logging, but handlers, etc. are controlled by the parent
 import logging
 logger = logging.getLogger(__name__)
@@ -194,16 +194,14 @@ def stream_trimmer_loop():
                 if stream_id in systems[system].STATUS:
                     _system = systems[system].STATUS[stream_id]
                     _config = CONFIG['SYSTEMS'][system]
-                    if systems[system].STATUS[stream_id]['REMOVE'] == True:
-                        logger.debug('(%s) *REMOVE ENDED*   STREAM ID: %s SUB: %s PEER: %s TGID: %s TS 1 Duration: %s', \
-                            system, int_id(stream_id), get_alias(int_id(_system['RFS']), subscriber_ids), get_alias(int_id(_config['NETWORK_ID']), peer_ids), get_alias(int_id(_system['TGID']), talkgroup_ids), _system['LAST'] - _system['START'])
-                    else:
-                        logger.info('(%s) *TIME OUT*   STREAM ID: %s SUB: %s PEER: %s TGID: %s TS 1 Duration: %s', \
-                            system, int_id(stream_id), get_alias(int_id(_system['RFS']), subscriber_ids), get_alias(int_id(_config['NETWORK_ID']), peer_ids), get_alias(int_id(_system['TGID']), talkgroup_ids), _system['LAST'] - _system['START'])
+                    logger.info('(%s) *TIME OUT*   STREAM ID: %s SUB: %s PEER: %s TGID: %s TS 1 Duration: %s', \
+                        system, int_id(stream_id), get_alias(int_id(_system['RFS']), subscriber_ids), get_alias(int_id(_config['NETWORK_ID']), peer_ids), get_alias(int_id(_system['TGID']), talkgroup_ids), _system['LAST'] - _system['START'])
+                    if CONFIG['REPORTS']['REPORT']:
+                            systems[system]._report.send_bridgeEvent('GROUP VOICE,END,RX,{},{},{},{},{},{},{:.2f}'.format(system, int_id(_stream_id), int_id(_system['NETWORK_ID']), int_id(_system['RFS']), 1, int_id(_system['TGID']), _system['LAST'] - _system['START']))
                     removed = systems[system].STATUS.pop(stream_id)
                 else:
                     logger.error('(%s) Attemped to remove OpenBridge Stream ID %s not in the Stream ID list: %s', system, int_id(stream_id), [id for id in systems[system].STATUS])
-            #print(systems[system].STATUS)
+
 class routerOBP(OPENBRIDGE):
 
     def __init__(self, _name, _config, _report):
@@ -225,7 +223,6 @@ class routerOBP(OPENBRIDGE):
                     'CONTENTION':False,
                     'RFS':       _rf_src,
                     'TGID':      _dst_id,
-                    'REMOVE':    False
                 }
 
                 # If we can, use the LC from the voice header as to keep all options intact
@@ -265,7 +262,6 @@ class routerOBP(OPENBRIDGE):
                                             'CONTENTION':False,
                                             'RFS':       _rf_src,
                                             'TGID':      _dst_id,
-                                            'REMOVE':    False
                                         }
                                         # If we can, use the LC from the voice header as to keep all options intact
                                         if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
@@ -303,7 +299,6 @@ class routerOBP(OPENBRIDGE):
                                     # Create a voice terminator packet (FULL LC)
                                     elif _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VTERM:
                                         dmrbits = _target_status[_stream_id]['T_LC'][0:98] + dmrbits[98:166] + _target_status[_stream_id]['T_LC'][98:197]
-                                        _target_status[_stream_id]['REMOVE'] = True
                                     # Create a Burst B-E packet (Embedded LC)
                                     elif _dtype_vseq in [1,2,3,4]:
                                         dmrbits = dmrbits[0:116] + _target_status[_stream_id]['EMB_LC'][_dtype_vseq] + dmrbits[148:264]
@@ -523,7 +518,6 @@ class routerHBP(HBSYSTEM):
                                                 'CONTENTION':False,
                                                 'RFS':       _rf_src,
                                                 'TGID':      _dst_id,
-                                                'REMOVE':    False
                                             }
                                             # If we can, use the LC from the voice header as to keep all options intact
                                             if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
@@ -561,7 +555,6 @@ class routerHBP(HBSYSTEM):
                                         # Create a voice terminator packet (FULL LC)
                                         elif _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VTERM:
                                             dmrbits = _target_status[_stream_id]['T_LC'][0:98] + dmrbits[98:166] + _target_status[_stream_id]['T_LC'][98:197]
-                                            _target_status[_stream_id]['REMOVE'] = True
                                         # Create a Burst B-E packet (Embedded LC)
                                         elif _dtype_vseq in [1,2,3,4]:
                                             dmrbits = dmrbits[0:116] + _target_status[_stream_id]['EMB_LC'][_dtype_vseq] + dmrbits[148:264]
