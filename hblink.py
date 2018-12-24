@@ -275,9 +275,8 @@ class HBSYSTEM(DatagramProtocol):
             #logger.debug('(%s) Packet sent to peer %s', self._system, self._peers[_peer]['RADIO_ID'])
 
     def send_peer(self, _peer, _packet):
-        if _packet[:4] == 'DMRD':
-            _packet = _packet[:11] + _peer + _packet[15:]
-        self.transport.write(_packet, self._peers[_peer]['SOCKADDR'])
+        #if _packet[:4] == 'DMRD':
+        self.transport.write(''.join([_packet[:11], _peer, _packet[15:]]), self._peers[_peer]['SOCKADDR'])
         # KEEP THE FOLLOWING COMMENTED OUT UNLESS YOU'RE DEBUGGING DEEPLY!!!!
         #logger.debug('(%s) TX Packet to %s on port %s: %s', self._peers[_peer]['RADIO_ID'], self._peers[_peer]['IP'], self._peers[_peer]['PORT'], ahex(_packet))
 
@@ -371,11 +370,11 @@ class HBSYSTEM(DatagramProtocol):
 
                 # The basic purpose of a master is to repeat to the peers
                 if self._config['REPEAT'] == True:
+                    pkt = [_data[:11], '', _data[15:]]
                     for _peer in self._peers:
                         if _peer != _peer_id:
-                            #self.send_peer(_peer, _data)
-                            self.send_peer(_peer, _data[:11] + _peer + _data[15:])
-                            #self.send_peer(_peer, _data[:11] + self._config['RADIO_ID'] + _data[15:])
+                            pkt[1] = _peer
+                            self.transport.write(''.join(pkt), self._peers[_peer]['SOCKADDR'])
                             #logger.debug('(%s) Packet on TS%s from %s (%s) for destination ID %s repeated to peer: %s (%s) [Stream ID: %s]', self._system, _slot, self._peers[_peer_id]['CALLSIGN'], int_id(_peer_id), int_id(_dst_id), self._peers[_peer]['CALLSIGN'], int_id(_peer), int_id(_stream_id))
 
 
