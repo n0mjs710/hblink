@@ -50,3 +50,6 @@ HBPF_SLT_VTERM  = 0x2
 
 # Higheset peer ID permitted by HBP
 PEER_MAX = 4294967295
+
+# Use if late entry
+LC_OPT = '\x00\x00\x20'
