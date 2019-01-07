@@ -263,21 +263,12 @@ class routerOBP(OPENBRIDGE):
                                             'RFS':       _rf_src,
                                             'TGID':      _dst_id,
                                         }
-                                        # If we can, use the LC from the voice header as to keep all options intact
-                                        if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
-                                            decoded = decode.voice_head_term(dmrpkt)
-                                            _target_status[_stream_id]['LC'] = decoded['LC']
-                                            logger.debug('(%s) Created LC for OpenBridge destination: System: %s, TGID: %s', self._system, _target['SYSTEM'], int_id(_target['TGID']))
+                                        # Generate LCs (full and EMB) for the TX stream
+                                        dst_lc = ''.join([self.STATUS[_stream_id]['LC'][0:3], _target['TGID'], _rf_src])
+                                        _target_status[_stream_id]['H_LC'] = bptc.encode_header_lc(dst_lc)
+                                        _target_status[_stream_id]['T_LC'] = bptc.encode_terminator_lc(dst_lc)
+                                        _target_status[_stream_id]['EMB_LC'] = bptc.encode_emblc(dst_lc)
 
-                                        # If we don't have a voice header then don't wait to decode the Embedded LC
-                                        # just make a new one from the HBP header. This is good enough, and it saves lots of time
-                                        else:
-                                            _target_status[_stream_id]['LC'] = const.LC_OPT + _dst_id + _rf_src
-                                            logger.info('(%s) Created LC with *LATE ENTRY* for OpenBridge destination: System: %s, TGID: %s', self._system, _target['SYSTEM'], int_id(_target['TGID']))
-
-                                        _target_status[_stream_id]['H_LC']   = bptc.encode_header_lc(_target_status[_stream_id]['LC'])
-                                        _target_status[_stream_id]['T_LC']   = bptc.encode_terminator_lc(_target_status[_stream_id]['LC'])
-                                        _target_status[_stream_id]['EMB_LC'] = bptc.encode_emblc(_target_status[_stream_id]['LC'])
                                         logger.info('(%s) Conference Bridge: %s, Call Bridged to OBP System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
 
                                     # Record the time of this packet so we can later identify a stale stream
@@ -519,21 +510,12 @@ class routerHBP(HBSYSTEM):
                                                 'RFS':       _rf_src,
                                                 'TGID':      _dst_id,
                                             }
-                                            # If we can, use the LC from the voice header as to keep all options intact
-                                            if _frame_type == hb_const.HBPF_DATA_SYNC and _dtype_vseq == hb_const.HBPF_SLT_VHEAD:
-                                                decoded = decode.voice_head_term(dmrpkt)
-                                                _target_status[_stream_id]['LC'] = decoded['LC']
-                                                logger.debug('(%s) Created LC for OpenBridge destination: System: %s, TGID: %s', self._system, _target['SYSTEM'], int_id(_target['TGID']))
-
-                                            # If we don't have a voice header then don't wait to decode the Embedded LC
-                                            # just make a new one from the HBP header. This is good enough, and it saves lots of time
-                                            else:
-                                                _target_status[_stream_id]['LC'] = const.LC_OPT + _dst_id + _rf_src
-                                                logger.info('(%s) Created LC with *LATE ENTRY* for OpenBridge destination: System: %s, TGID: %s', self._system, _target['SYSTEM'], int_id(_target['TGID']))
-
-                                            _target_status[_stream_id]['H_LC']   = bptc.encode_header_lc(_target_status[_stream_id]['LC'])
-                                            _target_status[_stream_id]['T_LC']   = bptc.encode_terminator_lc(_target_status[_stream_id]['LC'])
-                                            _target_status[_stream_id]['EMB_LC'] = bptc.encode_emblc(_target_status[_stream_id]['LC'])
+                                            # Generate LCs (full and EMB) for the TX stream
+                                            dst_lc = ''.join([self.STATUS[_slot]['RX_LC'][0:3], _target['TGID'], _rf_src])
+                                            _target_status[_stream_id]['H_LC'] = bptc.encode_header_lc(dst_lc)
+                                            _target_status[_stream_id]['T_LC'] = bptc.encode_terminator_lc(dst_lc)
+                                            _target_status[_stream_id]['EMB_LC'] = bptc.encode_emblc(dst_lc)
+                                            
                                             logger.info('(%s) Conference Bridge: %s, Call Bridged to OBP System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
 
                                         # Record the time of this packet so we can later identify a stale stream
