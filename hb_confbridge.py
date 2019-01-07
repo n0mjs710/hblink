@@ -270,6 +270,8 @@ class routerOBP(OPENBRIDGE):
                                         _target_status[_stream_id]['EMB_LC'] = bptc.encode_emblc(dst_lc)
 
                                         logger.info('(%s) Conference Bridge: %s, Call Bridged to OBP System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
+                                        if CONFIG['REPORTS']['REPORT']:
+                                            systems[_target['SYSTEM']]._report.send_bridgeEvent('GROUP VOICE,START,TX,{},{},{},{},{},{}'.format(_target['SYSTEM'], int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _target['TS'], int_id(_target['TGID'])))
 
                                     # Record the time of this packet so we can later identify a stale stream
                                     _target_status[_stream_id]['LAST'] = pkt_time
@@ -517,6 +519,8 @@ class routerHBP(HBSYSTEM):
                                             _target_status[_stream_id]['EMB_LC'] = bptc.encode_emblc(dst_lc)
                                             
                                             logger.info('(%s) Conference Bridge: %s, Call Bridged to OBP System: %s TS: %s, TGID: %s', self._system, _bridge, _target['SYSTEM'], _target['TS'], int_id(_target['TGID']))
+                                            if CONFIG['REPORTS']['REPORT']:
+                                                systems[_target['SYSTEM']]._report.send_bridgeEvent('GROUP VOICE,START,TX,{},{},{},{},{},{}'.format(_target['SYSTEM'], int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _target['TS'], int_id(_target['TGID'])))
 
                                         # Record the time of this packet so we can later identify a stale stream
                                         _target_status[_stream_id]['LAST'] = pkt_time
