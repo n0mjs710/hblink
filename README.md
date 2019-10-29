@@ -1,9 +1,5 @@
 ---
-### FOR SUPPORT, DISCUSSION, GETTING INVOLVED ###
-
-Please join the DVSwitch group at groups.io for online forum support, discussion, and to become part of the development team.
-
-DVSwitch@groups.io 
+### THIS SOFTWARE IS DEPRECIATED -- SEE HBLINK3 ###
 
 ---
 
