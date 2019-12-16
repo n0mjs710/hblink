@@ -1,6 +1,8 @@
 ---
 ### THIS SOFTWARE IS DEPRECIATED -- SEE HBLINK3 ###
 
+This version is maintained for historical purposes and for the HB_Bridge branch, which is still very much in use. HB_Bridge is the only branch that should be used. Do not file pull requests, issues or otherwise request features or fixes through github, to the author, or on any online forums.
+
 ---
 
 ## PROJECT: Open Source HomeBrew Repeater Proctol Client/Master. ##
