@@ -1,7 +1,7 @@
 ---
-### THIS SOFTWARE IS DEPRECIATED -- SEE HBLINK3 ###
+### THIS SOFTWARE IS DEPRECIATED -- SEE HBLINK4 ###
 
-This version is maintained for historical purposes and for the HB_Bridge branch, which is still very much in use. HB_Bridge is the only branch that should be used. Do not file pull requests, issues or otherwise request features or fixes through github, to the author, or on any online forums.
+This version is maintained for historical purposes. The HB_Bridge branch is no longer necessary, see ipsc2hbp
 
 ---
 
